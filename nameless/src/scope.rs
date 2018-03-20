@@ -1,91 +1,91 @@
-use {AlphaEq, Binder, Bound, Debruijn};
+use {AlphaEq, Debruijn, Pattern, Term};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Scope<B, T> {
-    pub unsafe_binder: B,
+pub struct Scope<P, T> {
+    pub unsafe_pattern: P,
     pub unsafe_body: T,
 }
 
-impl<B, T> Scope<B, T>
+impl<P, T> Scope<P, T>
 where
-    B: Binder,
-    T: Bound<FreeName = B::FreeName, BoundName = B::BoundName>,
+    P: Pattern,
+    T: Term<FreeName = P::FreeName, BoundName = P::BoundName>,
 {
-    pub fn bind(binder: B, mut body: T) -> Scope<B, T> {
-        body.close(&binder);
+    pub fn bind(pattern: P, mut body: T) -> Scope<P, T> {
+        body.close(&pattern);
 
         Scope {
-            unsafe_binder: binder,
+            unsafe_pattern: pattern,
             unsafe_body: body,
         }
     }
 }
 
-impl<B: AlphaEq, T: AlphaEq> AlphaEq for Scope<B, T> {
-    fn alpha_eq(&self, other: &Scope<B, T>) -> bool {
-        B::alpha_eq(&self.unsafe_binder, &other.unsafe_binder)
+impl<P: AlphaEq, T: AlphaEq> AlphaEq for Scope<P, T> {
+    fn alpha_eq(&self, other: &Scope<P, T>) -> bool {
+        P::alpha_eq(&self.unsafe_pattern, &other.unsafe_pattern)
             && T::alpha_eq(&self.unsafe_body, &other.unsafe_body)
     }
 }
 
-impl<B, T> Bound for Scope<B, T>
+impl<P, T> Term for Scope<P, T>
 where
-    B: Binder,
-    T: Bound<FreeName = B::FreeName, BoundName = B::BoundName>,
+    P: Pattern,
+    T: Term<FreeName = P::FreeName, BoundName = P::BoundName>,
 {
-    type FreeName = B::FreeName;
-    type BoundName = B::BoundName;
+    type FreeName = P::FreeName;
+    type BoundName = P::BoundName;
 
-    fn close_at<B1>(&mut self, index: Debruijn, binder: &B1)
+    fn close_at<P1>(&mut self, index: Debruijn, pattern: &P1)
     where
-        B1: Binder<FreeName = B::FreeName, BoundName = B::BoundName>,
+        P1: Pattern<FreeName = P::FreeName, BoundName = P::BoundName>,
     {
-        self.unsafe_binder.close_at(index, binder);
-        self.unsafe_body.close_at(index.succ(), binder);
+        self.unsafe_pattern.close_at(index, pattern);
+        self.unsafe_body.close_at(index.succ(), pattern);
     }
 
-    fn open_at<B1>(&mut self, index: Debruijn, binder: &B1)
+    fn open_at<P1>(&mut self, index: Debruijn, pattern: &P1)
     where
-        B1: Binder<FreeName = B::FreeName, BoundName = B::BoundName>,
+        P1: Pattern<FreeName = P::FreeName, BoundName = P::BoundName>,
     {
-        self.unsafe_binder.open_at(index, binder);
-        self.unsafe_body.open_at(index.succ(), binder);
+        self.unsafe_pattern.open_at(index, pattern);
+        self.unsafe_body.open_at(index.succ(), pattern);
     }
 }
 
-/// Unbind a scope, returning the freshened binder and body
-pub fn unbind<B, T>(scope: Scope<B, T>) -> (B, T)
+/// Unbind a scope, returning the freshened pattern and body
+pub fn unbind<P, T>(scope: Scope<P, T>) -> (P, T)
 where
-    B: Binder,
-    T: Bound<FreeName = B::FreeName, BoundName = B::BoundName>,
+    P: Pattern,
+    T: Term<FreeName = P::FreeName, BoundName = P::BoundName>,
 {
-    let mut binder = scope.unsafe_binder;
+    let mut pattern = scope.unsafe_pattern;
     let mut body = scope.unsafe_body;
 
-    binder.freshen();
-    body.open(&binder);
+    pattern.freshen();
+    body.open(&pattern);
 
-    (binder, body)
+    (pattern, body)
 }
 
-pub fn unbind2<B1, T1, B2, T2>(scope1: Scope<B1, T1>, scope2: Scope<B2, T2>) -> (B1, T1, B2, T2)
+pub fn unbind2<P1, T1, P2, T2>(scope1: Scope<P1, T1>, scope2: Scope<P2, T2>) -> (P1, T1, P2, T2)
 where
-    B1: Binder,
-    T1: Bound<FreeName = B1::FreeName, BoundName = B1::BoundName>,
-    B2: Binder<FreeName = B1::FreeName, BoundName = B1::BoundName, NamePerm = B1::NamePerm>,
-    T2: Bound<FreeName = B1::FreeName, BoundName = B1::BoundName>,
+    P1: Pattern,
+    T1: Term<FreeName = P1::FreeName, BoundName = P1::BoundName>,
+    P2: Pattern<FreeName = P1::FreeName, BoundName = P1::BoundName, NamePerm = P1::NamePerm>,
+    T2: Term<FreeName = P1::FreeName, BoundName = P1::BoundName>,
 {
-    let mut scope1_binder = scope1.unsafe_binder;
+    let mut scope1_pattern = scope1.unsafe_pattern;
     let mut scope1_body = scope1.unsafe_body;
-    let mut scope2_binder = scope2.unsafe_binder;
+    let mut scope2_pattern = scope2.unsafe_pattern;
     let mut scope2_body = scope2.unsafe_body;
 
     {
-        let names = scope1_binder.freshen();
-        scope2_binder.rename(&names);
-        scope1_body.open(&scope1_binder);
-        scope2_body.open(&scope2_binder);
+        let names = scope1_pattern.freshen();
+        scope2_pattern.rename(&names);
+        scope1_body.open(&scope1_pattern);
+        scope2_body.open(&scope2_pattern);
     }
 
-    (scope1_binder, scope1_body, scope2_binder, scope2_body)
+    (scope1_pattern, scope1_body, scope2_pattern, scope2_body)
 }

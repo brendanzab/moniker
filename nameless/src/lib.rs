@@ -49,21 +49,21 @@ pub use nameless_derive::*;
 
 #[macro_use]
 mod alpha_eq;
-mod binder;
-mod bound;
 mod debruijn;
 mod gen_id;
 mod named;
+mod pattern;
 mod scope;
+mod term;
 mod var;
 
 pub use self::alpha_eq::AlphaEq;
-pub use self::binder::Binder;
-pub use self::bound::Bound;
 pub use self::debruijn::Debruijn;
 pub use self::gen_id::GenId;
 pub use self::named::Named;
+pub use self::pattern::Pattern;
 pub use self::scope::{unbind, Scope, unbind2};
+pub use self::term::Term;
 pub use self::var::Var;
 
 /// Free names

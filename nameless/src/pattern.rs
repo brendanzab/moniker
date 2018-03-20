@@ -1,6 +1,6 @@
-use {Bound, Debruijn};
+use {Debruijn, Term};
 
-pub trait Binder: Bound {
+pub trait Pattern: Term {
     type NamePerm;
 
     fn freshen(&mut self) -> Self::NamePerm;
@@ -9,37 +9,37 @@ pub trait Binder: Bound {
     fn on_bound(&self, index: Debruijn, name: &Self::BoundName) -> Option<Self::FreeName>;
 }
 
-impl<T: Binder + Clone> Binder for [T] {
+impl<T: Pattern + Clone> Pattern for [T] {
     type NamePerm = Vec<T::NamePerm>;
 
     fn freshen(&mut self) -> Vec<T::NamePerm> {
-        self.iter_mut().map(|binder| binder.freshen()).collect()
+        self.iter_mut().map(|pattern| pattern.freshen()).collect()
     }
 
     fn rename(&mut self, perm: &Vec<T::NamePerm>) {
         assert_eq!(self.len(), perm.len());
 
-        for (binder, perm) in <_>::zip(self.iter_mut(), perm.iter()) {
-            binder.rename(perm);
+        for (pattern, perm) in <_>::zip(self.iter_mut(), perm.iter()) {
+            pattern.rename(perm);
         }
     }
 
     fn on_free(&self, index: Debruijn, name: &T::FreeName) -> Option<T::BoundName> {
         self.iter()
             .enumerate()
-            .filter_map(|(_i, binder)| binder.on_free(index, name)) // FIXME: use binding number
+            .filter_map(|(_i, pattern)| pattern.on_free(index, name)) // FIXME: use binding number
             .next() // FIXME: return bind
     }
 
     fn on_bound(&self, index: Debruijn, name: &T::BoundName) -> Option<T::FreeName> {
         self.iter()
             .enumerate()
-            .filter_map(|(_i, binder)| binder.on_bound(index, name)) // FIXME: use binding number
+            .filter_map(|(_i, pattern)| pattern.on_bound(index, name)) // FIXME: use binding number
             .next()
     }
 }
 
-impl<T: Binder + Clone> Binder for Vec<T> {
+impl<T: Pattern + Clone> Pattern for Vec<T> {
     type NamePerm = Vec<T::NamePerm>;
 
     fn freshen(&mut self) -> Vec<T::NamePerm> {

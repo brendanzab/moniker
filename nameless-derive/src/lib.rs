@@ -8,38 +8,38 @@ extern crate synstructure;
 
 use synstructure::{BindStyle, Structure};
 
-decl_derive!([Bound] => locally_nameless_derive);
+decl_derive!([Term] => term_derive);
 
-fn locally_nameless_derive(mut s: Structure) -> quote::Tokens {
+fn term_derive(mut s: Structure) -> quote::Tokens {
     s.bind_with(|_| BindStyle::RefMut);
 
-    let binder = quote! {
-        __B: ::nameless::Binder<FreeName = Self::FreeName, BoundName = Self::BoundName>,
+    let pattern = quote! {
+        __P: ::nameless::Pattern<FreeName = Self::FreeName, BoundName = Self::BoundName>,
     };
 
     let close_at_body = s.each(|bi| {
         quote!{
-            ::nameless::Bound::close_at(#bi, __index, __binder);
+            ::nameless::Term::close_at(#bi, __index, __pattern);
         }
     });
 
     let open_at_body = s.each(|bi| {
         quote!{
-            ::nameless::Bound::open_at(#bi, __index, __binder);
+            ::nameless::Term::open_at(#bi, __index, __pattern);
         }
     });
 
     s.bound_impl(
-        quote!(::nameless::Bound),
+        quote!(::nameless::Term),
         quote! {
             type FreeName = Name; // FIXME!
             type BoundName = ::nameless::Debruijn; // FIXME!
 
-            fn close_at<__B>(&mut self, __index: Debruijn, __binder: &__B) where #binder {
+            fn close_at<__P>(&mut self, __index: Debruijn, __pattern: &__P) where #pattern {
                 match *self { #close_at_body }
             }
 
-            fn open_at<__B>(&mut self, __index: Debruijn, __binder: &__B) where #binder {
+            fn open_at<__P>(&mut self, __index: Debruijn, __pattern: &__P) where #pattern {
                 match *self { #open_at_body }
             }
         },

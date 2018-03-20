@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
 
-use {AlphaEq, Binder, Bound, Debruijn, FreeName};
+use {AlphaEq, Debruijn, FreeName, Pattern, Term};
 
 /// A type annotated with a name for debugging purposes
 ///
@@ -23,28 +23,28 @@ impl<N, T: AlphaEq> AlphaEq for Named<N, T> {
     }
 }
 
-impl<T: Bound> Bound for Named<T::FreeName, T> {
+impl<T: Term> Term for Named<T::FreeName, T> {
     type FreeName = T::FreeName;
     type BoundName = T::BoundName;
 
-    fn close_at<B>(&mut self, index: Debruijn, binder: &B)
+    fn close_at<P>(&mut self, index: Debruijn, pattern: &P)
     where
-        B: Binder<FreeName = Self::FreeName, BoundName = Self::BoundName>,
+        P: Pattern<FreeName = Self::FreeName, BoundName = Self::BoundName>,
     {
-        self.inner.close_at(index, binder);
+        self.inner.close_at(index, pattern);
     }
 
-    fn open_at<B>(&mut self, index: Debruijn, binder: &B)
+    fn open_at<P>(&mut self, index: Debruijn, pattern: &P)
     where
-        B: Binder<FreeName = Self::FreeName, BoundName = Self::BoundName>,
+        P: Pattern<FreeName = Self::FreeName, BoundName = Self::BoundName>,
     {
-        self.inner.open_at(index, binder);
+        self.inner.open_at(index, pattern);
     }
 }
 
-impl<N: FreeName, T> Binder for Named<N, T>
+impl<N: FreeName, T> Pattern for Named<N, T>
 where
-    T: Bound<FreeName = N, BoundName = Debruijn>,
+    T: Term<FreeName = N, BoundName = Debruijn>,
 {
     type NamePerm = N;
 
