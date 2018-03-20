@@ -68,7 +68,7 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Rc<Expr> {
         Expr::Lam(_) => expr.clone(),
         Expr::App(ref fun, ref arg) => match *eval(env, fun) {
             Expr::Lam(ref scope) => {
-                let (name, body) = scope.clone().unbind();
+                let (name, body) = nameless::unbind(scope.clone());
                 eval(&extend(env.clone(), name.name, eval(env, arg)), &body)
             },
             _ => expr.clone(),
@@ -76,7 +76,8 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Rc<Expr> {
     }
 }
 
-fn main() {
+#[test]
+fn test_eval() {
     // expr = (\x -> x) y
     let expr = Rc::new(Expr::App(
         Rc::new(Expr::Lam(Scope::bind(
@@ -86,5 +87,8 @@ fn main() {
         Rc::new(Expr::Var(Var::Free(Name::user("y")))),
     ));
 
-    println!("{:?}", eval(&Rc::new(Env::Empty), &expr)); // Var(User("y"))
+    assert_alpha_eq!(
+        eval(&Rc::new(Env::Empty), &expr),
+        Rc::new(Expr::Var(Var::Free(Name::user("y")))),
+    );
 }

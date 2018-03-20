@@ -73,7 +73,7 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
         Expr::Lam(_) => Ok(expr.clone()),
         Expr::App(ref fun, ref args) => match *eval(env, fun)? {
             Expr::Lam(ref scope) => {
-                let (params, body) = scope.clone().unbind();
+                let (params, body) = nameless::unbind(scope.clone());
 
                 if params.len() != args.len() {
                     Err(EvalError::ArgumentCountMismatch {
@@ -93,7 +93,8 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
     }
 }
 
-fn main() {
+#[test]
+fn test_eval() {
     // expr = (fn(x, y) -> x)(a, b)
     let expr = Rc::new(Expr::App(
         Rc::new(Expr::Lam(Scope::bind(
@@ -110,5 +111,8 @@ fn main() {
     ));
 
     // FIXME - currently prints `Ok(Var(User("a")))` due to a bad impl of `Binder` for `[T]`
-    println!("{:?}", eval(&Rc::new(Env::Empty), &expr)); // Ok(Var(User("b")))
+    assert_alpha_eq!(
+        eval(&Rc::new(Env::Empty), &expr).unwrap(),
+        Rc::new(Expr::Var(Var::Free(Name::user("b")))),
+    );
 }

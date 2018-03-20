@@ -61,7 +61,7 @@ pub use self::alpha_eq::AlphaEq;
 pub use self::debruijn::Debruijn;
 pub use self::gen_id::GenId;
 pub use self::named::Named;
-pub use self::scope::{Scope, unbind2};
+pub use self::scope::{Scope, unbind, unbind2};
 pub use self::var::Var;
 
 /// Free names

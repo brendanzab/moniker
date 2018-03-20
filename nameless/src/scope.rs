@@ -19,16 +19,6 @@ where
             unsafe_body: body,
         }
     }
-
-    pub fn unbind(self) -> (B, T) {
-        let mut binder = self.unsafe_binder;
-        let mut body = self.unsafe_body;
-
-        binder.freshen();
-        body.open(&binder);
-
-        (binder, body)
-    }
 }
 
 impl<B: AlphaEq, T: AlphaEq> AlphaEq for Scope<B, T> {
@@ -61,6 +51,21 @@ where
         self.unsafe_binder.open_at(index, binder);
         self.unsafe_body.open_at(index.succ(), binder);
     }
+}
+
+/// Unbind a scope, returning the freshened binder and body
+pub fn unbind<B, T>(scope: Scope<B, T>) -> (B, T)
+where
+    B: Binder,
+    T: Bound<FreeName = B::FreeName, BoundName = B::BoundName>,
+{
+    let mut binder = scope.unsafe_binder;
+    let mut body = scope.unsafe_body;
+
+    binder.freshen();
+    body.open(&binder);
+
+    (binder, body)
 }
 
 pub fn unbind2<B1, T1, B2, T2>(scope1: Scope<B1, T1>, scope2: Scope<B2, T2>) -> (B1, T1, B2, T2)
