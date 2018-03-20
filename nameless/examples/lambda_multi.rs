@@ -56,7 +56,7 @@ pub struct Unit;
 
 #[derive(Debug, Clone, AlphaEq, Term)]
 pub enum Expr {
-    Var(Var<Name, Debruijn>),
+    Var(Var<Name>),
     Lam(Scope<Vec<Named<Name, Unit>>, Rc<Expr>>),
     App(Rc<Expr>, Vec<Rc<Expr>>),
 }
@@ -69,7 +69,7 @@ pub enum EvalError {
 pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
     match **expr {
         Expr::Var(Var::Free(ref name)) => Ok(lookup(env, name).unwrap_or(expr).clone()),
-        Expr::Var(Var::Bound(ref name)) => panic!("encountered a bound variable: {:?}", name),
+        Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
         Expr::Lam(_) => Ok(expr.clone()),
         Expr::App(ref fun, ref args) => match *eval(env, fun)? {
             Expr::Lam(ref scope) => {
@@ -95,14 +95,14 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
 
 #[test]
 fn test_eval() {
-    // expr = (fn(x, y) -> x)(a, b)
+    // expr = (fn(x, y) -> y)(a, b)
     let expr = Rc::new(Expr::App(
         Rc::new(Expr::Lam(Scope::bind(
             vec![
                 Named::new(Name::user("x"), Unit),
                 Named::new(Name::user("y"), Unit),
             ],
-            Rc::new(Expr::Var(Var::Free(Name::user("x")))),
+            Rc::new(Expr::Var(Var::Free(Name::user("y")))),
         ))),
         vec![
             Rc::new(Expr::Var(Var::Free(Name::user("a")))),
@@ -110,7 +110,6 @@ fn test_eval() {
         ],
     ));
 
-    // FIXME - currently prints `Ok(Var(User("a")))` due to a bad impl of `Binder` for `[T]`
     assert_alpha_eq!(
         eval(&Rc::new(Env::Empty), &expr).unwrap(),
         Rc::new(Expr::Var(Var::Free(Name::user("b")))),

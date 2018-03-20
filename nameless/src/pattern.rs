@@ -1,12 +1,12 @@
-use {Debruijn, Term};
+use {BoundName, Debruijn, PatternIndex, Term};
 
 pub trait Pattern: Term {
     type NamePerm;
 
     fn freshen(&mut self) -> Self::NamePerm;
     fn rename(&mut self, perm: &Self::NamePerm);
-    fn on_free(&self, index: Debruijn, name: &Self::FreeName) -> Option<Self::BoundName>;
-    fn on_bound(&self, index: Debruijn, name: &Self::BoundName) -> Option<Self::FreeName>;
+    fn on_free(&self, index: Debruijn, name: &Self::FreeName) -> Option<BoundName>;
+    fn on_bound(&self, index: Debruijn, name: BoundName) -> Option<Self::FreeName>;
 }
 
 impl<T: Pattern + Clone> Pattern for [T] {
@@ -24,18 +24,31 @@ impl<T: Pattern + Clone> Pattern for [T] {
         }
     }
 
-    fn on_free(&self, index: Debruijn, name: &T::FreeName) -> Option<T::BoundName> {
+    fn on_free(&self, index: Debruijn, name: &T::FreeName) -> Option<BoundName> {
         self.iter()
             .enumerate()
-            .filter_map(|(_i, pattern)| pattern.on_free(index, name)) // FIXME: use binding number
-            .next() // FIXME: return bind
+            .filter_map(|(i, pattern)| {
+                pattern.on_free(index, name).map(|bound| {
+                    assert_eq!(bound.pattern, PatternIndex(0));
+                    BoundName {
+                        pattern: PatternIndex(i as u32),
+                        ..bound
+                    }
+                })
+            })
+            .next()
     }
 
-    fn on_bound(&self, index: Debruijn, name: &T::BoundName) -> Option<T::FreeName> {
-        self.iter()
-            .enumerate()
-            .filter_map(|(_i, pattern)| pattern.on_bound(index, name)) // FIXME: use binding number
-            .next()
+    fn on_bound(&self, index: Debruijn, name: BoundName) -> Option<T::FreeName> {
+        self.get(name.pattern.0 as usize).and_then(|pattern| {
+            pattern.on_bound(
+                index,
+                BoundName {
+                    pattern: PatternIndex(0),
+                    ..name
+                },
+            )
+        })
     }
 }
 
@@ -50,11 +63,11 @@ impl<T: Pattern + Clone> Pattern for Vec<T> {
         <[T]>::rename(self, perm)
     }
 
-    fn on_free(&self, index: Debruijn, name: &T::FreeName) -> Option<T::BoundName> {
+    fn on_free(&self, index: Debruijn, name: &T::FreeName) -> Option<BoundName> {
         <[T]>::on_free(self, index, name)
     }
 
-    fn on_bound(&self, index: Debruijn, name: &T::BoundName) -> Option<T::FreeName> {
+    fn on_bound(&self, index: Debruijn, name: BoundName) -> Option<T::FreeName> {
         <[T]>::on_bound(self, index, name)
     }
 }

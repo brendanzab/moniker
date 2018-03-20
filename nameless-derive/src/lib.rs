@@ -14,7 +14,7 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
     s.bind_with(|_| BindStyle::RefMut);
 
     let pattern = quote! {
-        __P: ::nameless::Pattern<FreeName = Self::FreeName, BoundName = Self::BoundName>,
+        __P: ::nameless::Pattern<FreeName = Self::FreeName>,
     };
 
     let close_at_body = s.each(|bi| {
@@ -33,7 +33,6 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
         quote!(::nameless::Term),
         quote! {
             type FreeName = Name; // FIXME!
-            type BoundName = ::nameless::Debruijn; // FIXME!
 
             fn close_at<__P>(&mut self, __index: Debruijn, __pattern: &__P) where #pattern {
                 match *self { #close_at_body }

@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
 
-use {AlphaEq, Debruijn, FreeName, Pattern, Term};
+use {AlphaEq, BoundName, Debruijn, FreeName, Pattern, PatternIndex, Term};
 
 /// A type annotated with a name for debugging purposes
 ///
@@ -25,27 +25,17 @@ impl<N, T: AlphaEq> AlphaEq for Named<N, T> {
 
 impl<T: Term> Term for Named<T::FreeName, T> {
     type FreeName = T::FreeName;
-    type BoundName = T::BoundName;
 
-    fn close_at<P>(&mut self, index: Debruijn, pattern: &P)
-    where
-        P: Pattern<FreeName = Self::FreeName, BoundName = Self::BoundName>,
-    {
+    fn close_at<P: Pattern<FreeName = Self::FreeName>>(&mut self, index: Debruijn, pattern: &P) {
         self.inner.close_at(index, pattern);
     }
 
-    fn open_at<P>(&mut self, index: Debruijn, pattern: &P)
-    where
-        P: Pattern<FreeName = Self::FreeName, BoundName = Self::BoundName>,
-    {
+    fn open_at<P: Pattern<FreeName = Self::FreeName>>(&mut self, index: Debruijn, pattern: &P) {
         self.inner.open_at(index, pattern);
     }
 }
 
-impl<N: FreeName, T> Pattern for Named<N, T>
-where
-    T: Term<FreeName = N, BoundName = Debruijn>,
-{
+impl<N: FreeName, T: Term<FreeName = N>> Pattern for Named<N, T> {
     type NamePerm = N;
 
     fn freshen(&mut self) -> N {
@@ -57,16 +47,22 @@ where
         self.name = perm.clone(); // FIXME: double clone
     }
 
-    fn on_free(&self, index: Debruijn, name: &Self::FreeName) -> Option<Debruijn> {
+    fn on_free(&self, index: Debruijn, name: &Self::FreeName) -> Option<BoundName> {
         match *name == self.name {
-            true => Some(index),
+            true => Some(BoundName {
+                scope: index,
+                pattern: PatternIndex(0),
+            }),
             false => None,
         }
     }
 
-    fn on_bound(&self, index: Debruijn, name: &Debruijn) -> Option<Self::FreeName> {
-        match *name == index {
-            true => Some(self.name.clone()),
+    fn on_bound(&self, index: Debruijn, name: BoundName) -> Option<Self::FreeName> {
+        match name.scope == index {
+            true => {
+                assert_eq!(name.pattern, PatternIndex(0));
+                Some(self.name.clone())
+            },
             false => None,
         }
     }

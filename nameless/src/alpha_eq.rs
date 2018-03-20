@@ -87,7 +87,7 @@ macro_rules! assert_alpha_eq {
         match (&$left, &$right) {
             (left_val, right_val) => {
                 if !::nameless::AlphaEq::alpha_eq(left_val, right_val) {
-                    panic!(r#"assertion failed: `(<_>::alpha_eq(&left, &right)`
+                    panic!(r#"assertion failed: `<_>::alpha_eq(&left, &right)`
   left: `{:?}`,
  right: `{:?}`"#, left_val, right_val)
                 }
@@ -101,7 +101,7 @@ macro_rules! assert_alpha_eq {
         match (&($left), &($right)) {
             (left_val, right_val) => {
                 if !::nameless::AlphaEq::alpha_eq(left_val, right_val) {
-                    panic!(r#"assertion failed: `(<_>::alpha_eq(&left, &right)`
+                    panic!(r#"assertion failed: `<_>::alpha_eq(&left, &right)`
   left: `{:?}`,
  right: `{:?}`: {}"#, left_val, right_val,
                            format_args!($($arg)+))
