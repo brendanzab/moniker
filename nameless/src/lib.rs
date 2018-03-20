@@ -43,14 +43,14 @@ extern crate lazy_static;
 #[macro_use]
 extern crate nameless_derive;
 
-use std::rc::Rc;
-
 #[cfg(feature = "nameless-derive")]
 #[doc(hidden)]
 pub use nameless_derive::*;
 
 #[macro_use]
 mod alpha_eq;
+mod binder;
+mod bound;
 mod debruijn;
 mod gen_id;
 mod named;
@@ -58,202 +58,15 @@ mod scope;
 mod var;
 
 pub use self::alpha_eq::AlphaEq;
+pub use self::binder::Binder;
+pub use self::bound::Bound;
 pub use self::debruijn::Debruijn;
 pub use self::gen_id::GenId;
 pub use self::named::Named;
-pub use self::scope::{Scope, unbind, unbind2};
+pub use self::scope::{unbind, Scope, unbind2};
 pub use self::var::Var;
 
 /// Free names
 pub trait FreeName: Clone + PartialEq {
     fn freshen(&mut self);
-}
-
-pub trait Bound {
-    type FreeName: FreeName;
-    type BoundName;
-
-    fn close<B>(&mut self, binder: &B)
-    where
-        B: Binder<FreeName = Self::FreeName, BoundName = Self::BoundName>,
-    {
-        self.close_at(Debruijn(0), binder);
-    }
-
-    fn open<B>(&mut self, binder: &B)
-    where
-        B: Binder<FreeName = Self::FreeName, BoundName = Self::BoundName>,
-    {
-        self.open_at(Debruijn(0), binder);
-    }
-
-    fn close_at<B>(&mut self, index: Debruijn, binder: &B)
-    where
-        B: Binder<FreeName = Self::FreeName, BoundName = Self::BoundName>;
-
-    fn open_at<B>(&mut self, index: Debruijn, binder: &B)
-    where
-        B: Binder<FreeName = Self::FreeName, BoundName = Self::BoundName>;
-}
-
-impl<T: Bound> Bound for Option<T> {
-    type FreeName = T::FreeName;
-    type BoundName = T::BoundName;
-
-    fn close_at<B>(&mut self, index: Debruijn, binder: &B)
-    where
-        B: Binder<FreeName = T::FreeName, BoundName = T::BoundName>,
-    {
-        if let Some(ref mut inner) = *self {
-            inner.close_at(index, binder);
-        }
-    }
-
-    fn open_at<B>(&mut self, index: Debruijn, binder: &B)
-    where
-        B: Binder<FreeName = T::FreeName, BoundName = T::BoundName>,
-    {
-        if let Some(ref mut inner) = *self {
-            inner.open_at(index, binder);
-        }
-    }
-}
-
-impl<T: Bound> Bound for Box<T> {
-    type FreeName = T::FreeName;
-    type BoundName = T::BoundName;
-
-    fn close_at<B>(&mut self, index: Debruijn, binder: &B)
-    where
-        B: Binder<FreeName = T::FreeName, BoundName = T::BoundName>,
-    {
-        (**self).close_at(index, binder);
-    }
-
-    fn open_at<B>(&mut self, index: Debruijn, binder: &B)
-    where
-        B: Binder<FreeName = T::FreeName, BoundName = T::BoundName>,
-    {
-        (**self).open_at(index, binder);
-    }
-}
-
-impl<T: Bound + Clone> Bound for Rc<T> {
-    type FreeName = T::FreeName;
-    type BoundName = T::BoundName;
-
-    fn close_at<B>(&mut self, index: Debruijn, binder: &B)
-    where
-        B: Binder<FreeName = T::FreeName, BoundName = T::BoundName>,
-    {
-        Rc::make_mut(self).close_at(index, binder);
-    }
-
-    fn open_at<B>(&mut self, index: Debruijn, binder: &B)
-    where
-        B: Binder<FreeName = T::FreeName, BoundName = T::BoundName>,
-    {
-        Rc::make_mut(self).open_at(index, binder);
-    }
-}
-
-impl<T: Bound + Clone> Bound for [T] {
-    type FreeName = T::FreeName;
-    type BoundName = T::BoundName;
-
-    fn close_at<B>(&mut self, index: Debruijn, binder: &B)
-    where
-        B: Binder<FreeName = T::FreeName, BoundName = T::BoundName>,
-    {
-        for elem in self {
-            elem.close_at(index, binder);
-        }
-    }
-
-    fn open_at<B>(&mut self, index: Debruijn, binder: &B)
-    where
-        B: Binder<FreeName = T::FreeName, BoundName = T::BoundName>,
-    {
-        for elem in self {
-            elem.open_at(index, binder);
-        }
-    }
-}
-
-impl<T: Bound + Clone> Bound for Vec<T> {
-    type FreeName = T::FreeName;
-    type BoundName = T::BoundName;
-
-    fn close_at<B>(&mut self, index: Debruijn, binder: &B)
-    where
-        B: Binder<FreeName = T::FreeName, BoundName = T::BoundName>,
-    {
-        <[T]>::close_at(self, index, binder)
-    }
-
-    fn open_at<B>(&mut self, index: Debruijn, binder: &B)
-    where
-        B: Binder<FreeName = T::FreeName, BoundName = T::BoundName>,
-    {
-        <[T]>::open_at(self, index, binder)
-    }
-}
-
-pub trait Binder: Bound {
-    type NamePerm;
-
-    fn freshen(&mut self) -> Self::NamePerm;
-    fn rename(&mut self, perm: &Self::NamePerm);
-    fn on_free(&self, index: Debruijn, name: &Self::FreeName) -> Option<Self::BoundName>;
-    fn on_bound(&self, index: Debruijn, name: &Self::BoundName) -> Option<Self::FreeName>;
-}
-
-impl<T: Binder + Clone> Binder for [T] {
-    type NamePerm = Vec<T::NamePerm>;
-
-    fn freshen(&mut self) -> Vec<T::NamePerm> {
-        self.iter_mut().map(|binder| binder.freshen()).collect()
-    }
-
-    fn rename(&mut self, perm: &Vec<T::NamePerm>) {
-        assert_eq!(self.len(), perm.len());
-
-        for (binder, perm) in <_>::zip(self.iter_mut(), perm.iter()) {
-            binder.rename(perm);
-        }
-    }
-
-    fn on_free(&self, index: Debruijn, name: &T::FreeName) -> Option<T::BoundName> {
-        self.iter()
-            .enumerate()
-            .filter_map(|(_i, binder)| binder.on_free(index, name)) // FIXME: use binding number
-            .next() // FIXME: return bind
-    }
-
-    fn on_bound(&self, index: Debruijn, name: &T::BoundName) -> Option<T::FreeName> {
-        self.iter()
-            .enumerate()
-            .filter_map(|(_i, binder)| binder.on_bound(index, name)) // FIXME: use binding number
-            .next()
-    }
-}
-
-impl<T: Binder + Clone> Binder for Vec<T> {
-    type NamePerm = Vec<T::NamePerm>;
-
-    fn freshen(&mut self) -> Vec<T::NamePerm> {
-        <[T]>::freshen(self)
-    }
-
-    fn rename(&mut self, perm: &Vec<T::NamePerm>) {
-        <[T]>::rename(self, perm)
-    }
-
-    fn on_free(&self, index: Debruijn, name: &T::FreeName) -> Option<T::BoundName> {
-        <[T]>::on_free(self, index, name)
-    }
-
-    fn on_bound(&self, index: Debruijn, name: &T::BoundName) -> Option<T::FreeName> {
-        <[T]>::on_bound(self, index, name)
-    }
 }
