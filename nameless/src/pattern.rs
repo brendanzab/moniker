@@ -1,11 +1,18 @@
 use {BoundName, Debruijn, PatternIndex, Term};
 
 pub trait Pattern: Term {
+    // TODO: This is kinda yuck - need to figure out a better way!
     type NamePerm;
 
     fn freshen(&mut self) -> Self::NamePerm;
     fn rename(&mut self, perm: &Self::NamePerm);
+
+    /// A callback that is used when `unbind`ing `Scope`s to replace free names
+    /// with bound names based on the contents of the pattern
     fn on_free(&self, index: Debruijn, name: &Self::FreeName) -> Option<BoundName>;
+
+    /// A callback that is used when `bind`ing `Scope`s to replace bound names
+    /// with free names based on the contents of the pattern
     fn on_bound(&self, index: Debruijn, name: BoundName) -> Option<Self::FreeName>;
 }
 
