@@ -61,7 +61,7 @@ pub use self::gen_id::GenId;
 pub use self::named::Named;
 pub use self::pattern::Pattern;
 pub use self::scope::{unbind, Scope, unbind2};
-pub use self::term::Term;
+pub use self::term::{ScopeState, Term};
 pub use self::var::{BoundName, Debruijn, PatternIndex, Var};
 
 /// Free names

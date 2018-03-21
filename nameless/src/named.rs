@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
 
-use {AlphaEq, BoundName, Debruijn, FreeName, Pattern, PatternIndex, Term};
+use {AlphaEq, BoundName, FreeName, Pattern, PatternIndex, ScopeState, Term};
 
 /// A type annotated with a name for debugging purposes
 ///
@@ -26,12 +26,12 @@ impl<N, T: AlphaEq> AlphaEq for Named<N, T> {
 impl<T: Term> Term for Named<T::FreeName, T> {
     type FreeName = T::FreeName;
 
-    fn close_at<P: Pattern<FreeName = Self::FreeName>>(&mut self, index: Debruijn, pattern: &P) {
-        self.inner.close_at(index, pattern);
+    fn close_at<P: Pattern<FreeName = Self::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
+        self.inner.close_at(state, pattern);
     }
 
-    fn open_at<P: Pattern<FreeName = Self::FreeName>>(&mut self, index: Debruijn, pattern: &P) {
-        self.inner.open_at(index, pattern);
+    fn open_at<P: Pattern<FreeName = Self::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
+        self.inner.open_at(state, pattern);
     }
 }
 
@@ -47,18 +47,18 @@ impl<N: FreeName, T: Term<FreeName = N>> Pattern for Named<N, T> {
         self.name = perm.clone(); // FIXME: double clone
     }
 
-    fn on_free(&self, index: Debruijn, name: &Self::FreeName) -> Option<BoundName> {
+    fn on_free(&self, state: ScopeState, name: &Self::FreeName) -> Option<BoundName> {
         match *name == self.name {
             true => Some(BoundName {
-                scope: index,
+                scope: state.depth(),
                 pattern: PatternIndex(0),
             }),
             false => None,
         }
     }
 
-    fn on_bound(&self, index: Debruijn, name: BoundName) -> Option<Self::FreeName> {
-        match name.scope == index {
+    fn on_bound(&self, state: ScopeState, name: BoundName) -> Option<Self::FreeName> {
+        match name.scope == state.depth() {
             true => {
                 assert_eq!(name.pattern, PatternIndex(0));
                 Some(self.name.clone())

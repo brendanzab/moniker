@@ -1,6 +1,6 @@
 use std::fmt;
 
-use {AlphaEq, FreeName, Pattern, Term};
+use {AlphaEq, FreeName, Pattern, ScopeState, Term};
 
 /// The [Debruijn index] of the binder that introduced the variable
 ///
@@ -72,26 +72,26 @@ impl<F: PartialEq> AlphaEq for Var<F> {
 impl<F: FreeName> Term for Var<F> {
     type FreeName = F;
 
-    fn close_at<P1>(&mut self, index: Debruijn, pattern: &P1)
+    fn close_at<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
         P1: Pattern<FreeName = Self::FreeName>,
     {
         *self = match *self {
             Var::Bound(_, _) => return,
-            Var::Free(ref name) => match pattern.on_free(index, name) {
+            Var::Free(ref name) => match pattern.on_free(state, name) {
                 Some(bound) => Var::Bound(name.clone(), bound),
                 None => return,
             },
         };
     }
 
-    fn open_at<P1>(&mut self, index: Debruijn, pattern: &P1)
+    fn open_at<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
         P1: Pattern<FreeName = Self::FreeName>,
     {
         *self = match *self {
             Var::Free(_) => return,
-            Var::Bound(_, bound) => match pattern.on_bound(index, bound) {
+            Var::Bound(_, bound) => match pattern.on_bound(state, bound) {
                 Some(name) => Var::Free(name),
                 None => return,
             },

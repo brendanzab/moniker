@@ -5,7 +5,7 @@
 extern crate nameless;
 
 use std::rc::Rc;
-use nameless::{AlphaEq, Debruijn, FreeName, GenId, Named, Scope, Var};
+use nameless::{AlphaEq, FreeName, GenId, Named, Scope, Var};
 
 /// The name of a free variable
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AlphaEq)]
@@ -115,3 +115,5 @@ fn test_eval() {
         Rc::new(Expr::Var(Var::Free(Name::user("b")))),
     );
 }
+
+fn main() {}

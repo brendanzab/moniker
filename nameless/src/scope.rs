@@ -1,4 +1,4 @@
-use {AlphaEq, Debruijn, Pattern, Term};
+use {AlphaEq, Pattern, ScopeState, Term};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Scope<P, T> {
@@ -35,20 +35,20 @@ where
 {
     type FreeName = P::FreeName;
 
-    fn close_at<P1>(&mut self, index: Debruijn, pattern: &P1)
+    fn close_at<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
         P1: Pattern<FreeName = P::FreeName>,
     {
-        self.unsafe_pattern.close_at(index, pattern);
-        self.unsafe_body.close_at(index.succ(), pattern);
+        self.unsafe_pattern.close_at(state, pattern);
+        self.unsafe_body.close_at(state.incr(), pattern);
     }
 
-    fn open_at<P1>(&mut self, index: Debruijn, pattern: &P1)
+    fn open_at<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
         P1: Pattern<FreeName = P::FreeName>,
     {
-        self.unsafe_pattern.open_at(index, pattern);
-        self.unsafe_body.open_at(index.succ(), pattern);
+        self.unsafe_pattern.open_at(state, pattern);
+        self.unsafe_body.open_at(state.incr(), pattern);
     }
 }
 

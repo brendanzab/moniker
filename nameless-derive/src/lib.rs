@@ -19,13 +19,13 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
 
     let close_at_body = s.each(|bi| {
         quote!{
-            ::nameless::Term::close_at(#bi, __index, __pattern);
+            ::nameless::Term::close_at(#bi, __state, __pattern);
         }
     });
 
     let open_at_body = s.each(|bi| {
         quote!{
-            ::nameless::Term::open_at(#bi, __index, __pattern);
+            ::nameless::Term::open_at(#bi, __state, __pattern);
         }
     });
 
@@ -34,11 +34,11 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
         quote! {
             type FreeName = Name; // FIXME!
 
-            fn close_at<__P>(&mut self, __index: Debruijn, __pattern: &__P) where #pattern {
+            fn close_at<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P) where #pattern {
                 match *self { #close_at_body }
             }
 
-            fn open_at<__P>(&mut self, __index: Debruijn, __pattern: &__P) where #pattern {
+            fn open_at<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P) where #pattern {
                 match *self { #open_at_body }
             }
         },
