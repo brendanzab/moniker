@@ -1,6 +1,6 @@
 use std::fmt;
 
-use {AlphaEq, FreeName, Pattern, ScopeState, Term};
+use {AlphaEq, Free, Pattern, ScopeState, Term};
 
 /// The [Debruijn index] of the binder that introduced the variable
 ///
@@ -39,12 +39,12 @@ impl AlphaEq for Debruijn {
 pub struct PatternIndex(pub u32);
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
-pub struct BoundName {
+pub struct Bound {
     pub scope: Debruijn,
     pub pattern: PatternIndex,
 }
 
-impl fmt::Display for BoundName {
+impl fmt::Display for Bound {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}.{}", self.scope.0, self.pattern.0)
     }
@@ -56,7 +56,7 @@ pub enum Var<F> {
     /// A free variable
     Free(F),
     /// A variable that is bound by a lambda or pi binder
-    Bound(F, BoundName),
+    Bound(F, Bound),
 }
 
 impl<F: PartialEq> AlphaEq for Var<F> {
@@ -69,12 +69,12 @@ impl<F: PartialEq> AlphaEq for Var<F> {
     }
 }
 
-impl<F: FreeName> Term for Var<F> {
-    type FreeName = F;
+impl<F: Free> Term for Var<F> {
+    type Free = F;
 
-    fn close_at<P1>(&mut self, state: ScopeState, pattern: &P1)
+    fn close_term_at<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
-        P1: Pattern<FreeName = Self::FreeName>,
+        P1: Pattern<Free = Self::Free>,
     {
         *self = match *self {
             Var::Bound(_, _) => return,
@@ -85,9 +85,9 @@ impl<F: FreeName> Term for Var<F> {
         };
     }
 
-    fn open_at<P1>(&mut self, state: ScopeState, pattern: &P1)
+    fn open_term_at<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
-        P1: Pattern<FreeName = Self::FreeName>,
+        P1: Pattern<Free = Self::Free>,
     {
         *self = match *self {
             Var::Free(_) => return,

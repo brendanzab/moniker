@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
 
-use {AlphaEq, BoundName, FreeName, Pattern, PatternIndex, ScopeState, Term};
+use {AlphaEq, Bound, Free, Pattern, PatternIndex, ScopeState, Term};
 
 /// A type annotated with a name for debugging purposes
 ///
@@ -23,19 +23,19 @@ impl<N, T: AlphaEq> AlphaEq for Named<N, T> {
     }
 }
 
-impl<T: Term> Term for Named<T::FreeName, T> {
-    type FreeName = T::FreeName;
+impl<T: Term> Term for Named<T::Free, T> {
+    type Free = T::Free;
 
-    fn close_at<P: Pattern<FreeName = Self::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
-        self.inner.close_at(state, pattern);
+    fn close_term_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        self.inner.close_term_at(state, pattern);
     }
 
-    fn open_at<P: Pattern<FreeName = Self::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
-        self.inner.open_at(state, pattern);
+    fn open_term_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        self.inner.open_term_at(state, pattern);
     }
 }
 
-impl<N: FreeName, T: Term<FreeName = N>> Pattern for Named<N, T> {
+impl<N: Free, T: Term<Free = N>> Pattern for Named<N, T> {
     type NamePerm = N;
 
     fn freshen(&mut self) -> N {
@@ -47,9 +47,9 @@ impl<N: FreeName, T: Term<FreeName = N>> Pattern for Named<N, T> {
         self.name = perm.clone(); // FIXME: double clone
     }
 
-    fn on_free(&self, state: ScopeState, name: &Self::FreeName) -> Option<BoundName> {
+    fn on_free(&self, state: ScopeState, name: &Self::Free) -> Option<Bound> {
         match *name == self.name {
-            true => Some(BoundName {
+            true => Some(Bound {
                 scope: state.depth(),
                 pattern: PatternIndex(0),
             }),
@@ -57,7 +57,7 @@ impl<N: FreeName, T: Term<FreeName = N>> Pattern for Named<N, T> {
         }
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundName) -> Option<Self::FreeName> {
+    fn on_bound(&self, state: ScopeState, name: Bound) -> Option<Self::Free> {
         match name.scope == state.depth() {
             true => {
                 assert_eq!(name.pattern, PatternIndex(0));

@@ -14,32 +14,32 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
     s.bind_with(|_| BindStyle::RefMut);
 
     let pattern = quote! {
-        __P: ::nameless::Pattern<FreeName = Self::FreeName>,
+        __P: ::nameless::Pattern<Free = Self::Free>,
     };
 
-    let close_at_body = s.each(|bi| {
+    let close_term_at_body = s.each(|bi| {
         quote!{
-            ::nameless::Term::close_at(#bi, __state, __pattern);
+            ::nameless::Term::close_term_at(#bi, __state, __pattern);
         }
     });
 
-    let open_at_body = s.each(|bi| {
+    let open_term_at_body = s.each(|bi| {
         quote!{
-            ::nameless::Term::open_at(#bi, __state, __pattern);
+            ::nameless::Term::open_term_at(#bi, __state, __pattern);
         }
     });
 
     s.bound_impl(
         quote!(::nameless::Term),
         quote! {
-            type FreeName = Name; // FIXME!
+            type Free = Name; // FIXME!
 
-            fn close_at<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P) where #pattern {
-                match *self { #close_at_body }
+            fn close_term_at<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P) where #pattern {
+                match *self { #close_term_at_body }
             }
 
-            fn open_at<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P) where #pattern {
-                match *self { #open_at_body }
+            fn open_term_at<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P) where #pattern {
+                match *self { #open_term_at_body }
             }
         },
     )

@@ -1,6 +1,7 @@
+
 use std::rc::Rc;
 
-use {Debruijn, FreeName, Pattern};
+use {Debruijn, Free, Pattern};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScopeState {
@@ -23,84 +24,84 @@ impl ScopeState {
 }
 
 pub trait Term {
-    type FreeName: FreeName;
+    type Free: Free;
 
-    fn close<P: Pattern<FreeName = Self::FreeName>>(&mut self, pattern: &P) {
-        self.close_at(ScopeState::new(), pattern);
+    fn close_term<P: Pattern<Free = Self::Free>>(&mut self, pattern: &P) {
+        self.close_term_at(ScopeState::new(), pattern);
     }
 
-    fn open<P: Pattern<FreeName = Self::FreeName>>(&mut self, pattern: &P) {
-        self.open_at(ScopeState::new(), pattern);
+    fn open_term<P: Pattern<Free = Self::Free>>(&mut self, pattern: &P) {
+        self.open_term_at(ScopeState::new(), pattern);
     }
 
-    fn close_at<P: Pattern<FreeName = Self::FreeName>>(&mut self, state: ScopeState, pattern: &P);
-    fn open_at<P: Pattern<FreeName = Self::FreeName>>(&mut self, state: ScopeState, pattern: &P);
+    fn close_term_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P);
+    fn open_term_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P);
 }
 
 impl<T: Term> Term for Option<T> {
-    type FreeName = T::FreeName;
+    type Free = T::Free;
 
-    fn close_at<P: Pattern<FreeName = T::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_term_at<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         if let Some(ref mut inner) = *self {
-            inner.close_at(state, pattern);
+            inner.close_term_at(state, pattern);
         }
     }
 
-    fn open_at<P: Pattern<FreeName = T::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_term_at<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         if let Some(ref mut inner) = *self {
-            inner.open_at(state, pattern);
+            inner.open_term_at(state, pattern);
         }
     }
 }
 
 impl<T: Term> Term for Box<T> {
-    type FreeName = T::FreeName;
+    type Free = T::Free;
 
-    fn close_at<P: Pattern<FreeName = T::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
-        (**self).close_at(state, pattern);
+    fn close_term_at<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        (**self).close_term_at(state, pattern);
     }
 
-    fn open_at<P: Pattern<FreeName = T::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
-        (**self).open_at(state, pattern);
+    fn open_term_at<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        (**self).open_term_at(state, pattern);
     }
 }
 
 impl<T: Term + Clone> Term for Rc<T> {
-    type FreeName = T::FreeName;
+    type Free = T::Free;
 
-    fn close_at<P: Pattern<FreeName = T::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
-        Rc::make_mut(self).close_at(state, pattern);
+    fn close_term_at<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        Rc::make_mut(self).close_term_at(state, pattern);
     }
 
-    fn open_at<P: Pattern<FreeName = T::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
-        Rc::make_mut(self).open_at(state, pattern);
+    fn open_term_at<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        Rc::make_mut(self).open_term_at(state, pattern);
     }
 }
 
 impl<T: Term + Clone> Term for [T] {
-    type FreeName = T::FreeName;
+    type Free = T::Free;
 
-    fn close_at<P: Pattern<FreeName = T::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_term_at<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         for elem in self {
-            elem.close_at(state, pattern);
+            elem.close_term_at(state, pattern);
         }
     }
 
-    fn open_at<P: Pattern<FreeName = T::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_term_at<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         for elem in self {
-            elem.open_at(state, pattern);
+            elem.open_term_at(state, pattern);
         }
     }
 }
 
 impl<T: Term + Clone> Term for Vec<T> {
-    type FreeName = T::FreeName;
+    type Free = T::Free;
 
-    fn close_at<P: Pattern<FreeName = T::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
-        <[T]>::close_at(self, state, pattern)
+    fn close_term_at<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        <[T]>::close_term_at(self, state, pattern)
     }
 
-    fn open_at<P: Pattern<FreeName = T::FreeName>>(&mut self, state: ScopeState, pattern: &P) {
-        <[T]>::open_at(self, state, pattern)
+    fn open_term_at<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        <[T]>::open_term_at(self, state, pattern)
     }
 }

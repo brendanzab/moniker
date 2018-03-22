@@ -5,7 +5,7 @@
 extern crate nameless;
 
 use std::rc::Rc;
-use nameless::{AlphaEq, FreeName, GenId, Named, Scope, Var};
+use nameless::{AlphaEq, Free, GenId, Named, Scope, Var};
 
 /// The name of a free variable
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AlphaEq)]
@@ -20,7 +20,7 @@ impl Name {
     }
 }
 
-impl FreeName for Name {
+impl Free for Name {
     fn freshen(&mut self) {
         *self = match *self {
             Name::User(_) => Name::Gen(GenId::fresh()),

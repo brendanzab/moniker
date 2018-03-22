@@ -62,9 +62,9 @@ pub use self::named::Named;
 pub use self::pattern::Pattern;
 pub use self::scope::{unbind, Scope, unbind2};
 pub use self::term::{ScopeState, Term};
-pub use self::var::{BoundName, Debruijn, PatternIndex, Var};
+pub use self::var::{Bound, Debruijn, PatternIndex, Var};
 
 /// Free names
-pub trait FreeName: Clone + PartialEq {
+pub trait Free: Clone + PartialEq {
     fn freshen(&mut self);
 }

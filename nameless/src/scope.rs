@@ -9,10 +9,10 @@ pub struct Scope<P, T> {
 impl<P, T> Scope<P, T>
 where
     P: Pattern,
-    T: Term<FreeName = P::FreeName>,
+    T: Term<Free = P::Free>,
 {
     pub fn bind(pattern: P, mut body: T) -> Scope<P, T> {
-        body.close(&pattern);
+        body.close_term(&pattern);
 
         Scope {
             unsafe_pattern: pattern,
@@ -31,24 +31,24 @@ impl<P: AlphaEq, T: AlphaEq> AlphaEq for Scope<P, T> {
 impl<P, T> Term for Scope<P, T>
 where
     P: Pattern,
-    T: Term<FreeName = P::FreeName>,
+    T: Term<Free = P::Free>,
 {
-    type FreeName = P::FreeName;
+    type Free = P::Free;
 
-    fn close_at<P1>(&mut self, state: ScopeState, pattern: &P1)
+    fn close_term_at<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
-        P1: Pattern<FreeName = P::FreeName>,
+        P1: Pattern<Free = P::Free>,
     {
-        self.unsafe_pattern.close_at(state, pattern);
-        self.unsafe_body.close_at(state.incr(), pattern);
+        self.unsafe_pattern.close_term_at(state, pattern);
+        self.unsafe_body.close_term_at(state.incr(), pattern);
     }
 
-    fn open_at<P1>(&mut self, state: ScopeState, pattern: &P1)
+    fn open_term_at<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
-        P1: Pattern<FreeName = P::FreeName>,
+        P1: Pattern<Free = P::Free>,
     {
-        self.unsafe_pattern.open_at(state, pattern);
-        self.unsafe_body.open_at(state.incr(), pattern);
+        self.unsafe_pattern.open_term_at(state, pattern);
+        self.unsafe_body.open_term_at(state.incr(), pattern);
     }
 }
 
@@ -56,13 +56,13 @@ where
 pub fn unbind<P, T>(scope: Scope<P, T>) -> (P, T)
 where
     P: Pattern,
-    T: Term<FreeName = P::FreeName>,
+    T: Term<Free = P::Free>,
 {
     let mut pattern = scope.unsafe_pattern;
     let mut body = scope.unsafe_body;
 
     pattern.freshen();
-    body.open(&pattern);
+    body.open_term(&pattern);
 
     (pattern, body)
 }
@@ -70,9 +70,9 @@ where
 pub fn unbind2<P1, T1, P2, T2>(scope1: Scope<P1, T1>, scope2: Scope<P2, T2>) -> (P1, T1, P2, T2)
 where
     P1: Pattern,
-    T1: Term<FreeName = P1::FreeName>,
-    P2: Pattern<FreeName = P1::FreeName, NamePerm = P1::NamePerm>,
-    T2: Term<FreeName = P1::FreeName>,
+    T1: Term<Free = P1::Free>,
+    P2: Pattern<Free = P1::Free, NamePerm = P1::NamePerm>,
+    T2: Term<Free = P1::Free>,
 {
     let mut scope1_pattern = scope1.unsafe_pattern;
     let mut scope1_body = scope1.unsafe_body;
@@ -82,8 +82,8 @@ where
     {
         let names = scope1_pattern.freshen();
         scope2_pattern.rename(&names);
-        scope1_body.open(&scope1_pattern);
-        scope2_body.open(&scope2_pattern);
+        scope1_body.open_term(&scope1_pattern);
+        scope2_body.open_term(&scope2_pattern);
     }
 
     (scope1_pattern, scope1_body, scope2_pattern, scope2_body)
