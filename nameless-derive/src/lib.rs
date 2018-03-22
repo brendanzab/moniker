@@ -48,15 +48,15 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
 
     s.bind_with(|_| BindStyle::RefMut);
 
-    let close_term_at_body = s.each(|bi| {
+    let close_term_body = s.each(|bi| {
         quote!{
-            ::nameless::Term::close_term_at(#bi, __state, __pattern);
+            ::nameless::Term::close_term(#bi, __state, __pattern);
         }
     });
 
-    let open_term_at_body = s.each(|bi| {
+    let open_term_body = s.each(|bi| {
         quote!{
-            ::nameless::Term::open_term_at(#bi, __state, __pattern);
+            ::nameless::Term::open_term(#bi, __state, __pattern);
         }
     });
 
@@ -69,12 +69,12 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
                 match (self, other) { #term_eq_body }
             }
 
-            fn close_term_at<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P) where #pattern {
-                match *self { #close_term_at_body }
+            fn close_term<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P) where #pattern {
+                match *self { #close_term_body }
             }
 
-            fn open_term_at<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P) where #pattern {
-                match *self { #open_term_at_body }
+            fn open_term<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P) where #pattern {
+                match *self { #open_term_body }
             }
         },
     )

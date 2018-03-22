@@ -17,12 +17,12 @@ impl<T: Term> Pattern for Embed<T> {
 
     fn rename(&mut self, _perm: &[T::Free]) {}
 
-    fn close_pattern_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
-        self.0.close_term_at(state, pattern);
+    fn close_pattern<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        self.0.close_term(state, pattern);
     }
 
-    fn open_pattern_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
-        self.0.open_term_at(state, pattern);
+    fn open_pattern<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        self.0.open_term(state, pattern);
     }
 
     fn on_free(&self, _state: ScopeState, _name: &Self::Free) -> Option<Bound> {

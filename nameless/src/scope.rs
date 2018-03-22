@@ -12,7 +12,7 @@ where
     T: Term<Free = P::Free>,
 {
     pub fn bind(pattern: P, mut body: T) -> Scope<P, T> {
-        body.close_term(&pattern);
+        body.close_term(ScopeState::new(), &pattern);
 
         Scope {
             unsafe_pattern: pattern,
@@ -33,20 +33,20 @@ where
             && T::term_eq(&self.unsafe_body, &other.unsafe_body)
     }
 
-    fn close_term_at<P1>(&mut self, state: ScopeState, pattern: &P1)
+    fn close_term<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
         P1: Pattern<Free = P::Free>,
     {
-        self.unsafe_pattern.close_pattern_at(state, pattern);
-        self.unsafe_body.close_term_at(state.incr(), pattern);
+        self.unsafe_pattern.close_pattern(state, pattern);
+        self.unsafe_body.close_term(state.incr(), pattern);
     }
 
-    fn open_term_at<P1>(&mut self, state: ScopeState, pattern: &P1)
+    fn open_term<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
         P1: Pattern<Free = P::Free>,
     {
-        self.unsafe_pattern.open_pattern_at(state, pattern);
-        self.unsafe_body.open_term_at(state.incr(), pattern);
+        self.unsafe_pattern.open_pattern(state, pattern);
+        self.unsafe_body.open_term(state.incr(), pattern);
     }
 }
 
@@ -60,7 +60,7 @@ where
     let mut body = scope.unsafe_body;
 
     pattern.freshen();
-    body.open_term(&pattern);
+    body.open_term(ScopeState::new(), &pattern);
 
     (pattern, body)
 }
@@ -80,8 +80,8 @@ where
     {
         let names = scope1_pattern.freshen();
         scope2_pattern.rename(&names);
-        scope1_body.open_term(&scope1_pattern);
-        scope2_body.open_term(&scope2_pattern);
+        scope1_body.open_term(ScopeState::new(), &scope1_pattern);
+        scope2_body.open_term(ScopeState::new(), &scope2_pattern);
     }
 
     (scope1_pattern, scope1_body, scope2_pattern, scope2_body)

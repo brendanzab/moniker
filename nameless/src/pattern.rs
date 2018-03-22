@@ -9,25 +9,11 @@ pub trait Pattern {
     fn freshen(&mut self) -> Vec<Self::Free>;
     fn rename(&mut self, perm: &[Self::Free]);
 
-    fn close_pattern<P>(&mut self, pattern: &P)
-    where
-        P: Pattern<Free = Self::Free>,
-    {
-        self.close_pattern_at(ScopeState::new(), pattern);
-    }
-
-    fn open_pattern<P>(&mut self, pattern: &P)
-    where
-        P: Pattern<Free = Self::Free>,
-    {
-        self.open_pattern_at(ScopeState::new(), pattern);
-    }
-
-    fn close_pattern_at<P>(&mut self, state: ScopeState, pattern: &P)
+    fn close_pattern<P>(&mut self, state: ScopeState, pattern: &P)
     where
         P: Pattern<Free = Self::Free>;
 
-    fn open_pattern_at<P>(&mut self, state: ScopeState, pattern: &P)
+    fn open_pattern<P>(&mut self, state: ScopeState, pattern: &P)
     where
         P: Pattern<Free = Self::Free>;
 
@@ -104,15 +90,15 @@ where
         }
     }
 
-    fn close_pattern_at<P1: Pattern<Free = P::Free>>(&mut self, state: ScopeState, pattern: &P1) {
+    fn close_pattern<P1: Pattern<Free = P::Free>>(&mut self, state: ScopeState, pattern: &P1) {
         for elem in self {
-            elem.close_pattern_at(state, pattern);
+            elem.close_pattern(state, pattern);
         }
     }
 
-    fn open_pattern_at<P1: Pattern<Free = P::Free>>(&mut self, state: ScopeState, pattern: &P1) {
+    fn open_pattern<P1: Pattern<Free = P::Free>>(&mut self, state: ScopeState, pattern: &P1) {
         for elem in self {
-            elem.open_pattern_at(state, pattern);
+            elem.open_pattern(state, pattern);
         }
     }
 
@@ -162,12 +148,12 @@ where
         <[P]>::rename(self, perm)
     }
 
-    fn close_pattern_at<P1: Pattern<Free = P::Free>>(&mut self, state: ScopeState, pattern: &P1) {
-        <[P]>::close_pattern_at(self, state, pattern)
+    fn close_pattern<P1: Pattern<Free = P::Free>>(&mut self, state: ScopeState, pattern: &P1) {
+        <[P]>::close_pattern(self, state, pattern)
     }
 
-    fn open_pattern_at<P1: Pattern<Free = P::Free>>(&mut self, state: ScopeState, pattern: &P1) {
-        <[P]>::open_pattern_at(self, state, pattern)
+    fn open_pattern<P1: Pattern<Free = P::Free>>(&mut self, state: ScopeState, pattern: &P1) {
+        <[P]>::open_pattern(self, state, pattern)
     }
 
     fn on_free(&self, state: ScopeState, name: &P::Free) -> Option<Bound> {
@@ -197,14 +183,14 @@ impl<P1: Pattern, P2: Pattern<Free = P1::Free>> Pattern for (P1, P2) {
         self.1.rename(perm);
     }
 
-    fn close_pattern_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
-        self.0.close_pattern_at(state, pattern);
-        self.1.close_pattern_at(state, pattern);
+    fn close_pattern<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        self.0.close_pattern(state, pattern);
+        self.1.close_pattern(state, pattern);
     }
 
-    fn open_pattern_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
-        self.0.open_pattern_at(state, pattern);
-        self.1.open_pattern_at(state, pattern);
+    fn open_pattern<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        self.0.open_pattern(state, pattern);
+        self.1.open_pattern(state, pattern);
     }
 
     fn on_free(&self, state: ScopeState, name: &Self::Free) -> Option<Bound> {

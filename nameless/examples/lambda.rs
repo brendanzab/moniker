@@ -31,8 +31,8 @@ impl Term for Name {
         }
     }
 
-    fn close_term_at<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
-    fn open_term_at<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+    fn close_term<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+    fn open_term<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
 }
 
 impl Pattern for Name {
@@ -55,9 +55,9 @@ impl Pattern for Name {
         *self = perm[0].clone(); // FIXME: double clone
     }
 
-    fn close_pattern_at<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+    fn close_pattern<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
 
-    fn open_pattern_at<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+    fn open_pattern<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
 
     fn on_free(&self, state: ScopeState, name: &Name) -> Option<Bound> {
         match name == self {

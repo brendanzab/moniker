@@ -64,7 +64,7 @@ impl<F: Term + Clone> Term for Var<F> {
         }
     }
 
-    fn close_term_at<P1>(&mut self, state: ScopeState, pattern: &P1)
+    fn close_term<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
         P1: Pattern<Free = Self::Free>,
     {
@@ -77,7 +77,7 @@ impl<F: Term + Clone> Term for Var<F> {
         };
     }
 
-    fn open_term_at<P1>(&mut self, state: ScopeState, pattern: &P1)
+    fn open_term<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
         P1: Pattern<Free = Self::Free>,
     {
