@@ -1,6 +1,6 @@
 use std::fmt;
 
-use {Pattern, ScopeState, Term};
+use {BoundPattern, BoundTerm, ScopeState};
 
 /// The [Debruijn index] of the binder that introduced the variable
 ///
@@ -53,7 +53,7 @@ pub enum Var<F> {
     Bound(F, Bound),
 }
 
-impl<F: Term + Clone> Term for Var<F> {
+impl<F: BoundTerm + Clone> BoundTerm for Var<F> {
     type Free = F;
 
     fn term_eq(&self, other: &Var<F>) -> bool {
@@ -66,7 +66,7 @@ impl<F: Term + Clone> Term for Var<F> {
 
     fn close_term<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
-        P1: Pattern<Free = Self::Free>,
+        P1: BoundPattern<Free = Self::Free>,
     {
         *self = match *self {
             Var::Bound(_, _) => return,
@@ -79,7 +79,7 @@ impl<F: Term + Clone> Term for Var<F> {
 
     fn open_term<P1>(&mut self, state: ScopeState, pattern: &P1)
     where
-        P1: Pattern<Free = Self::Free>,
+        P1: BoundPattern<Free = Self::Free>,
     {
         *self = match *self {
             Var::Free(_) => return,

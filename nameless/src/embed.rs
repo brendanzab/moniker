@@ -1,10 +1,10 @@
-use {Bound, Pattern, ScopeState, Term};
+use {Bound, BoundPattern, BoundTerm, ScopeState};
 
 /// Embed a term in a pattern
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Embed<T>(pub T);
 
-impl<T: Term> Pattern for Embed<T> {
+impl<T: BoundTerm> BoundPattern for Embed<T> {
     type Free = T::Free;
 
     fn pattern_eq(&self, other: &Embed<T>) -> bool {
@@ -17,11 +17,17 @@ impl<T: Term> Pattern for Embed<T> {
 
     fn rename(&mut self, _perm: &[T::Free]) {}
 
-    fn close_pattern<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_pattern<P>(&mut self, state: ScopeState, pattern: &P)
+    where
+        P: BoundPattern<Free = Self::Free>,
+    {
         self.0.close_term(state, pattern);
     }
 
-    fn open_pattern<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_pattern<P>(&mut self, state: ScopeState, pattern: &P)
+    where
+        P: BoundPattern<Free = Self::Free>,
+    {
         self.0.open_term(state, pattern);
     }
 

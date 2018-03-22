@@ -10,7 +10,7 @@ impl GenId {
         use std::sync::atomic::{AtomicUsize, Ordering};
 
         lazy_static! {
-            static ref NEXT_ID : AtomicUsize = AtomicUsize::new(0);
+            static ref NEXT_ID: AtomicUsize = AtomicUsize::new(0);
         }
 
         // FIXME: check for integer overflow

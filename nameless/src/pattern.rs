@@ -1,6 +1,6 @@
 use {Bound, PatternIndex, ScopeState};
 
-pub trait Pattern {
+pub trait BoundPattern {
     // TODO: This is kinda yuck - need to figure out a better way!
     type Free;
 
@@ -11,11 +11,11 @@ pub trait Pattern {
 
     fn close_pattern<P>(&mut self, state: ScopeState, pattern: &P)
     where
-        P: Pattern<Free = Self::Free>;
+        P: BoundPattern<Free = Self::Free>;
 
     fn open_pattern<P>(&mut self, state: ScopeState, pattern: &P)
     where
-        P: Pattern<Free = Self::Free>;
+        P: BoundPattern<Free = Self::Free>;
 
     /// A callback that is used when `unbind`ing `Scope`s to replace free names
     /// with bound names based on the contents of the pattern
@@ -27,7 +27,7 @@ pub trait Pattern {
 }
 
 /// Asserts that two expressions are alpha equalent to each other (using
-/// `Pattern::pattern_eq`).
+/// `BoundPattern::pattern_eq`).
 ///
 /// On panic, this macro will print the values of the expressions with their
 /// debug representations.
@@ -39,7 +39,7 @@ macro_rules! assert_pattern_eq {
     ($left:expr, $right:expr) => ({
         match (&$left, &$right) {
             (left_val, right_val) => {
-                if !::nameless::Pattern::pattern_eq(left_val, right_val) {
+                if !::nameless::BoundPattern::pattern_eq(left_val, right_val) {
                     panic!(r#"assertion failed: `<_>::pattern_eq(&left, &right)`
   left: `{:?}`,
  right: `{:?}`"#, left_val, right_val)
@@ -53,7 +53,7 @@ macro_rules! assert_pattern_eq {
     ($left:expr, $right:expr, $($arg:tt)+) => ({
         match (&($left), &($right)) {
             (left_val, right_val) => {
-                if !::nameless::Pattern::pattern_eq(left_val, right_val) {
+                if !::nameless::BoundPattern::pattern_eq(left_val, right_val) {
                     panic!(r#"assertion failed: `<_>::pattern_eq(&left, &right)`
   left: `{:?}`,
  right: `{:?}`: {}"#, left_val, right_val,
@@ -64,8 +64,9 @@ macro_rules! assert_pattern_eq {
     });
 }
 
-impl<P: Pattern> Pattern for [P]
+impl<P> BoundPattern for [P]
 where
+    P: BoundPattern,
     P::Free: Clone,
 {
     type Free = P::Free;
@@ -90,13 +91,19 @@ where
         }
     }
 
-    fn close_pattern<P1: Pattern<Free = P::Free>>(&mut self, state: ScopeState, pattern: &P1) {
+    fn close_pattern<P1>(&mut self, state: ScopeState, pattern: &P1)
+    where
+        P1: BoundPattern<Free = P::Free>,
+    {
         for elem in self {
             elem.close_pattern(state, pattern);
         }
     }
 
-    fn open_pattern<P1: Pattern<Free = P::Free>>(&mut self, state: ScopeState, pattern: &P1) {
+    fn open_pattern<P1>(&mut self, state: ScopeState, pattern: &P1)
+    where
+        P1: BoundPattern<Free = P::Free>,
+    {
         for elem in self {
             elem.open_pattern(state, pattern);
         }
@@ -130,8 +137,9 @@ where
     }
 }
 
-impl<P: Pattern> Pattern for Vec<P>
+impl<P> BoundPattern for Vec<P>
 where
+    P: BoundPattern,
     P::Free: Clone,
 {
     type Free = P::Free;
@@ -148,11 +156,17 @@ where
         <[P]>::rename(self, perm)
     }
 
-    fn close_pattern<P1: Pattern<Free = P::Free>>(&mut self, state: ScopeState, pattern: &P1) {
+    fn close_pattern<P1>(&mut self, state: ScopeState, pattern: &P1)
+    where
+        P1: BoundPattern<Free = P::Free>,
+    {
         <[P]>::close_pattern(self, state, pattern)
     }
 
-    fn open_pattern<P1: Pattern<Free = P::Free>>(&mut self, state: ScopeState, pattern: &P1) {
+    fn open_pattern<P1>(&mut self, state: ScopeState, pattern: &P1)
+    where
+        P1: BoundPattern<Free = P::Free>,
+    {
         <[P]>::open_pattern(self, state, pattern)
     }
 
@@ -165,7 +179,11 @@ where
     }
 }
 
-impl<P1: Pattern, P2: Pattern<Free = P1::Free>> Pattern for (P1, P2) {
+impl<P1, P2> BoundPattern for (P1, P2)
+where
+    P1: BoundPattern,
+    P2: BoundPattern<Free = P1::Free>,
+{
     type Free = P1::Free;
 
     fn pattern_eq(&self, other: &(P1, P2)) -> bool {
@@ -183,12 +201,18 @@ impl<P1: Pattern, P2: Pattern<Free = P1::Free>> Pattern for (P1, P2) {
         self.1.rename(perm);
     }
 
-    fn close_pattern<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_pattern<P>(&mut self, state: ScopeState, pattern: &P)
+    where
+        P: BoundPattern<Free = Self::Free>,
+    {
         self.0.close_pattern(state, pattern);
         self.1.close_pattern(state, pattern);
     }
 
-    fn open_pattern<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_pattern<P>(&mut self, state: ScopeState, pattern: &P)
+    where
+        P: BoundPattern<Free = Self::Free>,
+    {
         self.0.open_pattern(state, pattern);
         self.1.open_pattern(state, pattern);
     }

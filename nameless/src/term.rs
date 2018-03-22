@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use {Debruijn, Pattern};
+use {BoundPattern, Debruijn};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScopeState {
@@ -22,22 +22,22 @@ impl ScopeState {
     }
 }
 
-pub trait Term {
+pub trait BoundTerm {
     type Free;
 
     fn term_eq(&self, other: &Self) -> bool;
 
     fn close_term<P>(&mut self, state: ScopeState, pattern: &P)
     where
-        P: Pattern<Free = Self::Free>;
+        P: BoundPattern<Free = Self::Free>;
 
     fn open_term<P>(&mut self, state: ScopeState, pattern: &P)
     where
-        P: Pattern<Free = Self::Free>;
+        P: BoundPattern<Free = Self::Free>;
 }
 
 /// Asserts that two expressions are alpha equalent to each other (using
-/// `Term::term_eq`).
+/// `BoundTerm::term_eq`).
 ///
 /// On panic, this macro will print the values of the expressions with their
 /// debug representations.
@@ -49,7 +49,7 @@ macro_rules! assert_term_eq {
     ($left:expr, $right:expr) => ({
         match (&$left, &$right) {
             (left_val, right_val) => {
-                if !::nameless::Term::term_eq(left_val, right_val) {
+                if !::nameless::BoundTerm::term_eq(left_val, right_val) {
                     panic!(r#"assertion failed: `<_>::term_eq(&left, &right)`
   left: `{:?}`,
  right: `{:?}`"#, left_val, right_val)
@@ -63,7 +63,7 @@ macro_rules! assert_term_eq {
     ($left:expr, $right:expr, $($arg:tt)+) => ({
         match (&($left), &($right)) {
             (left_val, right_val) => {
-                if !::nameless::Term::term_eq(left_val, right_val) {
+                if !::nameless::BoundTerm::term_eq(left_val, right_val) {
                     panic!(r#"assertion failed: `<_>::term_eq(&left, &right)`
   left: `{:?}`,
  right: `{:?}`: {}"#, left_val, right_val,
@@ -74,7 +74,7 @@ macro_rules! assert_term_eq {
     });
 }
 
-impl<T: Term> Term for Option<T> {
+impl<T: BoundTerm> BoundTerm for Option<T> {
     type Free = T::Free;
 
     fn term_eq(&self, other: &Option<T>) -> bool {
@@ -84,52 +84,52 @@ impl<T: Term> Term for Option<T> {
         }
     }
 
-    fn close_term<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         if let Some(ref mut inner) = *self {
             inner.close_term(state, pattern);
         }
     }
 
-    fn open_term<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         if let Some(ref mut inner) = *self {
             inner.open_term(state, pattern);
         }
     }
 }
 
-impl<T: Term> Term for Box<T> {
+impl<T: BoundTerm> BoundTerm for Box<T> {
     type Free = T::Free;
 
     fn term_eq(&self, other: &Box<T>) -> bool {
         T::term_eq(self, other)
     }
 
-    fn close_term<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         (**self).close_term(state, pattern);
     }
 
-    fn open_term<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         (**self).open_term(state, pattern);
     }
 }
 
-impl<T: Term + Clone> Term for Rc<T> {
+impl<T: BoundTerm + Clone> BoundTerm for Rc<T> {
     type Free = T::Free;
 
     fn term_eq(&self, other: &Rc<T>) -> bool {
         T::term_eq(self, other)
     }
 
-    fn close_term<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         Rc::make_mut(self).close_term(state, pattern);
     }
 
-    fn open_term<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         Rc::make_mut(self).open_term(state, pattern);
     }
 }
 
-impl<T: Term + Clone> Term for [T] {
+impl<T: BoundTerm + Clone> BoundTerm for [T] {
     type Free = T::Free;
 
     fn term_eq(&self, other: &[T]) -> bool {
@@ -137,31 +137,31 @@ impl<T: Term + Clone> Term for [T] {
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| T::term_eq(lhs, rhs))
     }
 
-    fn close_term<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         for elem in self {
             elem.close_term(state, pattern);
         }
     }
 
-    fn open_term<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         for elem in self {
             elem.open_term(state, pattern);
         }
     }
 }
 
-impl<T: Term + Clone> Term for Vec<T> {
+impl<T: BoundTerm + Clone> BoundTerm for Vec<T> {
     type Free = T::Free;
 
     fn term_eq(&self, other: &Vec<T>) -> bool {
         <[T]>::term_eq(self, other)
     }
 
-    fn close_term<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         <[T]>::close_term(self, state, pattern)
     }
 
-    fn open_term<P: Pattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
         <[T]>::open_term(self, state, pattern)
     }
 }

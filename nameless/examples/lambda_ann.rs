@@ -5,7 +5,7 @@
 extern crate nameless;
 
 use std::rc::Rc;
-use nameless::{Bound, Embed, GenId, Pattern, PatternIndex, Scope, ScopeState, Term, Var};
+use nameless::{Bound, BoundPattern, BoundTerm, Embed, GenId, PatternIndex, Scope, ScopeState, Var};
 
 /// The name of a free variable
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -20,7 +20,7 @@ impl Name {
     }
 }
 
-impl Term for Name {
+impl BoundTerm for Name {
     type Free = Name;
 
     fn term_eq(&self, other: &Name) -> bool {
@@ -31,11 +31,11 @@ impl Term for Name {
         }
     }
 
-    fn close_term<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
-    fn open_term<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+    fn close_term<P: BoundPattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+    fn open_term<P: BoundPattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
 }
 
-impl Pattern for Name {
+impl BoundPattern for Name {
     type Free = Name;
 
     fn pattern_eq(&self, _other: &Name) -> bool {
@@ -55,9 +55,9 @@ impl Pattern for Name {
         *self = perm[0].clone(); // FIXME: double clone
     }
 
-    fn close_pattern<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+    fn close_pattern<P: BoundPattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
 
-    fn open_pattern<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+    fn open_pattern<P: BoundPattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
 
     fn on_free(&self, state: ScopeState, name: &Name) -> Option<Bound> {
         match name == self {
@@ -101,13 +101,13 @@ fn lookup<'a>(mut context: &'a Rc<Context>, name: &Name) -> Option<&'a Rc<Type>>
     None
 }
 
-#[derive(Debug, Clone, Term)]
+#[derive(Debug, Clone, BoundTerm)]
 pub enum Type {
     Base,
     Arrow(Rc<Type>, Rc<Type>),
 }
 
-#[derive(Debug, Clone, Term)]
+#[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     Var(Var<Name>),
     Lam(Scope<(Name, Embed<Rc<Type>>), Rc<Expr>>),

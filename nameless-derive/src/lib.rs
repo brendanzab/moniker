@@ -8,11 +8,11 @@ extern crate synstructure;
 
 use synstructure::{BindStyle, Structure};
 
-decl_derive!([Term] => term_derive);
+decl_derive!([BoundTerm] => term_derive);
 
 fn term_derive(mut s: Structure) -> quote::Tokens {
     let pattern = quote! {
-        __P: ::nameless::Pattern<Free = Self::Free>,
+        __P: ::nameless::BoundPattern<Free = Self::Free>,
     };
 
     s.bind_with(|_| BindStyle::Ref);
@@ -32,7 +32,7 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
             let arm_body = <_>::zip(lhs.bindings().iter(), rhs.bindings()).fold(
                 quote!(true),
                 |acc, (lhs, rhs)| {
-                    quote! { #acc && ::nameless::Term::term_eq(#lhs, #rhs) }
+                    quote! { #acc && ::nameless::BoundTerm::term_eq(#lhs, #rhs) }
                 },
             );
 
@@ -50,18 +50,18 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
 
     let close_term_body = s.each(|bi| {
         quote!{
-            ::nameless::Term::close_term(#bi, __state, __pattern);
+            ::nameless::BoundTerm::close_term(#bi, __state, __pattern);
         }
     });
 
     let open_term_body = s.each(|bi| {
         quote!{
-            ::nameless::Term::open_term(#bi, __state, __pattern);
+            ::nameless::BoundTerm::open_term(#bi, __state, __pattern);
         }
     });
 
     s.bound_impl(
-        quote!(::nameless::Term),
+        quote!(::nameless::BoundTerm),
         quote! {
             type Free = Name; // FIXME!
 
@@ -69,11 +69,13 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
                 match (self, other) { #term_eq_body }
             }
 
-            fn close_term<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P) where #pattern {
+            fn close_term<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P)
+            where #pattern {
                 match *self { #close_term_body }
             }
 
-            fn open_term<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P) where #pattern {
+            fn open_term<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P)
+            where #pattern {
                 match *self { #open_term_body }
             }
         },

@@ -58,7 +58,7 @@ mod var;
 
 pub use self::embed::Embed;
 pub use self::gen_id::GenId;
-pub use self::pattern::Pattern;
+pub use self::pattern::BoundPattern;
 pub use self::scope::{unbind, Scope, unbind2};
-pub use self::term::{ScopeState, Term};
+pub use self::term::{BoundTerm, ScopeState};
 pub use self::var::{Bound, Debruijn, PatternIndex, Var};
