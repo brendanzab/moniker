@@ -39,7 +39,7 @@ where
     where
         P1: Pattern<Free = P::Free>,
     {
-        self.unsafe_pattern.close_term_at(state, pattern);
+        self.unsafe_pattern.close_pattern_at(state, pattern);
         self.unsafe_body.close_term_at(state.incr(), pattern);
     }
 
@@ -47,7 +47,7 @@ where
     where
         P1: Pattern<Free = P::Free>,
     {
-        self.unsafe_pattern.open_term_at(state, pattern);
+        self.unsafe_pattern.open_pattern_at(state, pattern);
         self.unsafe_body.open_term_at(state.incr(), pattern);
     }
 }

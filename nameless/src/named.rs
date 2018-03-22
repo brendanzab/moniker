@@ -23,19 +23,8 @@ impl<N, T: AlphaEq> AlphaEq for Named<N, T> {
     }
 }
 
-impl<T: Term> Term for Named<T::Free, T> {
-    type Free = T::Free;
-
-    fn close_term_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
-        self.inner.close_term_at(state, pattern);
-    }
-
-    fn open_term_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
-        self.inner.open_term_at(state, pattern);
-    }
-}
-
 impl<N: Free, T: Term<Free = N>> Pattern for Named<N, T> {
+    type Free = N;
     type NamePerm = N;
 
     fn freshen(&mut self) -> N {
@@ -45,6 +34,14 @@ impl<N: Free, T: Term<Free = N>> Pattern for Named<N, T> {
 
     fn rename(&mut self, perm: &N) {
         self.name = perm.clone(); // FIXME: double clone
+    }
+
+    fn close_pattern_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        self.inner.close_term_at(state, pattern);
+    }
+
+    fn open_pattern_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P) {
+        self.inner.open_term_at(state, pattern);
     }
 
     fn on_free(&self, state: ScopeState, name: &Self::Free) -> Option<Bound> {
