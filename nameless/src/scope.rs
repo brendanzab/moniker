@@ -71,7 +71,7 @@ pub fn unbind2<P1, T1, P2, T2>(scope1: Scope<P1, T1>, scope2: Scope<P2, T2>) -> 
 where
     P1: Pattern,
     T1: Term<Free = P1::Free>,
-    P2: Pattern<Free = P1::Free, NamePerm = P1::NamePerm>,
+    P2: Pattern<Free = P1::Free>,
     T2: Term<Free = P1::Free>,
 {
     let mut scope1_pattern = scope1.unsafe_pattern;

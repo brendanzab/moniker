@@ -1,6 +1,6 @@
 use std::fmt;
 
-use {AlphaEq, Free, Pattern, ScopeState, Term};
+use {AlphaEq, Pattern, ScopeState, Term};
 
 /// The [Debruijn index] of the binder that introduced the variable
 ///
@@ -69,7 +69,7 @@ impl<F: PartialEq> AlphaEq for Var<F> {
     }
 }
 
-impl<F: Free> Term for Var<F> {
+impl<F: Clone> Term for Var<F> {
     type Free = F;
 
     fn close_term_at<P1>(&mut self, state: ScopeState, pattern: &P1)

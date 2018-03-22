@@ -1,7 +1,6 @@
-
 use std::rc::Rc;
 
-use {Debruijn, Free, Pattern};
+use {Debruijn, Pattern};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScopeState {
@@ -24,7 +23,7 @@ impl ScopeState {
 }
 
 pub trait Term {
-    type Free: Free;
+    type Free;
 
     fn close_term<P: Pattern<Free = Self::Free>>(&mut self, pattern: &P) {
         self.close_term_at(ScopeState::new(), pattern);

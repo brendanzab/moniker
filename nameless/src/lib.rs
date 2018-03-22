@@ -49,22 +49,17 @@ pub use nameless_derive::*;
 
 #[macro_use]
 mod alpha_eq;
+mod embed;
 mod gen_id;
-mod named;
 mod pattern;
 mod scope;
 mod term;
 mod var;
 
 pub use self::alpha_eq::AlphaEq;
+pub use self::embed::Embed;
 pub use self::gen_id::GenId;
-pub use self::named::Named;
 pub use self::pattern::Pattern;
 pub use self::scope::{unbind, Scope, unbind2};
 pub use self::term::{ScopeState, Term};
 pub use self::var::{Bound, Debruijn, PatternIndex, Var};
-
-/// Free names
-pub trait Free: Clone + PartialEq {
-    fn freshen(&mut self);
-}

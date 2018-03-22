@@ -74,6 +74,12 @@ impl<T: AlphaEq> AlphaEq for Vec<T> {
     }
 }
 
+impl<T1: AlphaEq, T2: AlphaEq> AlphaEq for (T1, T2) {
+    fn alpha_eq(&self, other: &(T1, T2)) -> bool {
+        T1::alpha_eq(&self.0, &other.0) && T2::alpha_eq(&self.1, &other.1)
+    }
+}
+
 /// Asserts that two expressions are alpha equalent to each other (using [`AlphaEq`]).
 ///
 /// On panic, this macro will print the values of the expressions with their

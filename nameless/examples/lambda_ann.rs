@@ -5,7 +5,7 @@
 extern crate nameless;
 
 use std::rc::Rc;
-use nameless::{AlphaEq, Bound, GenId, Pattern, PatternIndex, Scope, ScopeState, Var};
+use nameless::{AlphaEq, Bound, GenId, Pattern, PatternIndex, Scope, ScopeState, Var, Embed};
 
 /// The name of a free variable
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AlphaEq)]
@@ -62,44 +62,57 @@ impl Pattern for Name {
 }
 
 #[derive(Debug, Clone)]
-pub enum Env {
+pub enum Context {
     Empty,
-    Extend(Rc<Env>, Name, Rc<Expr>),
+    Extend(Rc<Context>, Name, Rc<Type>),
 }
 
-fn extend(env: Rc<Env>, name: Name, expr: Rc<Expr>) -> Rc<Env> {
-    Rc::new(Env::Extend(env, name, expr))
+fn extend(context: Rc<Context>, name: Name, expr: Rc<Type>) -> Rc<Context> {
+    Rc::new(Context::Extend(context, name, expr))
 }
 
-fn lookup<'a>(mut env: &'a Rc<Env>, name: &Name) -> Option<&'a Rc<Expr>> {
-    while let Env::Extend(ref next_env, ref curr_name, ref expr) = **env {
+fn lookup<'a>(mut context: &'a Rc<Context>, name: &Name) -> Option<&'a Rc<Type>> {
+    while let Context::Extend(ref next_context, ref curr_name, ref expr) = **context {
         if Name::alpha_eq(curr_name, name) {
             return Some(expr);
         } else {
-            env = next_env;
+            context = next_context;
         }
     }
     None
 }
 
 #[derive(Debug, Clone, AlphaEq, Term)]
+pub enum Type {
+    Base,
+    Arrow(Rc<Type>, Rc<Type>),
+}
+
+#[derive(Debug, Clone, AlphaEq, Term)]
 pub enum Expr {
     Var(Var<Name>),
-    Lam(Scope<Name, Rc<Expr>>),
+    Lam(Scope<(Name, Embed<Rc<Type>>), Rc<Expr>>),
     App(Rc<Expr>, Rc<Expr>),
 }
 
-pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Rc<Expr> {
+pub fn infer(context: &Rc<Context>, expr: &Rc<Expr>) -> Option<Rc<Type>> {
     match **expr {
-        Expr::Var(Var::Free(ref name)) => lookup(env, name).unwrap_or(expr).clone(),
+        Expr::Var(Var::Free(ref name)) => lookup(context, name).cloned(),
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
-        Expr::Lam(_) => expr.clone(),
-        Expr::App(ref fun, ref arg) => match *eval(env, fun) {
-            Expr::Lam(ref scope) => {
-                let (name, body) = nameless::unbind(scope.clone());
-                eval(&extend(env.clone(), name, eval(env, arg)), &body)
+        Expr::Lam(ref scope) => {
+            let ((name, Embed(ann)), body) = nameless::unbind(scope.clone());
+            let body_ty = infer(&extend(context.clone(), name, ann.clone()), &body)?;
+            Some(Rc::new(Type::Arrow(ann, body_ty)))
+        },
+        Expr::App(ref fun, ref arg) => match *infer(context, fun)? {
+            Type::Arrow(ref t1, ref t2) => {
+                let arg_ty = infer(context, arg)?;
+                match Type::alpha_eq(t1, &arg_ty) {
+                    true => Some(t2.clone()),
+                    false => None,
+                }
             },
-            _ => expr.clone(),
+            _ => None,
         },
     }
 }
@@ -107,18 +120,15 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Rc<Expr> {
 #[test]
 fn test_eval() {
     // expr = (\x -> x) y
-    let expr = Rc::new(Expr::App(
-        Rc::new(Expr::Lam(Scope::bind(
-            Name::user("x"),
-            Rc::new(Expr::Var(Var::Free(Name::user("x")))),
-        ))),
-        Rc::new(Expr::Var(Var::Free(Name::user("y")))),
-    ));
+    let expr = Rc::new(Expr::Lam(Scope::bind(
+        (Name::user("x"), Embed(Rc::new(Type::Base))),
+        Rc::new(Expr::Var(Var::Free(Name::user("x")))),
+    )));
 
-    assert_alpha_eq!(
-        eval(&Rc::new(Env::Empty), &expr),
-        Rc::new(Expr::Var(Var::Free(Name::user("y")))),
-    );
+    // assert_alpha_eq!(
+    //     eval(&Rc::new(Context::Empty), &expr),
+    //     Rc::new(Expr::Var(Var::Free(Name::user("y")))),
+    // );
 }
 
 fn main() {}

@@ -5,7 +5,7 @@
 extern crate nameless;
 
 use std::rc::Rc;
-use nameless::{AlphaEq, Free, GenId, Named, Scope, Var};
+use nameless::{AlphaEq, Bound, GenId, Pattern, PatternIndex, Scope, ScopeState, Var};
 
 /// The name of a free variable
 #[derive(Debug, Clone, PartialEq, Eq, Hash, AlphaEq)]
@@ -20,12 +20,44 @@ impl Name {
     }
 }
 
-impl Free for Name {
-    fn freshen(&mut self) {
+impl Pattern for Name {
+    type Free = Name;
+
+    fn freshen(&mut self) -> Vec<Name> {
         *self = match *self {
             Name::User(_) => Name::Gen(GenId::fresh()),
-            Name::Gen(_) => return,
+            Name::Gen(_) => return vec![self.clone()],
         };
+        vec![self.clone()]
+    }
+
+    fn rename(&mut self, perm: &[Name]) {
+        assert_eq!(perm.len(), 1); // FIXME: assert
+        *self = perm[0].clone(); // FIXME: double clone
+    }
+
+    fn close_pattern_at<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+
+    fn open_pattern_at<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+
+    fn on_free(&self, state: ScopeState, name: &Name) -> Option<Bound> {
+        match name == self {
+            true => Some(Bound {
+                scope: state.depth(),
+                pattern: PatternIndex(0),
+            }),
+            false => None,
+        }
+    }
+
+    fn on_bound(&self, state: ScopeState, name: Bound) -> Option<Self::Free> {
+        match name.scope == state.depth() {
+            true => {
+                assert_eq!(name.pattern, PatternIndex(0));
+                Some(self.clone())
+            },
+            false => None,
+        }
     }
 }
 
@@ -50,14 +82,10 @@ fn lookup<'a>(mut env: &'a Rc<Env>, name: &Name) -> Option<&'a Rc<Expr>> {
     None
 }
 
-// FIXME: remove need for this!
-#[derive(Debug, Copy, Clone, AlphaEq, Term)]
-pub struct Unit;
-
 #[derive(Debug, Clone, AlphaEq, Term)]
 pub enum Expr {
     Var(Var<Name>),
-    Lam(Scope<Vec<Named<Name, Unit>>, Rc<Expr>>),
+    Lam(Scope<Vec<Name>, Rc<Expr>>),
     App(Rc<Expr>, Vec<Rc<Expr>>),
 }
 
@@ -82,8 +110,8 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
                     })
                 } else {
                     let mut acc_env = env.clone();
-                    for (param, arg) in <_>::zip(params.into_iter(), args.iter()) {
-                        acc_env = extend(acc_env, param.name, eval(env, arg)?);
+                    for (param_name, arg) in <_>::zip(params.into_iter(), args.iter()) {
+                        acc_env = extend(acc_env, param_name, eval(env, arg)?);
                     }
                     eval(&acc_env, &body)
                 }
@@ -98,10 +126,7 @@ fn test_eval() {
     // expr = (fn(x, y) -> y)(a, b)
     let expr = Rc::new(Expr::App(
         Rc::new(Expr::Lam(Scope::bind(
-            vec![
-                Named::new(Name::user("x"), Unit),
-                Named::new(Name::user("y"), Unit),
-            ],
+            vec![Name::user("x"), Name::user("y")],
             Rc::new(Expr::Var(Var::Free(Name::user("y")))),
         ))),
         vec![
