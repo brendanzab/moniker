@@ -9,16 +9,27 @@ pub trait Pattern {
     fn freshen(&mut self) -> Vec<Self::Free>;
     fn rename(&mut self, perm: &[Self::Free]);
 
-    fn close_pattern<P: Pattern<Free = Self::Free>>(&mut self, pattern: &P) {
+    fn close_pattern<P>(&mut self, pattern: &P)
+    where
+        P: Pattern<Free = Self::Free>,
+    {
         self.close_pattern_at(ScopeState::new(), pattern);
     }
 
-    fn open_pattern<P: Pattern<Free = Self::Free>>(&mut self, pattern: &P) {
+    fn open_pattern<P>(&mut self, pattern: &P)
+    where
+        P: Pattern<Free = Self::Free>,
+    {
         self.open_pattern_at(ScopeState::new(), pattern);
     }
 
-    fn close_pattern_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P);
-    fn open_pattern_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P);
+    fn close_pattern_at<P>(&mut self, state: ScopeState, pattern: &P)
+    where
+        P: Pattern<Free = Self::Free>;
+
+    fn open_pattern_at<P>(&mut self, state: ScopeState, pattern: &P)
+    where
+        P: Pattern<Free = Self::Free>;
 
     /// A callback that is used when `unbind`ing `Scope`s to replace free names
     /// with bound names based on the contents of the pattern

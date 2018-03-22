@@ -27,16 +27,27 @@ pub trait Term {
 
     fn term_eq(&self, other: &Self) -> bool;
 
-    fn close_term<P: Pattern<Free = Self::Free>>(&mut self, pattern: &P) {
+    fn close_term<P>(&mut self, pattern: &P)
+    where
+        P: Pattern<Free = Self::Free>,
+    {
         self.close_term_at(ScopeState::new(), pattern);
     }
 
-    fn open_term<P: Pattern<Free = Self::Free>>(&mut self, pattern: &P) {
+    fn open_term<P>(&mut self, pattern: &P)
+    where
+        P: Pattern<Free = Self::Free>,
+    {
         self.open_term_at(ScopeState::new(), pattern);
     }
 
-    fn close_term_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P);
-    fn open_term_at<P: Pattern<Free = Self::Free>>(&mut self, state: ScopeState, pattern: &P);
+    fn close_term_at<P>(&mut self, state: ScopeState, pattern: &P)
+    where
+        P: Pattern<Free = Self::Free>;
+
+    fn open_term_at<P>(&mut self, state: ScopeState, pattern: &P)
+    where
+        P: Pattern<Free = Self::Free>;
 }
 
 /// Asserts that two expressions are alpha equalent to each other (using
