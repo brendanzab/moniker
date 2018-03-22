@@ -4,6 +4,8 @@ pub trait Pattern {
     // TODO: This is kinda yuck - need to figure out a better way!
     type Free;
 
+    fn pattern_eq(&self, other: &Self) -> bool;
+
     fn freshen(&mut self) -> Vec<Self::Free>;
     fn rename(&mut self, perm: &[Self::Free]);
 
@@ -27,11 +29,54 @@ pub trait Pattern {
     fn on_bound(&self, state: ScopeState, name: Bound) -> Option<Self::Free>;
 }
 
+/// Asserts that two expressions are alpha equalent to each other (using
+/// `Pattern::pattern_eq`).
+///
+/// On panic, this macro will print the values of the expressions with their
+/// debug representations.
+///
+/// Like `assert!`, this macro has a second form, where a custom
+/// panic message can be provided.
+#[macro_export]
+macro_rules! assert_pattern_eq {
+    ($left:expr, $right:expr) => ({
+        match (&$left, &$right) {
+            (left_val, right_val) => {
+                if !::nameless::Pattern::pattern_eq(left_val, right_val) {
+                    panic!(r#"assertion failed: `<_>::pattern_eq(&left, &right)`
+  left: `{:?}`,
+ right: `{:?}`"#, left_val, right_val)
+                }
+            }
+        }
+    });
+    ($left:expr, $right:expr,) => ({
+        assert_pattern_eq!($left, $right)
+    });
+    ($left:expr, $right:expr, $($arg:tt)+) => ({
+        match (&($left), &($right)) {
+            (left_val, right_val) => {
+                if !::nameless::Pattern::pattern_eq(left_val, right_val) {
+                    panic!(r#"assertion failed: `<_>::pattern_eq(&left, &right)`
+  left: `{:?}`,
+ right: `{:?}`: {}"#, left_val, right_val,
+                           format_args!($($arg)+))
+                }
+            }
+        }
+    });
+}
+
 impl<P: Pattern> Pattern for [P]
 where
     P::Free: Clone,
 {
     type Free = P::Free;
+
+    fn pattern_eq(&self, other: &[P]) -> bool {
+        self.len() == other.len()
+            && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
+    }
 
     fn freshen(&mut self) -> Vec<P::Free> {
         // FIXME: intermediate allocations
@@ -94,6 +139,10 @@ where
 {
     type Free = P::Free;
 
+    fn pattern_eq(&self, other: &Vec<P>) -> bool {
+        <[P]>::pattern_eq(self, other)
+    }
+
     fn freshen(&mut self) -> Vec<P::Free> {
         <[P]>::freshen(self)
     }
@@ -121,6 +170,10 @@ where
 
 impl<P1: Pattern, P2: Pattern<Free = P1::Free>> Pattern for (P1, P2) {
     type Free = P1::Free;
+
+    fn pattern_eq(&self, other: &(P1, P2)) -> bool {
+        P1::pattern_eq(&self.0, &other.0) && P2::pattern_eq(&self.1, &other.1)
+    }
 
     fn freshen(&mut self) -> Vec<P1::Free> {
         let mut perm = self.0.freshen();

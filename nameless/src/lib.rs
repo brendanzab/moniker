@@ -47,16 +47,15 @@ extern crate nameless_derive;
 #[doc(hidden)]
 pub use nameless_derive::*;
 
-#[macro_use]
-mod alpha_eq;
 mod embed;
 mod gen_id;
+#[macro_use]
 mod pattern;
 mod scope;
+#[macro_use]
 mod term;
 mod var;
 
-pub use self::alpha_eq::AlphaEq;
 pub use self::embed::Embed;
 pub use self::gen_id::GenId;
 pub use self::pattern::Pattern;

@@ -5,10 +5,10 @@
 extern crate nameless;
 
 use std::rc::Rc;
-use nameless::{AlphaEq, Bound, GenId, Pattern, PatternIndex, Scope, ScopeState, Var};
+use nameless::{Bound, GenId, Pattern, PatternIndex, Scope, ScopeState, Term, Var};
 
 /// The name of a free variable
-#[derive(Debug, Clone, PartialEq, Eq, Hash, AlphaEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Name {
     User(String),
     Gen(GenId),
@@ -20,8 +20,27 @@ impl Name {
     }
 }
 
+impl Term for Name {
+    type Free = Name;
+
+    fn term_eq(&self, other: &Name) -> bool {
+        match (self, other) {
+            (&Name::User(ref lhs), &Name::User(ref rhs)) => lhs == rhs,
+            (&Name::Gen(ref lhs), &Name::Gen(ref rhs)) => lhs == rhs,
+            _ => false,
+        }
+    }
+
+    fn close_term_at<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+    fn open_term_at<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+}
+
 impl Pattern for Name {
     type Free = Name;
+
+    fn pattern_eq(&self, _other: &Name) -> bool {
+        true
+    }
 
     fn freshen(&mut self) -> Vec<Name> {
         *self = match *self {
@@ -73,7 +92,7 @@ fn extend(env: Rc<Env>, name: Name, expr: Rc<Expr>) -> Rc<Env> {
 
 fn lookup<'a>(mut env: &'a Rc<Env>, name: &Name) -> Option<&'a Rc<Expr>> {
     while let Env::Extend(ref next_env, ref curr_name, ref expr) = **env {
-        if Name::alpha_eq(curr_name, name) {
+        if Name::term_eq(curr_name, name) {
             return Some(expr);
         } else {
             env = next_env;
@@ -82,7 +101,7 @@ fn lookup<'a>(mut env: &'a Rc<Env>, name: &Name) -> Option<&'a Rc<Expr>> {
     None
 }
 
-#[derive(Debug, Clone, AlphaEq, Term)]
+#[derive(Debug, Clone, Term)]
 pub enum Expr {
     Var(Var<Name>),
     Lam(Scope<Name, Rc<Expr>>),
@@ -115,7 +134,7 @@ fn test_eval() {
         Rc::new(Expr::Var(Var::Free(Name::user("y")))),
     ));
 
-    assert_alpha_eq!(
+    assert_term_eq!(
         eval(&Rc::new(Env::Empty), &expr),
         Rc::new(Expr::Var(Var::Free(Name::user("y")))),
     );

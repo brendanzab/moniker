@@ -1,7 +1,5 @@
 use std::fmt;
 
-use AlphaEq;
-
 /// A generated id
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct GenId(u32);
@@ -17,12 +15,6 @@ impl GenId {
 
         // FIXME: check for integer overflow
         GenId(NEXT_ID.fetch_add(1, Ordering::SeqCst) as u32)
-    }
-}
-
-impl AlphaEq for GenId {
-    fn alpha_eq(&self, other: &GenId) -> bool {
-        self == other
     }
 }
 

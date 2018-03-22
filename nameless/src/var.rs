@@ -1,6 +1,6 @@
 use std::fmt;
 
-use {AlphaEq, Pattern, ScopeState, Term};
+use {Pattern, ScopeState, Term};
 
 /// The [Debruijn index] of the binder that introduced the variable
 ///
@@ -29,12 +29,6 @@ impl Debruijn {
     }
 }
 
-impl AlphaEq for Debruijn {
-    fn alpha_eq(&self, other: &Debruijn) -> bool {
-        self == other
-    }
-}
-
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct PatternIndex(pub u32);
 
@@ -59,18 +53,16 @@ pub enum Var<F> {
     Bound(F, Bound),
 }
 
-impl<F: PartialEq> AlphaEq for Var<F> {
-    fn alpha_eq(&self, other: &Var<F>) -> bool {
+impl<F: Term + Clone> Term for Var<F> {
+    type Free = F;
+
+    fn term_eq(&self, other: &Var<F>) -> bool {
         match (self, other) {
-            (&Var::Free(ref lhs), &Var::Free(ref rhs)) => lhs == rhs,
+            (&Var::Free(ref lhs), &Var::Free(ref rhs)) => F::term_eq(lhs, rhs),
             (&Var::Bound(_, ref lhs), &Var::Bound(_, ref rhs)) => lhs == rhs,
             (_, _) => false,
         }
     }
-}
-
-impl<F: Clone> Term for Var<F> {
-    type Free = F;
 
     fn close_term_at<P1>(&mut self, state: ScopeState, pattern: &P1)
     where

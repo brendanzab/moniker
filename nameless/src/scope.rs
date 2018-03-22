@@ -1,4 +1,4 @@
-use {AlphaEq, Pattern, ScopeState, Term};
+use {Pattern, ScopeState, Term};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Scope<P, T> {
@@ -21,19 +21,17 @@ where
     }
 }
 
-impl<P: AlphaEq, T: AlphaEq> AlphaEq for Scope<P, T> {
-    fn alpha_eq(&self, other: &Scope<P, T>) -> bool {
-        P::alpha_eq(&self.unsafe_pattern, &other.unsafe_pattern)
-            && T::alpha_eq(&self.unsafe_body, &other.unsafe_body)
-    }
-}
-
 impl<P, T> Term for Scope<P, T>
 where
     P: Pattern,
     T: Term<Free = P::Free>,
 {
     type Free = P::Free;
+
+    fn term_eq(&self, other: &Scope<P, T>) -> bool {
+        P::pattern_eq(&self.unsafe_pattern, &other.unsafe_pattern)
+            && T::term_eq(&self.unsafe_body, &other.unsafe_body)
+    }
 
     fn close_term_at<P1>(&mut self, state: ScopeState, pattern: &P1)
     where

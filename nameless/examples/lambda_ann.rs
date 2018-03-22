@@ -5,10 +5,10 @@
 extern crate nameless;
 
 use std::rc::Rc;
-use nameless::{AlphaEq, Bound, GenId, Pattern, PatternIndex, Scope, ScopeState, Var, Embed};
+use nameless::{Bound, Embed, GenId, Pattern, PatternIndex, Scope, ScopeState, Term, Var};
 
 /// The name of a free variable
-#[derive(Debug, Clone, PartialEq, Eq, Hash, AlphaEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Name {
     User(String),
     Gen(GenId),
@@ -20,8 +20,27 @@ impl Name {
     }
 }
 
+impl Term for Name {
+    type Free = Name;
+
+    fn term_eq(&self, other: &Name) -> bool {
+        match (self, other) {
+            (&Name::User(ref lhs), &Name::User(ref rhs)) => lhs == rhs,
+            (&Name::Gen(ref lhs), &Name::Gen(ref rhs)) => lhs == rhs,
+            _ => false,
+        }
+    }
+
+    fn close_term_at<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+    fn open_term_at<P: Pattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
+}
+
 impl Pattern for Name {
     type Free = Name;
+
+    fn pattern_eq(&self, _other: &Name) -> bool {
+        true
+    }
 
     fn freshen(&mut self) -> Vec<Name> {
         *self = match *self {
@@ -73,7 +92,7 @@ fn extend(context: Rc<Context>, name: Name, expr: Rc<Type>) -> Rc<Context> {
 
 fn lookup<'a>(mut context: &'a Rc<Context>, name: &Name) -> Option<&'a Rc<Type>> {
     while let Context::Extend(ref next_context, ref curr_name, ref expr) = **context {
-        if Name::alpha_eq(curr_name, name) {
+        if Name::term_eq(curr_name, name) {
             return Some(expr);
         } else {
             context = next_context;
@@ -82,13 +101,13 @@ fn lookup<'a>(mut context: &'a Rc<Context>, name: &Name) -> Option<&'a Rc<Type>>
     None
 }
 
-#[derive(Debug, Clone, AlphaEq, Term)]
+#[derive(Debug, Clone, Term)]
 pub enum Type {
     Base,
     Arrow(Rc<Type>, Rc<Type>),
 }
 
-#[derive(Debug, Clone, AlphaEq, Term)]
+#[derive(Debug, Clone, Term)]
 pub enum Expr {
     Var(Var<Name>),
     Lam(Scope<(Name, Embed<Rc<Type>>), Rc<Expr>>),
@@ -107,7 +126,7 @@ pub fn infer(context: &Rc<Context>, expr: &Rc<Expr>) -> Option<Rc<Type>> {
         Expr::App(ref fun, ref arg) => match *infer(context, fun)? {
             Type::Arrow(ref t1, ref t2) => {
                 let arg_ty = infer(context, arg)?;
-                match Type::alpha_eq(t1, &arg_ty) {
+                match Type::term_eq(t1, &arg_ty) {
                     true => Some(t2.clone()),
                     false => None,
                 }
@@ -125,7 +144,7 @@ fn test_eval() {
         Rc::new(Expr::Var(Var::Free(Name::user("x")))),
     )));
 
-    // assert_alpha_eq!(
+    // assert_term_eq!(
     //     eval(&Rc::new(Context::Empty), &expr),
     //     Rc::new(Expr::Var(Var::Free(Name::user("y")))),
     // );
