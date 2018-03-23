@@ -27,13 +27,19 @@ pub trait BoundTerm {
 
     fn term_eq(&self, other: &Self) -> bool;
 
+    #[allow(unused_variables)]
     fn close_term<P>(&mut self, state: ScopeState, pattern: &P)
     where
-        P: BoundPattern<Free = Self::Free>;
+        P: BoundPattern<Free = Self::Free>,
+    {
+    }
 
+    #[allow(unused_variables)]
     fn open_term<P>(&mut self, state: ScopeState, pattern: &P)
     where
-        P: BoundPattern<Free = Self::Free>;
+        P: BoundPattern<Free = Self::Free>,
+    {
+    }
 }
 
 /// Asserts that two expressions are alpha equalent to each other (using

@@ -9,13 +9,19 @@ pub trait BoundPattern {
     fn freshen(&mut self) -> Vec<Self::Free>;
     fn rename(&mut self, perm: &[Self::Free]);
 
+    #[allow(unused_variables)]
     fn close_pattern<P>(&mut self, state: ScopeState, pattern: &P)
     where
-        P: BoundPattern<Free = Self::Free>;
+        P: BoundPattern<Free = Self::Free>,
+    {
+    }
 
+    #[allow(unused_variables)]
     fn open_pattern<P>(&mut self, state: ScopeState, pattern: &P)
     where
-        P: BoundPattern<Free = Self::Free>;
+        P: BoundPattern<Free = Self::Free>,
+    {
+    }
 
     /// A callback that is used when `unbind`ing `Scope`s to replace free names
     /// with bound names based on the contents of the pattern
@@ -218,10 +224,14 @@ where
     }
 
     fn on_free(&self, state: ScopeState, name: &Self::Free) -> Option<Bound> {
-        self.0.on_free(state, name).or_else(|| self.1.on_free(state, name))
+        self.0
+            .on_free(state, name)
+            .or_else(|| self.1.on_free(state, name))
     }
 
     fn on_bound(&self, state: ScopeState, name: Bound) -> Option<Self::Free> {
-        self.0.on_bound(state, name).or_else(|| self.1.on_bound(state, name))
+        self.0
+            .on_bound(state, name)
+            .or_else(|| self.1.on_bound(state, name))
     }
 }

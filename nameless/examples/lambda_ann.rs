@@ -30,9 +30,6 @@ impl BoundTerm for Name {
             _ => false,
         }
     }
-
-    fn close_term<P: BoundPattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
-    fn open_term<P: BoundPattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
 }
 
 impl BoundPattern for Name {
@@ -54,10 +51,6 @@ impl BoundPattern for Name {
         assert_eq!(perm.len(), 1); // FIXME: assert
         *self = perm[0].clone(); // FIXME: double clone
     }
-
-    fn close_pattern<P: BoundPattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
-
-    fn open_pattern<P: BoundPattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
 
     fn on_free(&self, state: ScopeState, name: &Name) -> Option<Bound> {
         match Name::term_eq(self, name) {
