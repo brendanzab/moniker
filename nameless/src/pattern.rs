@@ -218,12 +218,10 @@ where
     }
 
     fn on_free(&self, state: ScopeState, name: &Self::Free) -> Option<Bound> {
-        self.0.on_free(state, name)?;
-        self.1.on_free(state, name)
+        self.0.on_free(state, name).or_else(|| self.1.on_free(state, name))
     }
 
     fn on_bound(&self, state: ScopeState, name: Bound) -> Option<Self::Free> {
-        self.0.on_bound(state, name)?;
-        self.1.on_bound(state, name)
+        self.0.on_bound(state, name).or_else(|| self.1.on_bound(state, name))
     }
 }

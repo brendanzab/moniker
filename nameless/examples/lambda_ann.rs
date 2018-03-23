@@ -60,7 +60,7 @@ impl BoundPattern for Name {
     fn open_pattern<P: BoundPattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
 
     fn on_free(&self, state: ScopeState, name: &Name) -> Option<Bound> {
-        match name == self {
+        match Name::term_eq(self, name) {
             true => Some(Bound {
                 scope: state.depth(),
                 pattern: PatternIndex(0),
@@ -114,40 +114,45 @@ pub enum Expr {
     App(Rc<Expr>, Rc<Expr>),
 }
 
-pub fn infer(context: &Rc<Context>, expr: &Rc<Expr>) -> Option<Rc<Type>> {
+pub fn infer(context: &Rc<Context>, expr: &Rc<Expr>) -> Result<Rc<Type>, String> {
     match **expr {
-        Expr::Var(Var::Free(ref name)) => lookup(context, name).cloned(),
+        Expr::Var(Var::Free(ref name)) => lookup(context, name)
+            .cloned()
+            .ok_or(format!("`{:?}` not found", name)),
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
         Expr::Lam(ref scope) => {
             let ((name, Embed(ann)), body) = nameless::unbind(scope.clone());
             let body_ty = infer(&extend(context.clone(), name, ann.clone()), &body)?;
-            Some(Rc::new(Type::Arrow(ann, body_ty)))
+            Ok(Rc::new(Type::Arrow(ann, body_ty)))
         },
         Expr::App(ref fun, ref arg) => match *infer(context, fun)? {
             Type::Arrow(ref t1, ref t2) => {
                 let arg_ty = infer(context, arg)?;
                 match Type::term_eq(t1, &arg_ty) {
-                    true => Some(t2.clone()),
-                    false => None,
+                    true => Ok(t2.clone()),
+                    false => Err(format!(
+                        "argument type mismatch - found `{:?}` expected `{:?}`",
+                        arg_ty, t1,
+                    )),
                 }
             },
-            _ => None,
+            _ => Err(format!("`{:?}` is not a function", fun)),
         },
     }
 }
 
 #[test]
-fn test_eval() {
-    // expr = (\x -> x) y
+fn test_infer() {
+    // expr = (\x -> x)
     let expr = Rc::new(Expr::Lam(Scope::bind(
         (Name::user("x"), Embed(Rc::new(Type::Base))),
         Rc::new(Expr::Var(Var::Free(Name::user("x")))),
     )));
 
-    // assert_term_eq!(
-    //     eval(&Rc::new(Context::Empty), &expr),
-    //     Rc::new(Expr::Var(Var::Free(Name::user("y")))),
-    // );
+    assert_term_eq!(
+        infer(&Rc::new(Context::Empty), &expr).unwrap(),
+        Rc::new(Type::Arrow(Rc::new(Type::Base), Rc::new(Type::Base))),
+    );
 }
 
 fn main() {}

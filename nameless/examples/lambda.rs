@@ -60,7 +60,7 @@ impl BoundPattern for Name {
     fn open_pattern<P: BoundPattern<Free = Name>>(&mut self, _: ScopeState, _: &P) {}
 
     fn on_free(&self, state: ScopeState, name: &Name) -> Option<Bound> {
-        match name == self {
+        match Name::term_eq(self, name) {
             true => Some(Bound {
                 scope: state.depth(),
                 pattern: PatternIndex(0),
