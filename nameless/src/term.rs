@@ -23,6 +23,7 @@ impl ScopeState {
 }
 
 pub trait BoundTerm {
+    /// Alpha equivalence in a term context
     fn term_eq(&self, other: &Self) -> bool;
 
     #[allow(unused_variables)]
@@ -32,7 +33,7 @@ pub trait BoundTerm {
     fn open_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {}
 }
 
-/// Asserts that two expressions are alpha equalent to each other (using
+/// Asserts that two expressions are alpha equivalent to each other (using
 /// `BoundTerm::term_eq`).
 ///
 /// On panic, this macro will print the values of the expressions with their

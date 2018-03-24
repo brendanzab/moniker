@@ -1,6 +1,7 @@
 use {Bound, Name, PatternIndex, ScopeState};
 
 pub trait BoundPattern {
+    /// Alpha equivalence in a pattern context
     fn pattern_eq(&self, other: &Self) -> bool;
 
     fn freshen(&mut self) -> Vec<Name>;
@@ -21,7 +22,7 @@ pub trait BoundPattern {
     fn on_bound(&self, state: ScopeState, name: Bound) -> Option<Name>;
 }
 
-/// Asserts that two expressions are alpha equalent to each other (using
+/// Asserts that two expressions are alpha equivalent to each other (using
 /// `BoundPattern::pattern_eq`).
 ///
 /// On panic, this macro will print the values of the expressions with their
