@@ -27,6 +27,7 @@ where
     }
 }
 
+/// Bind a term with the given pattern
 pub fn bind<P, T>(pattern: P, mut body: T) -> Bind<P, T>
 where
     P: BoundPattern,
@@ -40,14 +41,14 @@ where
     }
 }
 
-/// Unbind a scope, returning the freshened pattern and body
-pub fn unbind<P, T>(scope: Bind<P, T>) -> (P, T)
+/// Unbind a term, returning the freshened pattern and body
+pub fn unbind<P, T>(term: Bind<P, T>) -> (P, T)
 where
     P: BoundPattern,
     T: BoundTerm,
 {
-    let mut pattern = scope.unsafe_pattern;
-    let mut body = scope.unsafe_body;
+    let mut pattern = term.unsafe_pattern;
+    let mut body = term.unsafe_body;
 
     pattern.freshen();
     body.open_term(ScopeState::new(), &pattern);
@@ -55,24 +56,27 @@ where
     (pattern, body)
 }
 
-pub fn unbind2<P1, T1, P2, T2>(scope1: Bind<P1, T1>, scope2: Bind<P2, T2>) -> (P1, T1, P2, T2)
+/// Simultaneously unbind two terms
+///
+/// The fresh names in the first pattern with be used for the second pattern
+pub fn unbind2<P1, T1, P2, T2>(term1: Bind<P1, T1>, term2: Bind<P2, T2>) -> (P1, T1, P2, T2)
 where
     P1: BoundPattern,
     T1: BoundTerm,
     P2: BoundPattern,
     T2: BoundTerm,
 {
-    let mut scope1_pattern = scope1.unsafe_pattern;
-    let mut scope1_body = scope1.unsafe_body;
-    let mut scope2_pattern = scope2.unsafe_pattern;
-    let mut scope2_body = scope2.unsafe_body;
+    let mut term1_pattern = term1.unsafe_pattern;
+    let mut term1_body = term1.unsafe_body;
+    let mut term2_pattern = term2.unsafe_pattern;
+    let mut term2_body = term2.unsafe_body;
 
     {
-        let names = scope1_pattern.freshen();
-        scope2_pattern.rename(&names);
-        scope1_body.open_term(ScopeState::new(), &scope1_pattern);
-        scope2_body.open_term(ScopeState::new(), &scope2_pattern);
+        let names = term1_pattern.freshen();
+        term2_pattern.rename(&names);
+        term1_body.open_term(ScopeState::new(), &term1_pattern);
+        term2_body.open_term(ScopeState::new(), &term2_pattern);
     }
 
-    (scope1_pattern, scope1_body, scope2_pattern, scope2_body)
+    (term1_pattern, term1_body, term2_pattern, term2_body)
 }

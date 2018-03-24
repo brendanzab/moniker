@@ -1,4 +1,4 @@
-use {Bound, Name, PatternIndex, ScopeState};
+use {BoundName, Name, PatternIndex, ScopeState};
 
 pub trait BoundPattern {
     /// Alpha equivalence in a pattern context
@@ -15,11 +15,11 @@ pub trait BoundPattern {
 
     /// A callback that is used when `unbind`ing `Bind`s to replace free names
     /// with bound names based on the contents of the pattern
-    fn on_free(&self, state: ScopeState, name: &Name) -> Option<Bound>;
+    fn on_free(&self, state: ScopeState, name: &Name) -> Option<BoundName>;
 
     /// A callback that is used when `bind`ing `Bind`s to replace bound names
     /// with free names based on the contents of the pattern
-    fn on_bound(&self, state: ScopeState, name: Bound) -> Option<Name>;
+    fn on_bound(&self, state: ScopeState, name: BoundName) -> Option<Name>;
 }
 
 /// Asserts that two expressions are alpha equivalent to each other (using
@@ -96,13 +96,13 @@ where
         }
     }
 
-    fn on_free(&self, state: ScopeState, name: &Name) -> Option<Bound> {
+    fn on_free(&self, state: ScopeState, name: &Name) -> Option<BoundName> {
         self.iter()
             .enumerate()
             .filter_map(|(i, pattern)| {
                 pattern.on_free(state, name).map(|bound| {
                     assert_eq!(bound.pattern, PatternIndex(0));
-                    Bound {
+                    BoundName {
                         pattern: PatternIndex(i as u32),
                         ..bound
                     }
@@ -111,11 +111,11 @@ where
             .next()
     }
 
-    fn on_bound(&self, state: ScopeState, name: Bound) -> Option<Name> {
+    fn on_bound(&self, state: ScopeState, name: BoundName) -> Option<Name> {
         self.get(name.pattern.0 as usize).and_then(|pattern| {
             pattern.on_bound(
                 state,
-                Bound {
+                BoundName {
                     pattern: PatternIndex(0),
                     ..name
                 },
@@ -148,11 +148,11 @@ where
         <[P]>::open_pattern(self, state, pattern)
     }
 
-    fn on_free(&self, state: ScopeState, name: &Name) -> Option<Bound> {
+    fn on_free(&self, state: ScopeState, name: &Name) -> Option<BoundName> {
         <[P]>::on_free(self, state, name)
     }
 
-    fn on_bound(&self, state: ScopeState, name: Bound) -> Option<Name> {
+    fn on_bound(&self, state: ScopeState, name: BoundName) -> Option<Name> {
         <[P]>::on_bound(self, state, name)
     }
 }
@@ -193,13 +193,13 @@ where
         self.1.open_pattern(state, pattern);
     }
 
-    fn on_free(&self, state: ScopeState, name: &Name) -> Option<Bound> {
+    fn on_free(&self, state: ScopeState, name: &Name) -> Option<BoundName> {
         self.0
             .on_free(state, name)
             .or_else(|| self.1.on_free(state, name))
     }
 
-    fn on_bound(&self, state: ScopeState, name: Bound) -> Option<Name> {
+    fn on_bound(&self, state: ScopeState, name: BoundName) -> Option<Name> {
         self.0
             .on_bound(state, name)
             .or_else(|| self.1.on_bound(state, name))

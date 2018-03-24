@@ -1,6 +1,6 @@
 use std::fmt;
 
-use {Bound, BoundPattern, BoundTerm, PatternIndex, ScopeState};
+use {BoundName, BoundPattern, BoundTerm, PatternIndex, ScopeState};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Ident(String);
@@ -99,9 +99,9 @@ impl BoundPattern for Name {
         *self = perm[0].clone(); // FIXME: double clone
     }
 
-    fn on_free(&self, state: ScopeState, name: &Name) -> Option<Bound> {
+    fn on_free(&self, state: ScopeState, name: &Name) -> Option<BoundName> {
         match name == self {
-            true => Some(Bound {
+            true => Some(BoundName {
                 scope: state.depth(),
                 pattern: PatternIndex(0),
             }),
@@ -109,7 +109,7 @@ impl BoundPattern for Name {
         }
     }
 
-    fn on_bound(&self, state: ScopeState, name: Bound) -> Option<Name> {
+    fn on_bound(&self, state: ScopeState, name: BoundName) -> Option<Name> {
         match name.scope == state.depth() {
             true => {
                 assert_eq!(name.pattern, PatternIndex(0));

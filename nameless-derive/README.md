@@ -1,3 +1,3 @@
 # nameless-derive
 
-Provides derives for the `AlphaEq` and `Bound` traits.
+Provides a derive syntax extension for the `BoundTerm` trait.

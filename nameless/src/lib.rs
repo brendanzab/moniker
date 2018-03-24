@@ -70,4 +70,4 @@ pub use self::embed::Embed;
 pub use self::name::{GenId, Ident, Name};
 pub use self::pattern::BoundPattern;
 pub use self::term::{BoundTerm, ScopeState};
-pub use self::var::{Bound, Debruijn, PatternIndex, Var};
+pub use self::var::{BoundName, DebruijnIndex, PatternIndex, Var};

@@ -1,4 +1,4 @@
-use {Bound, BoundPattern, BoundTerm, Name, ScopeState};
+use {BoundName, BoundPattern, BoundTerm, Name, ScopeState};
 
 /// Embed a term in a pattern
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,11 +23,11 @@ impl<T: BoundTerm> BoundPattern for Embed<T> {
         self.0.open_term(state, pattern);
     }
 
-    fn on_free(&self, _state: ScopeState, _name: &Name) -> Option<Bound> {
+    fn on_free(&self, _state: ScopeState, _name: &Name) -> Option<BoundName> {
         None
     }
 
-    fn on_bound(&self, _state: ScopeState, _name: Bound) -> Option<Name> {
+    fn on_bound(&self, _state: ScopeState, _name: BoundName) -> Option<Name> {
         None
     }
 }

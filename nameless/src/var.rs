@@ -13,18 +13,18 @@ use {BoundPattern, BoundTerm, Name, ScopeState};
 ///
 /// [Debruijn index]: https://en.wikipedia.org/wiki/De_Bruijn_index
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
-pub struct Debruijn(pub u32);
+pub struct DebruijnIndex(pub u32);
 
-impl Debruijn {
+impl DebruijnIndex {
     /// Move the current Debruijn index into an inner binder
-    pub fn succ(self) -> Debruijn {
-        Debruijn(self.0 + 1)
+    pub fn succ(self) -> DebruijnIndex {
+        DebruijnIndex(self.0 + 1)
     }
 
-    pub fn pred(self) -> Option<Debruijn> {
+    pub fn pred(self) -> Option<DebruijnIndex> {
         match self {
-            Debruijn(0) => None,
-            Debruijn(i) => Some(Debruijn(i - 1)),
+            DebruijnIndex(0) => None,
+            DebruijnIndex(i) => Some(DebruijnIndex(i - 1)),
         }
     }
 }
@@ -33,12 +33,12 @@ impl Debruijn {
 pub struct PatternIndex(pub u32);
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
-pub struct Bound {
-    pub scope: Debruijn,
+pub struct BoundName {
+    pub scope: DebruijnIndex,
     pub pattern: PatternIndex,
 }
 
-impl fmt::Display for Bound {
+impl fmt::Display for BoundName {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}.{}", self.scope.0, self.pattern.0)
     }
@@ -50,7 +50,7 @@ pub enum Var {
     /// A free variable
     Free(Name),
     /// A variable that is bound by a lambda or pi binder
-    Bound(Name, Bound),
+    Bound(Name, BoundName),
 }
 
 impl BoundTerm for Var {

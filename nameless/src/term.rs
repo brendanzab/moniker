@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use {BoundPattern, Debruijn};
+use {BoundPattern, DebruijnIndex};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScopeState {
@@ -12,8 +12,8 @@ impl ScopeState {
         ScopeState { depth: 0 }
     }
 
-    pub fn depth(&self) -> Debruijn {
-        Debruijn(self.depth)
+    pub fn depth(&self) -> DebruijnIndex {
+        DebruijnIndex(self.depth)
     }
 
     pub fn incr(mut self) -> ScopeState {
