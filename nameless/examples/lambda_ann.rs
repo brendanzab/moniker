@@ -102,31 +102,65 @@ pub enum Type {
 
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
+    Ann(Rc<Expr>, Rc<Type>),
     Var(Var<Name>),
-    Lam(Scope<(Name, Embed<Rc<Type>>), Rc<Expr>>),
+    Lam(Scope<(Name, Embed<Option<Rc<Type>>>), Rc<Expr>>),
     App(Rc<Expr>, Rc<Expr>),
+}
+
+pub fn check(context: &Rc<Context>, expr: &Rc<Expr>, expected_ty: &Rc<Type>) -> Result<(), String> {
+    match (&**expr, &**expected_ty) {
+        (&Expr::Lam(ref scope), &Type::Arrow(ref param_ty, ref ret_ty)) => {
+            if let ((name, Embed(None)), body) = nameless::unbind(scope.clone()) {
+                let inner_context = extend(context.clone(), name, param_ty.clone());
+                check(&inner_context, &body, ret_ty)?;
+                return Ok(());
+            }
+        },
+        (_, _) => {},
+    }
+
+    let inferred_ty = infer(&context, expr)?;
+
+    if Type::term_eq(&inferred_ty, expected_ty) {
+        Ok(())
+    } else {
+        Err(format!(
+            "type mismatch - found `{:?}` but expected `{:?}`",
+            inferred_ty, expected_ty
+        ))
+    }
 }
 
 pub fn infer(context: &Rc<Context>, expr: &Rc<Expr>) -> Result<Rc<Type>, String> {
     match **expr {
+        Expr::Ann(ref expr, ref ty) => {
+            check(context, expr, ty)?;
+            Ok(ty.clone())
+        },
         Expr::Var(Var::Free(ref name)) => lookup(context, name)
             .cloned()
             .ok_or(format!("`{:?}` not found", name)),
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
-        Expr::Lam(ref scope) => {
-            let ((name, Embed(ann)), body) = nameless::unbind(scope.clone());
-            let body_ty = infer(&extend(context.clone(), name, ann.clone()), &body)?;
-            Ok(Rc::new(Type::Arrow(ann, body_ty)))
+        Expr::Lam(ref scope) => match nameless::unbind(scope.clone()) {
+            ((name, Embed(Some(ann))), body) => {
+                let body_ty = infer(&extend(context.clone(), name, ann.clone()), &body)?;
+                Ok(Rc::new(Type::Arrow(ann, body_ty)))
+            },
+            ((name, Embed(None)), _) => {
+                Err(format!("type annotation needed for argument `{:?}`", name))
+            },
         },
         Expr::App(ref fun, ref arg) => match *infer(context, fun)? {
-            Type::Arrow(ref t1, ref t2) => {
+            Type::Arrow(ref param_ty, ref ret_ty) => {
                 let arg_ty = infer(context, arg)?;
-                match Type::term_eq(t1, &arg_ty) {
-                    true => Ok(t2.clone()),
-                    false => Err(format!(
-                        "argument type mismatch - found `{:?}` expected `{:?}`",
-                        arg_ty, t1,
-                    )),
+                if Type::term_eq(param_ty, &arg_ty) {
+                    Ok(ret_ty.clone())
+                } else {
+                    Err(format!(
+                        "argument type mismatch - found `{:?}` but expected `{:?}`",
+                        arg_ty, param_ty,
+                    ))
                 }
             },
             _ => Err(format!("`{:?}` is not a function", fun)),
@@ -138,7 +172,7 @@ pub fn infer(context: &Rc<Context>, expr: &Rc<Expr>) -> Result<Rc<Type>, String>
 fn test_infer() {
     // expr = (\x -> x)
     let expr = Rc::new(Expr::Lam(Scope::bind(
-        (Name::user("x"), Embed(Rc::new(Type::Base))),
+        (Name::user("x"), Embed(Some(Rc::new(Type::Base)))),
         Rc::new(Expr::Var(Var::Free(Name::user("x")))),
     )));
 
