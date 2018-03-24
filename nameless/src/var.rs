@@ -1,6 +1,6 @@
 use std::fmt;
 
-use {BoundPattern, BoundTerm, ScopeState};
+use {BoundPattern, BoundTerm, Name, ScopeState};
 
 /// The [Debruijn index] of the binder that introduced the variable
 ///
@@ -46,28 +46,23 @@ impl fmt::Display for Bound {
 
 /// A variable that can either be free or bound
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Var<F> {
+pub enum Var {
     /// A free variable
-    Free(F),
+    Free(Name),
     /// A variable that is bound by a lambda or pi binder
-    Bound(F, Bound),
+    Bound(Name, Bound),
 }
 
-impl<F: BoundTerm + Clone> BoundTerm for Var<F> {
-    type Free = F;
-
-    fn term_eq(&self, other: &Var<F>) -> bool {
+impl BoundTerm for Var {
+    fn term_eq(&self, other: &Var) -> bool {
         match (self, other) {
-            (&Var::Free(ref lhs), &Var::Free(ref rhs)) => F::term_eq(lhs, rhs),
+            (&Var::Free(ref lhs), &Var::Free(ref rhs)) => Name::term_eq(lhs, rhs),
             (&Var::Bound(_, ref lhs), &Var::Bound(_, ref rhs)) => lhs == rhs,
             (_, _) => false,
         }
     }
 
-    fn close_term<P1>(&mut self, state: ScopeState, pattern: &P1)
-    where
-        P1: BoundPattern<Free = Self::Free>,
-    {
+    fn close_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
         *self = match *self {
             Var::Bound(_, _) => return,
             Var::Free(ref name) => match pattern.on_free(state, name) {
@@ -77,10 +72,7 @@ impl<F: BoundTerm + Clone> BoundTerm for Var<F> {
         };
     }
 
-    fn open_term<P1>(&mut self, state: ScopeState, pattern: &P1)
-    where
-        P1: BoundPattern<Free = Self::Free>,
-    {
+    fn open_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
         *self = match *self {
             Var::Free(_) => return,
             Var::Bound(_, bound) => match pattern.on_bound(state, bound) {
@@ -91,7 +83,7 @@ impl<F: BoundTerm + Clone> BoundTerm for Var<F> {
     }
 }
 
-impl<F: fmt::Display> fmt::Display for Var<F> {
+impl fmt::Display for Var {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Var::Bound(ref name, bound) if f.alternate() => write!(f, "{}@{}", name, bound),

@@ -12,7 +12,7 @@ decl_derive!([BoundTerm] => term_derive);
 
 fn term_derive(mut s: Structure) -> quote::Tokens {
     let pattern = quote! {
-        __P: ::nameless::BoundPattern<Free = Self::Free>,
+        __P: ::nameless::BoundPattern,
     };
 
     s.bind_with(|_| BindStyle::Ref);
@@ -63,8 +63,6 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
     s.bound_impl(
         quote!(::nameless::BoundTerm),
         quote! {
-            type Free = Name; // FIXME!
-
             fn term_eq(&self, other: &Self) -> bool {
                 match (self, other) { #term_eq_body }
             }

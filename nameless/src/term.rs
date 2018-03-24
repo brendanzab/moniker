@@ -23,23 +23,13 @@ impl ScopeState {
 }
 
 pub trait BoundTerm {
-    type Free;
-
     fn term_eq(&self, other: &Self) -> bool;
 
     #[allow(unused_variables)]
-    fn close_term<P>(&mut self, state: ScopeState, pattern: &P)
-    where
-        P: BoundPattern<Free = Self::Free>,
-    {
-    }
+    fn close_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {}
 
     #[allow(unused_variables)]
-    fn open_term<P>(&mut self, state: ScopeState, pattern: &P)
-    where
-        P: BoundPattern<Free = Self::Free>,
-    {
-    }
+    fn open_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {}
 }
 
 /// Asserts that two expressions are alpha equalent to each other (using
@@ -81,8 +71,6 @@ macro_rules! assert_term_eq {
 }
 
 impl<T: BoundTerm> BoundTerm for Option<T> {
-    type Free = T::Free;
-
     fn term_eq(&self, other: &Option<T>) -> bool {
         match (self, other) {
             (&Some(ref lhs), &Some(ref rhs)) => T::term_eq(lhs, rhs),
@@ -90,13 +78,13 @@ impl<T: BoundTerm> BoundTerm for Option<T> {
         }
     }
 
-    fn close_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
         if let Some(ref mut inner) = *self {
             inner.close_term(state, pattern);
         }
     }
 
-    fn open_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
         if let Some(ref mut inner) = *self {
             inner.open_term(state, pattern);
         }
@@ -104,52 +92,46 @@ impl<T: BoundTerm> BoundTerm for Option<T> {
 }
 
 impl<T: BoundTerm> BoundTerm for Box<T> {
-    type Free = T::Free;
-
     fn term_eq(&self, other: &Box<T>) -> bool {
         T::term_eq(self, other)
     }
 
-    fn close_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
         (**self).close_term(state, pattern);
     }
 
-    fn open_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
         (**self).open_term(state, pattern);
     }
 }
 
 impl<T: BoundTerm + Clone> BoundTerm for Rc<T> {
-    type Free = T::Free;
-
     fn term_eq(&self, other: &Rc<T>) -> bool {
         T::term_eq(self, other)
     }
 
-    fn close_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
         Rc::make_mut(self).close_term(state, pattern);
     }
 
-    fn open_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
         Rc::make_mut(self).open_term(state, pattern);
     }
 }
 
 impl<T: BoundTerm + Clone> BoundTerm for [T] {
-    type Free = T::Free;
-
     fn term_eq(&self, other: &[T]) -> bool {
         self.len() == other.len()
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| T::term_eq(lhs, rhs))
     }
 
-    fn close_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
         for elem in self {
             elem.close_term(state, pattern);
         }
     }
 
-    fn open_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
         for elem in self {
             elem.open_term(state, pattern);
         }
@@ -157,17 +139,15 @@ impl<T: BoundTerm + Clone> BoundTerm for [T] {
 }
 
 impl<T: BoundTerm + Clone> BoundTerm for Vec<T> {
-    type Free = T::Free;
-
     fn term_eq(&self, other: &Vec<T>) -> bool {
         <[T]>::term_eq(self, other)
     }
 
-    fn close_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
         <[T]>::close_term(self, state, pattern)
     }
 
-    fn open_term<P: BoundPattern<Free = T::Free>>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
         <[T]>::open_term(self, state, pattern)
     }
 }

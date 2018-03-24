@@ -5,73 +5,7 @@
 extern crate nameless;
 
 use std::rc::Rc;
-use nameless::{Bound, BoundPattern, BoundTerm, GenId, PatternIndex, Scope, ScopeState, Var};
-
-/// The name of a free variable
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Name {
-    User(String),
-    Gen(GenId),
-}
-
-impl Name {
-    pub fn user<S: Into<String>>(name: S) -> Name {
-        Name::User(name.into())
-    }
-}
-
-impl BoundTerm for Name {
-    type Free = Name;
-
-    fn term_eq(&self, other: &Name) -> bool {
-        match (self, other) {
-            (&Name::User(ref lhs), &Name::User(ref rhs)) => lhs == rhs,
-            (&Name::Gen(ref lhs), &Name::Gen(ref rhs)) => lhs == rhs,
-            _ => false,
-        }
-    }
-}
-
-impl BoundPattern for Name {
-    type Free = Name;
-
-    fn pattern_eq(&self, _other: &Name) -> bool {
-        true
-    }
-
-    fn freshen(&mut self) -> Vec<Name> {
-        *self = match *self {
-            Name::User(_) => Name::Gen(GenId::fresh()),
-            Name::Gen(_) => return vec![self.clone()],
-        };
-        vec![self.clone()]
-    }
-
-    fn rename(&mut self, perm: &[Name]) {
-        assert_eq!(perm.len(), 1); // FIXME: assert
-        *self = perm[0].clone(); // FIXME: double clone
-    }
-
-    fn on_free(&self, state: ScopeState, name: &Name) -> Option<Bound> {
-        match Name::term_eq(self, name) {
-            true => Some(Bound {
-                scope: state.depth(),
-                pattern: PatternIndex(0),
-            }),
-            false => None,
-        }
-    }
-
-    fn on_bound(&self, state: ScopeState, name: Bound) -> Option<Self::Free> {
-        match name.scope == state.depth() {
-            true => {
-                assert_eq!(name.pattern, PatternIndex(0));
-                Some(self.clone())
-            },
-            false => None,
-        }
-    }
-}
+use nameless::{BoundTerm, Name, Scope, Var};
 
 #[derive(Debug, Clone)]
 pub enum Env {
@@ -96,7 +30,7 @@ fn lookup<'a>(mut env: &'a Rc<Env>, name: &Name) -> Option<&'a Rc<Expr>> {
 
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
-    Var(Var<Name>),
+    Var(Var),
     Lam(Scope<Vec<Name>, Rc<Expr>>),
     App(Rc<Expr>, Vec<Rc<Expr>>),
 }

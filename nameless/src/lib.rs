@@ -48,17 +48,17 @@ extern crate nameless_derive;
 pub use nameless_derive::*;
 
 mod embed;
-mod gen_id;
 #[macro_use]
 mod pattern;
 mod scope;
 #[macro_use]
 mod term;
+mod name;
 mod var;
 
 pub use self::embed::Embed;
-pub use self::gen_id::GenId;
 pub use self::pattern::BoundPattern;
 pub use self::scope::{unbind, Scope, unbind2};
 pub use self::term::{BoundTerm, ScopeState};
+pub use self::name::{GenId, Ident, Name};
 pub use self::var::{Bound, Debruijn, PatternIndex, Var};
