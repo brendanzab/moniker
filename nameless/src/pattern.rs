@@ -12,11 +12,11 @@ pub trait BoundPattern {
     #[allow(unused_variables)]
     fn open_pattern<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {}
 
-    /// A callback that is used when `unbind`ing `Scope`s to replace free names
+    /// A callback that is used when `unbind`ing `Bind`s to replace free names
     /// with bound names based on the contents of the pattern
     fn on_free(&self, state: ScopeState, name: &Name) -> Option<Bound>;
 
-    /// A callback that is used when `bind`ing `Scope`s to replace bound names
+    /// A callback that is used when `bind`ing `Bind`s to replace bound names
     /// with free names based on the contents of the pattern
     fn on_bound(&self, state: ScopeState, name: Bound) -> Option<Name>;
 }

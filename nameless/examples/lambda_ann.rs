@@ -4,8 +4,8 @@
 #[macro_use]
 extern crate nameless;
 
+use nameless::{Bind, BoundTerm, Embed, Name, Var};
 use std::rc::Rc;
-use nameless::{BoundTerm, Embed, Name, Scope, Var};
 
 #[derive(Debug, Clone)]
 pub enum Context {
@@ -38,7 +38,7 @@ pub enum Type {
 pub enum Expr {
     Ann(Rc<Expr>, Rc<Type>),
     Var(Var),
-    Lam(Scope<(Name, Embed<Option<Rc<Type>>>), Rc<Expr>>),
+    Lam(Bind<(Name, Embed<Option<Rc<Type>>>), Rc<Expr>>),
     App(Rc<Expr>, Rc<Expr>),
 }
 
@@ -105,7 +105,7 @@ pub fn infer(context: &Rc<Context>, expr: &Rc<Expr>) -> Result<Rc<Type>, String>
 #[test]
 fn test_infer() {
     // expr = (\x -> x)
-    let expr = Rc::new(Expr::Lam(Scope::bind(
+    let expr = Rc::new(Expr::Lam(nameless::bind(
         (Name::user("x"), Embed(Some(Rc::new(Type::Base)))),
         Rc::new(Expr::Var(Var::Free(Name::user("x")))),
     )));

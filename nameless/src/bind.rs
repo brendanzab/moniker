@@ -1,32 +1,17 @@
 use {BoundPattern, BoundTerm, ScopeState};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Scope<P, T> {
+pub struct Bind<P, T> {
     pub unsafe_pattern: P,
     pub unsafe_body: T,
 }
 
-impl<P, T> Scope<P, T>
+impl<P, T> BoundTerm for Bind<P, T>
 where
     P: BoundPattern,
     T: BoundTerm,
 {
-    pub fn bind(pattern: P, mut body: T) -> Scope<P, T> {
-        body.close_term(ScopeState::new(), &pattern);
-
-        Scope {
-            unsafe_pattern: pattern,
-            unsafe_body: body,
-        }
-    }
-}
-
-impl<P, T> BoundTerm for Scope<P, T>
-where
-    P: BoundPattern,
-    T: BoundTerm,
-{
-    fn term_eq(&self, other: &Scope<P, T>) -> bool {
+    fn term_eq(&self, other: &Bind<P, T>) -> bool {
         P::pattern_eq(&self.unsafe_pattern, &other.unsafe_pattern)
             && T::term_eq(&self.unsafe_body, &other.unsafe_body)
     }
@@ -42,8 +27,21 @@ where
     }
 }
 
+pub fn bind<P, T>(pattern: P, mut body: T) -> Bind<P, T>
+where
+    P: BoundPattern,
+    T: BoundTerm,
+{
+    body.close_term(ScopeState::new(), &pattern);
+
+    Bind {
+        unsafe_pattern: pattern,
+        unsafe_body: body,
+    }
+}
+
 /// Unbind a scope, returning the freshened pattern and body
-pub fn unbind<P, T>(scope: Scope<P, T>) -> (P, T)
+pub fn unbind<P, T>(scope: Bind<P, T>) -> (P, T)
 where
     P: BoundPattern,
     T: BoundTerm,
@@ -57,7 +55,7 @@ where
     (pattern, body)
 }
 
-pub fn unbind2<P1, T1, P2, T2>(scope1: Scope<P1, T1>, scope2: Scope<P2, T2>) -> (P1, T1, P2, T2)
+pub fn unbind2<P1, T1, P2, T2>(scope1: Bind<P1, T1>, scope2: Bind<P2, T2>) -> (P1, T1, P2, T2)
 where
     P1: BoundPattern,
     T1: BoundTerm,

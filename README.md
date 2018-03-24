@@ -19,7 +19,7 @@ binding, and make it easier to implement new languages in Rust.
 extern crate nameless;
 
 use std::rc::Rc;
-use nameless::{Embed, Name, Scope, Var};
+use nameless::{Bind, Embed, Name, Var};
 
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Type {
@@ -30,7 +30,7 @@ pub enum Type {
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     Var(Var),
-    Lam(Scope<(Name, Embed<Rc<Type>>), Rc<Expr>>),
+    Lam(Bind<(Name, Embed<Rc<Type>>), Rc<Expr>>),
     App(Rc<Expr>, Rc<Expr>),
 }
 ```

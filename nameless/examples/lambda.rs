@@ -4,8 +4,8 @@
 #[macro_use]
 extern crate nameless;
 
+use nameless::{Bind, BoundTerm, Name, Var};
 use std::rc::Rc;
-use nameless::{BoundTerm, Name, Scope, Var};
 
 #[derive(Debug, Clone)]
 pub enum Env {
@@ -31,7 +31,7 @@ fn lookup<'a>(mut env: &'a Rc<Env>, name: &Name) -> Option<&'a Rc<Expr>> {
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     Var(Var),
-    Lam(Scope<Name, Rc<Expr>>),
+    Lam(Bind<Name, Rc<Expr>>),
     App(Rc<Expr>, Rc<Expr>),
 }
 
@@ -54,7 +54,7 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Rc<Expr> {
 fn test_eval() {
     // expr = (\x -> x) y
     let expr = Rc::new(Expr::App(
-        Rc::new(Expr::Lam(Scope::bind(
+        Rc::new(Expr::Lam(nameless::bind(
             Name::user("x"),
             Rc::new(Expr::Var(Var::Free(Name::user("x")))),
         ))),
