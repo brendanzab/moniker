@@ -7,18 +7,10 @@ pub trait BoundPattern {
     fn rename(&mut self, perm: &[Name]);
 
     #[allow(unused_variables)]
-    fn close_pattern<P>(&mut self, state: ScopeState, pattern: &P)
-    where
-        P: BoundPattern,
-    {
-    }
+    fn close_pattern<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {}
 
     #[allow(unused_variables)]
-    fn open_pattern<P>(&mut self, state: ScopeState, pattern: &P)
-    where
-        P: BoundPattern,
-    {
-    }
+    fn open_pattern<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {}
 
     /// A callback that is used when `unbind`ing `Scope`s to replace free names
     /// with bound names based on the contents of the pattern
