@@ -7,6 +7,15 @@ authors = ["Brendan Zabarauskas <bjzaba@yahoo.com.au>"]
 description = "Automatically derive variable binding and alpha equivalence for abstract syntax trees"
 homepage = "https://github.com/brendanzab/nameless"
 repository = "https://github.com/brendanzab/nameless"
+keywords = [
+    "alpha equivalence",
+    "ast",
+    "binding",
+    "debruijn indices",
+    "locally nameless",
+    "variable binding",
+]
+categories = ["data-structures"]
 publish = false
 
 [features]
