@@ -71,6 +71,35 @@ macro_rules! assert_term_eq {
     });
 }
 
+macro_rules! impl_bound_term {
+    ($T: ty) => {
+        impl BoundTerm for $T {
+            fn term_eq(&self, other: &$T) -> bool {
+                self == other
+            }
+
+            fn close_term<P: BoundPattern>(&mut self, _state: ScopeState, _pattern: &P) {}
+            fn open_term<P: BoundPattern>(&mut self, _state: ScopeState, _pattern: &P) {}
+        }
+    };
+}
+
+impl_bound_term!(());
+impl_bound_term!(String);
+impl_bound_term!(char);
+impl_bound_term!(u8);
+impl_bound_term!(u16);
+impl_bound_term!(u32);
+impl_bound_term!(u64);
+impl_bound_term!(usize);
+impl_bound_term!(i8);
+impl_bound_term!(i16);
+impl_bound_term!(i32);
+impl_bound_term!(i64);
+impl_bound_term!(isize);
+impl_bound_term!(f32);
+impl_bound_term!(f64);
+
 impl<T: BoundTerm> BoundTerm for Option<T> {
     fn term_eq(&self, other: &Option<T>) -> bool {
         match (self, other) {
