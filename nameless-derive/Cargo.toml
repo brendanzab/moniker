@@ -22,6 +22,6 @@ publish = false
 proc-macro = true
 
 [dependencies]
-quote = "0.4"
-syn = "0.12"
-synstructure = "0.7"
+quote = "0.5.1"
+syn = "0.13.1"
+synstructure = "0.8.1"
