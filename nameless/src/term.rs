@@ -72,7 +72,7 @@ macro_rules! assert_term_eq {
 }
 
 macro_rules! impl_bound_term {
-    ($T: ty) => {
+    ($T:ty) => {
         impl BoundTerm for $T {
             fn term_eq(&self, other: &$T) -> bool {
                 self == other
@@ -86,7 +86,9 @@ macro_rules! impl_bound_term {
 
 impl_bound_term!(());
 impl_bound_term!(String);
+impl_bound_term!(str);
 impl_bound_term!(char);
+impl_bound_term!(bool);
 impl_bound_term!(u8);
 impl_bound_term!(u16);
 impl_bound_term!(u32);
