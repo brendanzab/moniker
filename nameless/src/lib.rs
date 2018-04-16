@@ -58,6 +58,7 @@ pub use nameless_derive::*;
 
 mod bind;
 mod embed;
+mod ignore;
 mod name;
 #[macro_use]
 mod pattern;
@@ -65,8 +66,9 @@ mod pattern;
 mod term;
 mod var;
 
-pub use self::bind::{bind, unbind, Bind, unbind2};
+pub use self::bind::{bind, unbind, unbind2, Bind};
 pub use self::embed::Embed;
+pub use self::ignore::Ignore;
 pub use self::name::{GenId, Ident, Name};
 pub use self::pattern::BoundPattern;
 pub use self::term::{BoundTerm, ScopeState};
