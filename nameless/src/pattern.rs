@@ -71,9 +71,7 @@ where
 
     fn freshen(&mut self) -> Vec<Name> {
         // FIXME: intermediate allocations
-        self.iter_mut()
-            .flat_map(|pattern| pattern.freshen())
-            .collect()
+        self.iter_mut().flat_map(P::freshen).collect()
     }
 
     fn rename(&mut self, perm: &[Name]) {

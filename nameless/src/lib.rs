@@ -23,6 +23,7 @@
 //! pub enum Expr {
 //!     Var(Var),
 //!     Lam(Bind<(Name, Embed<Rc<Type>>), Rc<Expr>>),
+//!     Let(Bind<Rebind<(Name, Embed<(Rc<Type>, Rc<Expr>>)>, Rc<Expr>),
 //!     App(Rc<Expr>, Rc<Expr>),
 //! }
 //! ```
@@ -31,19 +32,18 @@
 //!
 //! # Useful data types
 //!
-//! Data types are separated into patterns and terms - the one exception being
-//! `Name`, which can either be used as a term or a pattern.
+//! Data types are separated into patterns and terms:
 //!
-//! # Terms
+//! ## Terms
 //!
-//! - `Name`
 //! - `Var`: A variable that is either a free `Name` or `Bound`
-//! - `Bind<P: BoundPattern, T: BoundPattern>`: bind the term `T` using the pattern `P`
+//! - `Bind<P: BoundPattern, T: BoundTerm>`: bind the term `T` using the pattern `P`
 //!
-//! # Patterns
+//! ## Patterns
 //!
 //! - `Name`: Capture a name within a term, but ignore for alpha equality
 //! - `Embed<T: BoundTerm>`: Embed a term in a pattern
+//! - `Rebind<T: BoundPattern>`: Multiple nested binding patterns
 
 #[macro_use]
 extern crate lazy_static;
@@ -62,6 +62,7 @@ mod ignore;
 mod name;
 #[macro_use]
 mod pattern;
+mod rebind;
 #[macro_use]
 mod term;
 mod var;
@@ -71,5 +72,6 @@ pub use self::embed::Embed;
 pub use self::ignore::Ignore;
 pub use self::name::{GenId, Ident, Name};
 pub use self::pattern::BoundPattern;
+pub use self::rebind::{rebind, unrebind, Rebind};
 pub use self::term::{BoundTerm, ScopeState};
 pub use self::var::{BoundName, DebruijnIndex, PatternIndex, Var};
