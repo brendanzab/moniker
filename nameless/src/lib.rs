@@ -57,21 +57,21 @@ extern crate nameless_derive;
 pub use nameless_derive::*;
 
 mod bind;
+#[macro_use]
+mod bound_pattern;
+#[macro_use]
+mod bound_term;
 mod embed;
 mod ignore;
 mod name;
-#[macro_use]
-mod pattern;
 mod rebind;
-#[macro_use]
-mod term;
 mod var;
 
 pub use self::bind::{bind, unbind, unbind2, Bind};
+pub use self::bound_pattern::BoundPattern;
+pub use self::bound_term::{BoundTerm, ScopeState};
 pub use self::embed::Embed;
 pub use self::ignore::Ignore;
 pub use self::name::{GenId, Ident, Name};
-pub use self::pattern::BoundPattern;
 pub use self::rebind::{rebind, unrebind, Rebind};
-pub use self::term::{BoundTerm, ScopeState};
 pub use self::var::{BoundName, DebruijnIndex, PatternIndex, Var};
