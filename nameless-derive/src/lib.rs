@@ -10,10 +10,6 @@ use synstructure::{BindStyle, Structure};
 decl_derive!([BoundTerm] => term_derive);
 
 fn term_derive(mut s: Structure) -> quote::Tokens {
-    let pattern = quote! {
-        __P: ::nameless::BoundPattern,
-    };
-
     s.bind_with(|_| BindStyle::Ref);
 
     let term_eq_body = {
@@ -66,13 +62,19 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
                 match (self, other) { #term_eq_body }
             }
 
-            fn close_term<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P)
-            where #pattern {
+            fn close_term(
+                &mut self,
+                __state: ::nameless::ScopeState,
+                __pattern: &impl ::nameless::BoundPattern,
+            ) {
                 match *self { #close_term_body }
             }
 
-            fn open_term<__P>(&mut self, __state: ::nameless::ScopeState, __pattern: &__P)
-            where #pattern {
+            fn open_term(
+                &mut self,
+                __state: ::nameless::ScopeState,
+                __pattern: &impl ::nameless::BoundPattern,
+            ) {
                 match *self { #open_term_body }
             }
         },

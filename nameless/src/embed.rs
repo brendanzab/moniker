@@ -15,11 +15,11 @@ impl<T: BoundTerm> BoundPattern for Embed<T> {
 
     fn rename(&mut self, _perm: &[Name]) {}
 
-    fn close_pattern<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         self.0.close_term(state, pattern);
     }
 
-    fn open_pattern<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         self.0.open_term(state, pattern);
     }
 

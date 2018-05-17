@@ -16,12 +16,12 @@ where
             && T::term_eq(&self.unsafe_body, &other.unsafe_body)
     }
 
-    fn close_term<P1: BoundPattern>(&mut self, state: ScopeState, pattern: &P1) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         self.unsafe_pattern.close_pattern(state, pattern);
         self.unsafe_body.close_term(state.incr(), pattern);
     }
 
-    fn open_term<P1: BoundPattern>(&mut self, state: ScopeState, pattern: &P1) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         self.unsafe_pattern.open_pattern(state, pattern);
         self.unsafe_body.open_term(state.incr(), pattern);
     }

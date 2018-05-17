@@ -18,14 +18,14 @@ impl<P: BoundPattern> BoundPattern for Rebind<P> {
         Vec::rename(&mut self.unsafe_patterns, perm)
     }
 
-    fn close_pattern<P1: BoundPattern>(&mut self, mut state: ScopeState, pattern: &P1) {
+    fn close_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern) {
         for elem in &mut self.unsafe_patterns {
             elem.close_pattern(state, pattern);
             state = state.incr();
         }
     }
 
-    fn open_pattern<P1: BoundPattern>(&mut self, mut state: ScopeState, pattern: &P1) {
+    fn open_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern) {
         for elem in &mut self.unsafe_patterns {
             elem.close_pattern(state, pattern);
             state = state.incr();

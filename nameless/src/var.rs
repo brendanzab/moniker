@@ -62,7 +62,7 @@ impl BoundTerm for Var {
         }
     }
 
-    fn close_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         *self = match *self {
             Var::Bound(_, _) => return,
             Var::Free(ref name) => match pattern.on_free(state, name) {
@@ -72,7 +72,7 @@ impl BoundTerm for Var {
         };
     }
 
-    fn open_term<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         *self = match *self {
             Var::Free(_) => return,
             Var::Bound(_, bound) => match pattern.on_bound(state, bound) {

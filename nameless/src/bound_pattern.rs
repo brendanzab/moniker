@@ -8,10 +8,10 @@ pub trait BoundPattern {
     fn rename(&mut self, perm: &[Name]);
 
     #[allow(unused_variables)]
-    fn close_pattern<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {}
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {}
 
     #[allow(unused_variables)]
-    fn open_pattern<P: BoundPattern>(&mut self, state: ScopeState, pattern: &P) {}
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {}
 
     /// A callback that is used when `unbind`ing `Bind`s to replace free names
     /// with bound names based on the contents of the pattern
@@ -60,10 +60,7 @@ macro_rules! assert_pattern_eq {
     });
 }
 
-impl<P> BoundPattern for [P]
-where
-    P: BoundPattern,
-{
+impl<P: BoundPattern> BoundPattern for [P] {
     fn pattern_eq(&self, other: &[P]) -> bool {
         self.len() == other.len()
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
@@ -82,13 +79,13 @@ where
         }
     }
 
-    fn close_pattern<P1: BoundPattern>(&mut self, state: ScopeState, pattern: &P1) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         for elem in self {
             elem.close_pattern(state, pattern);
         }
     }
 
-    fn open_pattern<P1: BoundPattern>(&mut self, state: ScopeState, pattern: &P1) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         for elem in self {
             elem.open_pattern(state, pattern);
         }
@@ -122,10 +119,7 @@ where
     }
 }
 
-impl<P> BoundPattern for Vec<P>
-where
-    P: BoundPattern,
-{
+impl<P: BoundPattern> BoundPattern for Vec<P> {
     fn pattern_eq(&self, other: &Vec<P>) -> bool {
         <[P]>::pattern_eq(self, other)
     }
@@ -138,11 +132,11 @@ where
         <[P]>::rename(self, perm)
     }
 
-    fn close_pattern<P1: BoundPattern>(&mut self, state: ScopeState, pattern: &P1) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         <[P]>::close_pattern(self, state, pattern)
     }
 
-    fn open_pattern<P1: BoundPattern>(&mut self, state: ScopeState, pattern: &P1) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         <[P]>::open_pattern(self, state, pattern)
     }
 
@@ -175,18 +169,12 @@ where
         self.1.rename(perm);
     }
 
-    fn close_pattern<P>(&mut self, state: ScopeState, pattern: &P)
-    where
-        P: BoundPattern,
-    {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         self.0.close_pattern(state, pattern);
         self.1.close_pattern(state, pattern);
     }
 
-    fn open_pattern<P>(&mut self, state: ScopeState, pattern: &P)
-    where
-        P: BoundPattern,
-    {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         self.0.open_pattern(state, pattern);
         self.1.open_pattern(state, pattern);
     }
