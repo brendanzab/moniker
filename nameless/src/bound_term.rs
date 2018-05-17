@@ -1,6 +1,7 @@
+use std::collections::HashSet;
 use std::rc::Rc;
 
-use {BoundPattern, DebruijnIndex};
+use {BoundPattern, DebruijnIndex, Name, Var};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScopeState {
@@ -31,6 +32,23 @@ pub trait BoundTerm {
 
     #[allow(unused_variables)]
     fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {}
+
+    #[allow(unused_variables)]
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {}
+
+    #[allow(unused_variables)]
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {}
+
+    fn free_vars(&self) -> HashSet<Name> {
+        let mut free_vars = HashSet::new();
+        self.visit_vars(&mut |var| match *var {
+            Var::Bound(_, _) => {},
+            Var::Free(ref name) => {
+                free_vars.insert(name.clone());
+            },
+        });
+        free_vars
+    }
 }
 
 /// Asserts that two expressions are alpha equivalent to each other (using
@@ -118,6 +136,18 @@ impl<T: BoundTerm> BoundTerm for Option<T> {
             inner.open_term(state, pattern);
         }
     }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+        if let Some(ref inner) = *self {
+            inner.visit_vars(on_var);
+        }
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+        if let Some(ref mut inner) = *self {
+            inner.visit_mut_vars(on_var);
+        }
+    }
 }
 
 impl<T: BoundTerm> BoundTerm for Box<T> {
@@ -132,6 +162,14 @@ impl<T: BoundTerm> BoundTerm for Box<T> {
     fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         (**self).open_term(state, pattern);
     }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+        (**self).visit_vars(on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+        (**self).visit_mut_vars(on_var);
+    }
 }
 
 impl<T: BoundTerm + Clone> BoundTerm for Rc<T> {
@@ -145,6 +183,14 @@ impl<T: BoundTerm + Clone> BoundTerm for Rc<T> {
 
     fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         Rc::make_mut(self).open_term(state, pattern);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+        (**self).visit_vars(on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+        Rc::make_mut(self).visit_mut_vars(on_var);
     }
 }
 
@@ -165,6 +211,18 @@ impl<T: BoundTerm + Clone> BoundTerm for [T] {
             elem.open_term(state, pattern);
         }
     }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+        for elem in self {
+            elem.visit_vars(on_var);
+        }
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+        for elem in self {
+            elem.visit_mut_vars(on_var);
+        }
+    }
 }
 
 impl<T: BoundTerm + Clone> BoundTerm for Vec<T> {
@@ -178,5 +236,13 @@ impl<T: BoundTerm + Clone> BoundTerm for Vec<T> {
 
     fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         <[T]>::open_term(self, state, pattern)
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+        <[T]>::visit_vars(self, on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+        <[T]>::visit_mut_vars(self, on_var);
     }
 }

@@ -81,6 +81,14 @@ impl BoundTerm for Var {
             },
         };
     }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+        on_var(self);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+        on_var(self);
+    }
 }
 
 impl fmt::Display for Var {

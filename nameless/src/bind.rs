@@ -1,4 +1,4 @@
-use {BoundPattern, BoundTerm, ScopeState};
+use {BoundPattern, BoundTerm, ScopeState, Var};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Bind<P, T> {
@@ -24,6 +24,14 @@ where
     fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         self.unsafe_pattern.open_pattern(state, pattern);
         self.unsafe_body.open_term(state.incr(), pattern);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+        self.unsafe_body.visit_vars(on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+        self.unsafe_body.visit_mut_vars(on_var);
     }
 }
 
