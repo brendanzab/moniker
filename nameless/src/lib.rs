@@ -63,7 +63,6 @@ mod bound_pattern;
 mod bound_term;
 mod embed;
 mod ignore;
-mod name;
 mod rebind;
 mod var;
 
@@ -72,6 +71,5 @@ pub use self::bound_pattern::BoundPattern;
 pub use self::bound_term::{BoundTerm, ScopeState};
 pub use self::embed::Embed;
 pub use self::ignore::Ignore;
-pub use self::name::{GenId, Ident, Name};
 pub use self::rebind::{rebind, unrebind, Rebind};
-pub use self::var::{BoundName, DebruijnIndex, PatternIndex, Var};
+pub use self::var::{BoundName, DebruijnIndex, GenId, Ident, Name, PatternIndex, Var};
