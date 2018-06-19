@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::rc::Rc;
 
-use {BoundPattern, DebruijnIndex, Name, Var};
+use {BoundPattern, DebruijnIndex, FreeVar, Var};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScopeState {
@@ -39,7 +39,7 @@ pub trait BoundTerm {
     #[allow(unused_variables)]
     fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {}
 
-    fn free_vars(&self) -> HashSet<Name> {
+    fn free_vars(&self) -> HashSet<FreeVar> {
         let mut free_vars = HashSet::new();
         self.visit_vars(&mut |var| match *var {
             Var::Bound(_, _) => {},

@@ -47,9 +47,9 @@ impl fmt::Display for GenId {
     }
 }
 
-/// The name of a free variable
+/// A free variable
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Name {
+pub enum FreeVar {
     /// Names originating from user input
     User(Ident),
     /// A generated id with an optional string that may have come from user
@@ -57,51 +57,51 @@ pub enum Name {
     Gen(GenId, Option<Ident>),
 }
 
-impl Name {
+impl FreeVar {
     /// Create a name from a human-readable string
-    pub fn user<S: Into<Ident>>(name: S) -> Name {
-        Name::User(name.into())
+    pub fn user<S: Into<Ident>>(name: S) -> FreeVar {
+        FreeVar::User(name.into())
     }
 
     pub fn ident(&self) -> Option<&Ident> {
         match *self {
-            Name::User(ref name) => Some(name),
-            Name::Gen(_, ref hint) => hint.as_ref(),
+            FreeVar::User(ref name) => Some(name),
+            FreeVar::Gen(_, ref hint) => hint.as_ref(),
         }
     }
 }
 
-impl BoundTerm for Name {
-    fn term_eq(&self, other: &Name) -> bool {
+impl BoundTerm for FreeVar {
+    fn term_eq(&self, other: &FreeVar) -> bool {
         match (self, other) {
-            (&Name::User(ref lhs), &Name::User(ref rhs)) => lhs == rhs,
-            (&Name::Gen(ref lhs, _), &Name::Gen(ref rhs, _)) => lhs == rhs,
+            (&FreeVar::User(ref lhs), &FreeVar::User(ref rhs)) => lhs == rhs,
+            (&FreeVar::Gen(ref lhs, _), &FreeVar::Gen(ref rhs, _)) => lhs == rhs,
             _ => false,
         }
     }
 }
 
-impl BoundPattern for Name {
-    fn pattern_eq(&self, _other: &Name) -> bool {
+impl BoundPattern for FreeVar {
+    fn pattern_eq(&self, _other: &FreeVar) -> bool {
         true
     }
 
-    fn freshen(&mut self) -> Vec<Name> {
+    fn freshen(&mut self) -> Vec<FreeVar> {
         *self = match *self {
-            Name::User(ref name) => Name::Gen(GenId::fresh(), Some(name.clone())),
-            Name::Gen(_, _) => return vec![self.clone()],
+            FreeVar::User(ref name) => FreeVar::Gen(GenId::fresh(), Some(name.clone())),
+            FreeVar::Gen(_, _) => return vec![self.clone()],
         };
         vec![self.clone()]
     }
 
-    fn rename(&mut self, perm: &[Name]) {
+    fn rename(&mut self, perm: &[FreeVar]) {
         assert_eq!(perm.len(), 1); // FIXME: assert
         *self = perm[0].clone(); // FIXME: double clone
     }
 
-    fn on_free(&self, state: ScopeState, name: &Name) -> Option<BoundName> {
+    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
         match name == self {
-            true => Some(BoundName {
+            true => Some(BoundVar {
                 scope: state.depth(),
                 pattern: PatternIndex(0),
             }),
@@ -109,7 +109,7 @@ impl BoundPattern for Name {
         }
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundName) -> Option<Name> {
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
         match name.scope == state.depth() {
             true => {
                 assert_eq!(name.pattern, PatternIndex(0));
@@ -120,17 +120,17 @@ impl BoundPattern for Name {
     }
 }
 
-impl From<GenId> for Name {
-    fn from(src: GenId) -> Name {
-        Name::Gen(src, None)
+impl From<GenId> for FreeVar {
+    fn from(src: GenId) -> FreeVar {
+        FreeVar::Gen(src, None)
     }
 }
 
-impl fmt::Display for Name {
+impl fmt::Display for FreeVar {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Name::User(ref name) => write!(f, "{}", name),
-            Name::Gen(ref gen_id, ref name_hint) => match *name_hint {
+            FreeVar::User(ref name) => write!(f, "{}", name),
+            FreeVar::Gen(ref gen_id, ref name_hint) => match *name_hint {
                 None => write!(f, "{}", gen_id),
                 Some(ref name) => write!(f, "{}{}", name, gen_id),
             },
@@ -168,13 +168,14 @@ impl DebruijnIndex {
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 pub struct PatternIndex(pub u32);
 
+/// A bound variable
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
-pub struct BoundName {
+pub struct BoundVar {
     pub scope: DebruijnIndex,
     pub pattern: PatternIndex,
 }
 
-impl fmt::Display for BoundName {
+impl fmt::Display for BoundVar {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}.{}", self.scope.0, self.pattern.0)
     }
@@ -184,15 +185,15 @@ impl fmt::Display for BoundName {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Var {
     /// A free variable
-    Free(Name),
+    Free(FreeVar),
     /// A variable that is bound by a lambda or pi binder
-    Bound(BoundName, Option<Ident>),
+    Bound(BoundVar, Option<Ident>),
 }
 
 impl BoundTerm for Var {
     fn term_eq(&self, other: &Var) -> bool {
         match (self, other) {
-            (&Var::Free(ref lhs), &Var::Free(ref rhs)) => Name::term_eq(lhs, rhs),
+            (&Var::Free(ref lhs), &Var::Free(ref rhs)) => FreeVar::term_eq(lhs, rhs),
             (&Var::Bound(ref lhs, _), &Var::Bound(ref rhs, _)) => lhs == rhs,
             (_, _) => false,
         }

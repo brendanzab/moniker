@@ -1,4 +1,4 @@
-use {BoundName, BoundPattern, Name, ScopeState};
+use {BoundPattern, BoundVar, FreeVar, ScopeState};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Rebind<P> {
@@ -10,11 +10,11 @@ impl<P: BoundPattern> BoundPattern for Rebind<P> {
         Vec::pattern_eq(&self.unsafe_patterns, &other.unsafe_patterns)
     }
 
-    fn freshen(&mut self) -> Vec<Name> {
+    fn freshen(&mut self) -> Vec<FreeVar> {
         Vec::freshen(&mut self.unsafe_patterns)
     }
 
-    fn rename(&mut self, perm: &[Name]) {
+    fn rename(&mut self, perm: &[FreeVar]) {
         Vec::rename(&mut self.unsafe_patterns, perm)
     }
 
@@ -32,11 +32,11 @@ impl<P: BoundPattern> BoundPattern for Rebind<P> {
         }
     }
 
-    fn on_free(&self, state: ScopeState, name: &Name) -> Option<BoundName> {
+    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
         Vec::on_free(&self.unsafe_patterns, state, name)
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundName) -> Option<Name> {
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
         Vec::on_bound(&self.unsafe_patterns, state, name)
     }
 }

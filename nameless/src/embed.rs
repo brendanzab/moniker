@@ -1,4 +1,4 @@
-use {BoundName, BoundPattern, BoundTerm, Name, ScopeState};
+use {BoundPattern, BoundTerm, BoundVar, FreeVar, ScopeState};
 
 /// Embed a term in a pattern
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -9,11 +9,11 @@ impl<T: BoundTerm> BoundPattern for Embed<T> {
         T::term_eq(&self.0, &other.0)
     }
 
-    fn freshen(&mut self) -> Vec<Name> {
+    fn freshen(&mut self) -> Vec<FreeVar> {
         Vec::new()
     }
 
-    fn rename(&mut self, _perm: &[Name]) {}
+    fn rename(&mut self, _perm: &[FreeVar]) {}
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         self.0.close_term(state, pattern);
@@ -23,11 +23,11 @@ impl<T: BoundTerm> BoundPattern for Embed<T> {
         self.0.open_term(state, pattern);
     }
 
-    fn on_free(&self, _state: ScopeState, _name: &Name) -> Option<BoundName> {
+    fn on_free(&self, _state: ScopeState, _name: &FreeVar) -> Option<BoundVar> {
         None
     }
 
-    fn on_bound(&self, _state: ScopeState, _name: BoundName) -> Option<Name> {
+    fn on_bound(&self, _state: ScopeState, _name: BoundVar) -> Option<FreeVar> {
         None
     }
 }

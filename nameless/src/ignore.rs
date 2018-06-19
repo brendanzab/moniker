@@ -1,4 +1,4 @@
-use {BoundName, BoundPattern, BoundTerm, Name, ScopeState};
+use {BoundPattern, BoundTerm, BoundVar, FreeVar, ScopeState};
 
 /// Data that does not participate in name binding
 ///
@@ -18,17 +18,17 @@ impl<T> BoundPattern for Ignore<T> {
         true
     }
 
-    fn freshen(&mut self) -> Vec<Name> {
+    fn freshen(&mut self) -> Vec<FreeVar> {
         Vec::new()
     }
 
-    fn rename(&mut self, _: &[Name]) {}
+    fn rename(&mut self, _: &[FreeVar]) {}
 
-    fn on_free(&self, _: ScopeState, _: &Name) -> Option<BoundName> {
+    fn on_free(&self, _: ScopeState, _: &FreeVar) -> Option<BoundVar> {
         None
     }
 
-    fn on_bound(&self, _: ScopeState, _: BoundName) -> Option<Name> {
+    fn on_bound(&self, _: ScopeState, _: BoundVar) -> Option<FreeVar> {
         None
     }
 }

@@ -4,22 +4,22 @@
 #[macro_use]
 extern crate nameless;
 
-use nameless::{Bind, BoundTerm, Name, Var};
+use nameless::{Bind, BoundTerm, FreeVar, Var};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum Env {
     Empty,
-    Extend(Rc<Env>, Name, Rc<Expr>),
+    Extend(Rc<Env>, FreeVar, Rc<Expr>),
 }
 
-fn extend(env: Rc<Env>, name: Name, expr: Rc<Expr>) -> Rc<Env> {
+fn extend(env: Rc<Env>, name: FreeVar, expr: Rc<Expr>) -> Rc<Env> {
     Rc::new(Env::Extend(env, name, expr))
 }
 
-fn lookup<'a>(mut env: &'a Rc<Env>, name: &Name) -> Option<&'a Rc<Expr>> {
+fn lookup<'a>(mut env: &'a Rc<Env>, name: &FreeVar) -> Option<&'a Rc<Expr>> {
     while let Env::Extend(ref next_env, ref curr_name, ref expr) = **env {
-        if Name::term_eq(curr_name, name) {
+        if FreeVar::term_eq(curr_name, name) {
             return Some(expr);
         } else {
             env = next_env;
@@ -31,7 +31,7 @@ fn lookup<'a>(mut env: &'a Rc<Env>, name: &Name) -> Option<&'a Rc<Expr>> {
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     Var(Var),
-    Lam(Bind<Vec<Name>, Rc<Expr>>),
+    Lam(Bind<Vec<FreeVar>, Rc<Expr>>),
     App(Rc<Expr>, Vec<Rc<Expr>>),
 }
 
@@ -72,18 +72,18 @@ fn test_eval() {
     // expr = (fn(x, y) -> y)(a, b)
     let expr = Rc::new(Expr::App(
         Rc::new(Expr::Lam(nameless::bind(
-            vec![Name::user("x"), Name::user("y")],
-            Rc::new(Expr::Var(Var::Free(Name::user("y")))),
+            vec![FreeVar::user("x"), FreeVar::user("y")],
+            Rc::new(Expr::Var(Var::Free(FreeVar::user("y")))),
         ))),
         vec![
-            Rc::new(Expr::Var(Var::Free(Name::user("a")))),
-            Rc::new(Expr::Var(Var::Free(Name::user("b")))),
+            Rc::new(Expr::Var(Var::Free(FreeVar::user("a")))),
+            Rc::new(Expr::Var(Var::Free(FreeVar::user("b")))),
         ],
     ));
 
     assert_term_eq!(
         eval(&Rc::new(Env::Empty), &expr).unwrap(),
-        Rc::new(Expr::Var(Var::Free(Name::user("b")))),
+        Rc::new(Expr::Var(Var::Free(FreeVar::user("b")))),
     );
 }
 

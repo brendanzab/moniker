@@ -4,22 +4,22 @@
 #[macro_use]
 extern crate nameless;
 
-use nameless::{Bind, BoundTerm, Embed, Name, Var};
+use nameless::{Bind, BoundTerm, Embed, FreeVar, Var};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum Context {
     Empty,
-    Extend(Rc<Context>, Name, Rc<Type>),
+    Extend(Rc<Context>, FreeVar, Rc<Type>),
 }
 
-fn extend(context: Rc<Context>, name: Name, expr: Rc<Type>) -> Rc<Context> {
+fn extend(context: Rc<Context>, name: FreeVar, expr: Rc<Type>) -> Rc<Context> {
     Rc::new(Context::Extend(context, name, expr))
 }
 
-fn lookup<'a>(mut context: &'a Rc<Context>, name: &Name) -> Option<&'a Rc<Type>> {
+fn lookup<'a>(mut context: &'a Rc<Context>, name: &FreeVar) -> Option<&'a Rc<Type>> {
     while let Context::Extend(ref next_context, ref curr_name, ref expr) = **context {
-        if Name::term_eq(curr_name, name) {
+        if FreeVar::term_eq(curr_name, name) {
             return Some(expr);
         } else {
             context = next_context;
@@ -38,7 +38,7 @@ pub enum Type {
 pub enum Expr {
     Ann(Rc<Expr>, Rc<Type>),
     Var(Var),
-    Lam(Bind<(Name, Embed<Option<Rc<Type>>>), Rc<Expr>>),
+    Lam(Bind<(FreeVar, Embed<Option<Rc<Type>>>), Rc<Expr>>),
     App(Rc<Expr>, Rc<Expr>),
 }
 
@@ -106,8 +106,8 @@ pub fn infer(context: &Rc<Context>, expr: &Rc<Expr>) -> Result<Rc<Type>, String>
 fn test_infer() {
     // expr = (\x -> x)
     let expr = Rc::new(Expr::Lam(nameless::bind(
-        (Name::user("x"), Embed(Some(Rc::new(Type::Base)))),
-        Rc::new(Expr::Var(Var::Free(Name::user("x")))),
+        (FreeVar::user("x"), Embed(Some(Rc::new(Type::Base)))),
+        Rc::new(Expr::Var(Var::Free(FreeVar::user("x")))),
     )));
 
     assert_term_eq!(

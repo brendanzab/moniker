@@ -1,11 +1,12 @@
-use {BoundName, Name, PatternIndex, ScopeState};
+use {BoundVar, FreeVar, PatternIndex, ScopeState};
 
 pub trait BoundPattern {
     /// Alpha equivalence in a pattern context
     fn pattern_eq(&self, other: &Self) -> bool;
 
-    fn freshen(&mut self) -> Vec<Name>;
-    fn rename(&mut self, perm: &[Name]);
+    fn freshen(&mut self) -> Vec<FreeVar>;
+
+    fn rename(&mut self, perm: &[FreeVar]);
 
     #[allow(unused_variables)]
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {}
@@ -15,11 +16,11 @@ pub trait BoundPattern {
 
     /// A callback that is used when `unbind`ing `Bind`s to replace free names
     /// with bound names based on the contents of the pattern
-    fn on_free(&self, state: ScopeState, name: &Name) -> Option<BoundName>;
+    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar>;
 
     /// A callback that is used when `bind`ing `Bind`s to replace bound names
     /// with free names based on the contents of the pattern
-    fn on_bound(&self, state: ScopeState, name: BoundName) -> Option<Name>;
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar>;
 }
 
 /// Asserts that two expressions are alpha equivalent to each other (using
@@ -66,12 +67,12 @@ impl<P: BoundPattern> BoundPattern for [P] {
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
     }
 
-    fn freshen(&mut self) -> Vec<Name> {
+    fn freshen(&mut self) -> Vec<FreeVar> {
         // FIXME: intermediate allocations
         self.iter_mut().flat_map(P::freshen).collect()
     }
 
-    fn rename(&mut self, perm: &[Name]) {
+    fn rename(&mut self, perm: &[FreeVar]) {
         assert_eq!(self.len(), perm.len()); // FIXME: assertion
 
         for (pattern, perm) in <_>::zip(self.iter_mut(), perm.iter()) {
@@ -91,13 +92,13 @@ impl<P: BoundPattern> BoundPattern for [P] {
         }
     }
 
-    fn on_free(&self, state: ScopeState, name: &Name) -> Option<BoundName> {
+    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
         self.iter()
             .enumerate()
             .filter_map(|(i, pattern)| {
                 pattern.on_free(state, name).map(|bound| {
                     assert_eq!(bound.pattern, PatternIndex(0));
-                    BoundName {
+                    BoundVar {
                         pattern: PatternIndex(i as u32),
                         ..bound
                     }
@@ -106,11 +107,11 @@ impl<P: BoundPattern> BoundPattern for [P] {
             .next()
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundName) -> Option<Name> {
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
         self.get(name.pattern.0 as usize).and_then(|pattern| {
             pattern.on_bound(
                 state,
-                BoundName {
+                BoundVar {
                     pattern: PatternIndex(0),
                     ..name
                 },
@@ -124,11 +125,11 @@ impl<P: BoundPattern> BoundPattern for Vec<P> {
         <[P]>::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self) -> Vec<Name> {
+    fn freshen(&mut self) -> Vec<FreeVar> {
         <[P]>::freshen(self)
     }
 
-    fn rename(&mut self, perm: &[Name]) {
+    fn rename(&mut self, perm: &[FreeVar]) {
         <[P]>::rename(self, perm)
     }
 
@@ -140,11 +141,11 @@ impl<P: BoundPattern> BoundPattern for Vec<P> {
         <[P]>::open_pattern(self, state, pattern)
     }
 
-    fn on_free(&self, state: ScopeState, name: &Name) -> Option<BoundName> {
+    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
         <[P]>::on_free(self, state, name)
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundName) -> Option<Name> {
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
         <[P]>::on_bound(self, state, name)
     }
 }
@@ -158,13 +159,13 @@ where
         P1::pattern_eq(&self.0, &other.0) && P2::pattern_eq(&self.1, &other.1)
     }
 
-    fn freshen(&mut self) -> Vec<Name> {
+    fn freshen(&mut self) -> Vec<FreeVar> {
         let mut perm = self.0.freshen();
         perm.extend(self.1.freshen());
         perm
     }
 
-    fn rename(&mut self, perm: &[Name]) {
+    fn rename(&mut self, perm: &[FreeVar]) {
         self.0.rename(perm);
         self.1.rename(perm);
     }
@@ -179,13 +180,13 @@ where
         self.1.open_pattern(state, pattern);
     }
 
-    fn on_free(&self, state: ScopeState, name: &Name) -> Option<BoundName> {
+    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
         self.0
             .on_free(state, name)
             .or_else(|| self.1.on_free(state, name))
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundName) -> Option<Name> {
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
         self.0
             .on_bound(state, name)
             .or_else(|| self.1.on_bound(state, name))

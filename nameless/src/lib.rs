@@ -72,4 +72,4 @@ pub use self::bound_term::{BoundTerm, ScopeState};
 pub use self::embed::Embed;
 pub use self::ignore::Ignore;
 pub use self::rebind::{rebind, unrebind, Rebind};
-pub use self::var::{BoundName, DebruijnIndex, GenId, Ident, Name, PatternIndex, Var};
+pub use self::var::{BoundVar, DebruijnIndex, FreeVar, GenId, Ident, PatternIndex, Var};

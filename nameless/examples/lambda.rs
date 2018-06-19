@@ -4,22 +4,22 @@
 #[macro_use]
 extern crate nameless;
 
-use nameless::{Bind, BoundTerm, Embed, Name, Rebind, Var};
+use nameless::{Bind, BoundTerm, Embed, FreeVar, Rebind, Var};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum Env {
     Empty,
-    Extend(Rc<Env>, Name, Rc<Expr>),
+    Extend(Rc<Env>, FreeVar, Rc<Expr>),
 }
 
-fn extend(env: Rc<Env>, name: Name, expr: Rc<Expr>) -> Rc<Env> {
+fn extend(env: Rc<Env>, name: FreeVar, expr: Rc<Expr>) -> Rc<Env> {
     Rc::new(Env::Extend(env, name, expr))
 }
 
-fn lookup<'a>(mut env: &'a Rc<Env>, name: &Name) -> Option<&'a Rc<Expr>> {
+fn lookup<'a>(mut env: &'a Rc<Env>, name: &FreeVar) -> Option<&'a Rc<Expr>> {
     while let Env::Extend(ref next_env, ref curr_name, ref expr) = **env {
-        if Name::term_eq(curr_name, name) {
+        if FreeVar::term_eq(curr_name, name) {
             return Some(expr);
         } else {
             env = next_env;
@@ -31,8 +31,8 @@ fn lookup<'a>(mut env: &'a Rc<Env>, name: &Name) -> Option<&'a Rc<Expr>> {
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     Var(Var),
-    Lam(Bind<Name, Rc<Expr>>),
-    Let(Bind<Rebind<(Name, Embed<Rc<Expr>>)>, Rc<Expr>>),
+    Lam(Bind<FreeVar, Rc<Expr>>),
+    Let(Bind<Rebind<(FreeVar, Embed<Rc<Expr>>)>, Rc<Expr>>),
     App(Rc<Expr>, Rc<Expr>),
 }
 
@@ -65,15 +65,15 @@ fn test_eval() {
     // expr = (\x -> x) y
     let expr = Rc::new(Expr::App(
         Rc::new(Expr::Lam(nameless::bind(
-            Name::user("x"),
-            Rc::new(Expr::Var(Var::Free(Name::user("x")))),
+            FreeVar::user("x"),
+            Rc::new(Expr::Var(Var::Free(FreeVar::user("x")))),
         ))),
-        Rc::new(Expr::Var(Var::Free(Name::user("y")))),
+        Rc::new(Expr::Var(Var::Free(FreeVar::user("y")))),
     ));
 
     assert_term_eq!(
         eval(&Rc::new(Env::Empty), &expr),
-        Rc::new(Expr::Var(Var::Free(Name::user("y")))),
+        Rc::new(Expr::Var(Var::Free(FreeVar::user("y")))),
     );
 }
 
@@ -87,30 +87,30 @@ fn test_eval_let() {
     let expr = Rc::new(Expr::Let(nameless::bind(
         nameless::rebind(vec![
             (
-                Name::user("id"),
+                FreeVar::user("id"),
                 Embed(Rc::new(Expr::Lam(nameless::bind(
-                    Name::user("x"),
-                    Rc::new(Expr::Var(Var::Free(Name::user("x")))),
+                    FreeVar::user("x"),
+                    Rc::new(Expr::Var(Var::Free(FreeVar::user("x")))),
                 )))),
             ),
             (
-                Name::user("foo"),
-                Embed(Rc::new(Expr::Var(Var::Free(Name::user("y"))))),
+                FreeVar::user("foo"),
+                Embed(Rc::new(Expr::Var(Var::Free(FreeVar::user("y"))))),
             ),
             (
-                Name::user("bar"),
+                FreeVar::user("bar"),
                 Embed(Rc::new(Expr::App(
-                    Rc::new(Expr::Var(Var::Free(Name::user("id")))),
-                    Rc::new(Expr::Var(Var::Free(Name::user("foo")))),
+                    Rc::new(Expr::Var(Var::Free(FreeVar::user("id")))),
+                    Rc::new(Expr::Var(Var::Free(FreeVar::user("foo")))),
                 ))),
             ),
         ]),
-        Rc::new(Expr::Var(Var::Free(Name::user("bar")))),
+        Rc::new(Expr::Var(Var::Free(FreeVar::user("bar")))),
     )));
 
     assert_term_eq!(
         eval(&Rc::new(Env::Empty), &expr),
-        Rc::new(Expr::Var(Var::Free(Name::user("y")))),
+        Rc::new(Expr::Var(Var::Free(FreeVar::user("y")))),
     );
 }
 
