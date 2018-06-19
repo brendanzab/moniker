@@ -54,7 +54,7 @@ pub enum Name {
     User(Ident),
     /// A generated id with an optional string that may have come from user
     /// input (for debugging purposes)
-    Gen(Option<Ident>, GenId),
+    Gen(GenId, Option<Ident>),
 }
 
 impl Name {
@@ -63,10 +63,10 @@ impl Name {
         Name::User(name.into())
     }
 
-    pub fn name(&self) -> Option<&Ident> {
+    pub fn ident(&self) -> Option<&Ident> {
         match *self {
             Name::User(ref name) => Some(name),
-            Name::Gen(ref name, _) => name.as_ref(),
+            Name::Gen(_, ref hint) => hint.as_ref(),
         }
     }
 }
@@ -75,7 +75,7 @@ impl BoundTerm for Name {
     fn term_eq(&self, other: &Name) -> bool {
         match (self, other) {
             (&Name::User(ref lhs), &Name::User(ref rhs)) => lhs == rhs,
-            (&Name::Gen(_, ref lhs), &Name::Gen(_, ref rhs)) => lhs == rhs,
+            (&Name::Gen(ref lhs, _), &Name::Gen(ref rhs, _)) => lhs == rhs,
             _ => false,
         }
     }
@@ -88,7 +88,7 @@ impl BoundPattern for Name {
 
     fn freshen(&mut self) -> Vec<Name> {
         *self = match *self {
-            Name::User(ref name) => Name::Gen(Some(name.clone()), GenId::fresh()),
+            Name::User(ref name) => Name::Gen(GenId::fresh(), Some(name.clone())),
             Name::Gen(_, _) => return vec![self.clone()],
         };
         vec![self.clone()]
@@ -122,7 +122,7 @@ impl BoundPattern for Name {
 
 impl From<GenId> for Name {
     fn from(src: GenId) -> Name {
-        Name::Gen(None, src)
+        Name::Gen(src, None)
     }
 }
 
@@ -130,7 +130,7 @@ impl fmt::Display for Name {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Name::User(ref name) => write!(f, "{}", name),
-            Name::Gen(ref name, ref gen_id) => match *name {
+            Name::Gen(ref gen_id, ref name_hint) => match *name_hint {
                 None => write!(f, "{}", gen_id),
                 Some(ref name) => write!(f, "{}{}", name, gen_id),
             },
@@ -186,14 +186,14 @@ pub enum Var {
     /// A free variable
     Free(Name),
     /// A variable that is bound by a lambda or pi binder
-    Bound(Name, BoundName),
+    Bound(BoundName, Option<Ident>),
 }
 
 impl BoundTerm for Var {
     fn term_eq(&self, other: &Var) -> bool {
         match (self, other) {
             (&Var::Free(ref lhs), &Var::Free(ref rhs)) => Name::term_eq(lhs, rhs),
-            (&Var::Bound(_, ref lhs), &Var::Bound(_, ref rhs)) => lhs == rhs,
+            (&Var::Bound(ref lhs, _), &Var::Bound(ref rhs, _)) => lhs == rhs,
             (_, _) => false,
         }
     }
@@ -202,7 +202,7 @@ impl BoundTerm for Var {
         *self = match *self {
             Var::Bound(_, _) => return,
             Var::Free(ref name) => match pattern.on_free(state, name) {
-                Some(bound) => Var::Bound(name.clone(), bound),
+                Some(bound) => Var::Bound(bound, name.ident().cloned()),
                 None => return,
             },
         };
@@ -211,7 +211,7 @@ impl BoundTerm for Var {
     fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
         *self = match *self {
             Var::Free(_) => return,
-            Var::Bound(_, bound) => match pattern.on_bound(state, bound) {
+            Var::Bound(bound, _) => match pattern.on_bound(state, bound) {
                 Some(name) => Var::Free(name),
                 None => return,
             },
@@ -230,8 +230,9 @@ impl BoundTerm for Var {
 impl fmt::Display for Var {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Var::Bound(ref name, bound) if f.alternate() => write!(f, "{}@{}", name, bound),
-            Var::Bound(ref name, ..) | Var::Free(ref name) => write!(f, "{}", name),
+            Var::Bound(bound, None) => write!(f, "@{}", bound),
+            Var::Bound(bound, Some(ref hint)) => write!(f, "{}@{}", hint, bound),
+            Var::Free(ref free) => write!(f, "{}", free),
         }
     }
 }
