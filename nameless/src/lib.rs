@@ -36,12 +36,13 @@
 //!
 //! ## Terms
 //!
-//! - `Var`: A variable that is either a free `Name` or `Bound`
+//! - `Var`: A variable that is either a `FreeVar` or `BoundVar`
 //! - `Bind<P: BoundPattern, T: BoundTerm>`: bind the term `T` using the pattern `P`
 //!
 //! ## Patterns
 //!
-//! - `Name`: Capture a name within a term, but ignore for alpha equality
+//! - `FreeVar`: Captures a free variable within a term, but is ignored for alpha equality
+//! - `Ignore<T>`: Ignores `T` when comparing for alpha equality
 //! - `Embed<T: BoundTerm>`: Embed a term in a pattern
 //! - `Rebind<T: BoundPattern>`: Multiple nested binding patterns
 
