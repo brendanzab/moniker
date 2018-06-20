@@ -4,7 +4,7 @@
 #[macro_use]
 extern crate nameless;
 
-use nameless::{BoundTerm, Embed, FreeVar, Scope, Var};
+use nameless::{BoundTerm, Embed, FreeVar, FreshState, Scope, Var};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -42,19 +42,24 @@ pub enum Expr {
     App(Rc<Expr>, Rc<Expr>),
 }
 
-pub fn check(context: &Rc<Context>, expr: &Rc<Expr>, expected_ty: &Rc<Type>) -> Result<(), String> {
+pub fn check(
+    context: &Rc<Context>,
+    expr: &Rc<Expr>,
+    expected_ty: &Rc<Type>,
+    fresh_state: &mut FreshState,
+) -> Result<(), String> {
     match (&**expr, &**expected_ty) {
         (&Expr::Lam(ref scope), &Type::Arrow(ref param_ty, ref ret_ty)) => {
-            if let ((name, Embed(None)), body) = scope.clone().unbind() {
+            if let ((name, Embed(None)), body) = scope.clone().unbind(fresh_state) {
                 let inner_context = extend(context.clone(), name, param_ty.clone());
-                check(&inner_context, &body, ret_ty)?;
+                check(&inner_context, &body, ret_ty, fresh_state)?;
                 return Ok(());
             }
         },
         (_, _) => {},
     }
 
-    let inferred_ty = infer(&context, expr)?;
+    let inferred_ty = infer(&context, expr, fresh_state)?;
 
     if Type::term_eq(&inferred_ty, expected_ty) {
         Ok(())
@@ -66,28 +71,33 @@ pub fn check(context: &Rc<Context>, expr: &Rc<Expr>, expected_ty: &Rc<Type>) -> 
     }
 }
 
-pub fn infer(context: &Rc<Context>, expr: &Rc<Expr>) -> Result<Rc<Type>, String> {
+pub fn infer(
+    context: &Rc<Context>,
+    expr: &Rc<Expr>,
+    fresh_state: &mut FreshState,
+) -> Result<Rc<Type>, String> {
     match **expr {
         Expr::Ann(ref expr, ref ty) => {
-            check(context, expr, ty)?;
+            check(context, expr, ty, fresh_state)?;
             Ok(ty.clone())
         },
         Expr::Var(Var::Free(ref name)) => lookup(context, name)
             .cloned()
             .ok_or(format!("`{:?}` not found", name)),
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
-        Expr::Lam(ref scope) => match scope.clone().unbind() {
+        Expr::Lam(ref scope) => match scope.clone().unbind(fresh_state) {
             ((name, Embed(Some(ann))), body) => {
-                let body_ty = infer(&extend(context.clone(), name, ann.clone()), &body)?;
+                let context = extend(context.clone(), name, ann.clone());
+                let body_ty = infer(&context, &body, fresh_state)?;
                 Ok(Rc::new(Type::Arrow(ann, body_ty)))
             },
             ((name, Embed(None)), _) => {
                 Err(format!("type annotation needed for argument `{:?}`", name))
             },
         },
-        Expr::App(ref fun, ref arg) => match *infer(context, fun)? {
+        Expr::App(ref fun, ref arg) => match *infer(context, fun, fresh_state)? {
             Type::Arrow(ref param_ty, ref ret_ty) => {
-                let arg_ty = infer(context, arg)?;
+                let arg_ty = infer(context, arg, fresh_state)?;
                 if Type::term_eq(param_ty, &arg_ty) {
                     Ok(ret_ty.clone())
                 } else {
@@ -104,6 +114,8 @@ pub fn infer(context: &Rc<Context>, expr: &Rc<Expr>) -> Result<Rc<Type>, String>
 
 #[test]
 fn test_infer() {
+    let mut fresh_state = FreshState::new();
+
     // expr = (\x -> x)
     let expr = Rc::new(Expr::Lam(Scope::new(
         (FreeVar::user("x"), Embed(Some(Rc::new(Type::Base)))),
@@ -111,7 +123,7 @@ fn test_infer() {
     )));
 
     assert_term_eq!(
-        infer(&Rc::new(Context::Empty), &expr).unwrap(),
+        infer(&Rc::new(Context::Empty), &expr, &mut fresh_state).unwrap(),
         Rc::new(Type::Arrow(Rc::new(Type::Base), Rc::new(Type::Base))),
     );
 }

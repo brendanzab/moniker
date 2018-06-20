@@ -1,4 +1,4 @@
-use {BoundPattern, BoundTerm, ScopeState, Var};
+use {BoundPattern, BoundTerm, FreshState, ScopeState, Var};
 
 /// A bound scope
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,11 +31,11 @@ where
     }
 
     /// Unbind a term, returning the freshened pattern and body
-    pub fn unbind(self) -> (P, T) {
+    pub fn unbind(self, fresh_state: &mut FreshState) -> (P, T) {
         let mut pattern = self.unsafe_pattern;
         let mut body = self.unsafe_body;
 
-        pattern.freshen();
+        pattern.freshen(fresh_state);
         body.open_term(ScopeState::new(), &pattern);
 
         (pattern, body)
@@ -44,7 +44,11 @@ where
     /// Simultaneously unbind two terms
     ///
     /// The fresh names in the first pattern with be used for the second pattern
-    pub fn unbind2<P2, T2>(self, other: Scope<P2, T2>) -> (P, T, P2, T2)
+    pub fn unbind2<P2, T2>(
+        self,
+        other: Scope<P2, T2>,
+        fresh_state: &mut FreshState,
+    ) -> (P, T, P2, T2)
     where
         P2: BoundPattern,
         T2: BoundTerm,
@@ -55,7 +59,7 @@ where
         let mut other_body = other.unsafe_body;
 
         {
-            let names = self_pattern.freshen();
+            let names = self_pattern.freshen(fresh_state);
             other_pattern.rename(&names);
             self_body.open_term(ScopeState::new(), &self_pattern);
             other_body.open_term(ScopeState::new(), &other_pattern);

@@ -1,4 +1,4 @@
-use {BoundPattern, BoundVar, FreeVar, PatternIndex, PatternSubsts, ScopeState};
+use {BoundPattern, BoundVar, FreeVar, FreshState, PatternIndex, PatternSubsts, ScopeState};
 
 /// Multiple parallel binding 0
 ///
@@ -13,9 +13,14 @@ impl<P: BoundPattern> BoundPattern for Multi<P> {
             && <_>::zip(self.0.iter(), other.0.iter()).all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+    fn freshen(&mut self, fresh_state: &mut FreshState) -> PatternSubsts<FreeVar> {
         // FIXME: intermediate allocations
-        PatternSubsts::new(self.0.iter_mut().flat_map(P::freshen).collect())
+        PatternSubsts::new(
+            self.0
+                .iter_mut()
+                .flat_map(|p| p.freshen(fresh_state))
+                .collect(),
+        )
     }
 
     fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {

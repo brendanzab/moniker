@@ -1,6 +1,6 @@
 use std::{slice, vec};
 
-use {BoundVar, FreeVar, PatternIndex, ScopeState};
+use {BoundVar, FreeVar, FreshState, PatternIndex, ScopeState};
 
 /// A mapping of `PatternIndex`s to `T`s
 pub struct PatternSubsts<T> {
@@ -44,7 +44,7 @@ pub trait BoundPattern {
     /// Alpha equivalence in a pattern context
     fn pattern_eq(&self, other: &Self) -> bool;
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar>;
+    fn freshen(&mut self, fresh_state: &mut FreshState) -> PatternSubsts<FreeVar>;
 
     fn rename(&mut self, perm: &PatternSubsts<FreeVar>);
 
@@ -110,9 +110,9 @@ where
         P1::pattern_eq(&self.0, &other.0) && P2::pattern_eq(&self.1, &other.1)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
-        let mut perm = self.0.freshen();
-        perm.extend(self.1.freshen());
+    fn freshen(&mut self, fresh_state: &mut FreshState) -> PatternSubsts<FreeVar> {
+        let mut perm = self.0.freshen(fresh_state);
+        perm.extend(self.1.freshen(fresh_state));
         perm
     }
 

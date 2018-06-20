@@ -1,4 +1,4 @@
-use {BoundPattern, BoundTerm, BoundVar, FreeVar, PatternSubsts, ScopeState};
+use {BoundPattern, BoundTerm, BoundVar, FreeVar, FreshState, PatternSubsts, ScopeState};
 
 /// Data that does not participate in name binding
 ///
@@ -18,7 +18,7 @@ impl<T> BoundPattern for Ignore<T> {
         true
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+    fn freshen(&mut self, _: &mut FreshState) -> PatternSubsts<FreeVar> {
         PatternSubsts::new(Vec::new())
     }
 

@@ -23,25 +23,31 @@ impl fmt::Display for Ident {
     }
 }
 
-/// A generated id
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct GenId(u32);
+/// A source of fresh variables
+#[derive(Debug)]
+pub struct FreshState {
+    next_id: u32,
+}
 
-impl GenId {
-    /// Generate a new, globally unique id
-    pub fn fresh() -> GenId {
-        use std::sync::atomic::{AtomicUsize, Ordering};
+impl FreshState {
+    /// Construct a new
+    pub fn new() -> FreshState {
+        FreshState { next_id: 0 }
+    }
 
-        lazy_static! {
-            static ref NEXT_ID: AtomicUsize = AtomicUsize::new(0);
-        }
-
-        // FIXME: check for integer overflow
-        GenId(NEXT_ID.fetch_add(1, Ordering::SeqCst) as u32)
+    /// Generate a fresh id
+    pub fn gen(&mut self) -> FreshId {
+        let next_id = self.next_id;
+        self.next_id += 1;
+        FreshId(next_id)
     }
 }
 
-impl fmt::Display for GenId {
+/// A fresh id
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct FreshId(u32);
+
+impl fmt::Display for FreshId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "${}", self.0)
     }
@@ -54,7 +60,7 @@ pub enum FreeVar {
     User(Ident),
     /// A generated id with an optional string that may have come from user
     /// input (for debugging purposes)
-    Gen(GenId, Option<Ident>),
+    Gen(FreshId, Option<Ident>),
 }
 
 impl FreeVar {
@@ -86,9 +92,9 @@ impl BoundPattern for FreeVar {
         true
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+    fn freshen(&mut self, fresh_state: &mut FreshState) -> PatternSubsts<FreeVar> {
         *self = match *self {
-            FreeVar::User(ref name) => FreeVar::Gen(GenId::fresh(), Some(name.clone())),
+            FreeVar::User(ref name) => FreeVar::Gen(fresh_state.gen(), Some(name.clone())),
             FreeVar::Gen(_, _) => return PatternSubsts::new(vec![self.clone()]),
         };
         PatternSubsts::new(vec![self.clone()])
@@ -120,8 +126,8 @@ impl BoundPattern for FreeVar {
     }
 }
 
-impl From<GenId> for FreeVar {
-    fn from(src: GenId) -> FreeVar {
+impl From<FreshId> for FreeVar {
+    fn from(src: FreshId) -> FreeVar {
         FreeVar::Gen(src, None)
     }
 }

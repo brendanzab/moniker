@@ -48,8 +48,6 @@
 //! - `Nest<T: BoundPattern>`: Multiple nested binding patterns
 //! - `Rec<T: BoundPattern>`: Recursive binding patterns
 
-#[macro_use]
-extern crate lazy_static;
 #[cfg(feature = "nameless-derive")]
 #[allow(unused_imports)]
 #[macro_use]
@@ -79,4 +77,4 @@ pub use self::multi::Multi;
 pub use self::nest::Nest;
 pub use self::rec::Rec;
 pub use self::scope::Scope;
-pub use self::var::{BoundVar, DebruijnIndex, FreeVar, GenId, Ident, PatternIndex, Var};
+pub use self::var::{BoundVar, DebruijnIndex, FreeVar, FreshState, Ident, PatternIndex, Var};

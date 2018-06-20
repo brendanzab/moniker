@@ -4,7 +4,7 @@
 #[macro_use]
 extern crate nameless;
 
-use nameless::{BoundTerm, Embed, FreeVar, Nest, Scope, Var};
+use nameless::{BoundTerm, Embed, FreeVar, FreshState, Nest, Scope, Var};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -36,24 +36,25 @@ pub enum Expr {
     App(Rc<Expr>, Rc<Expr>),
 }
 
-pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Rc<Expr> {
+pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>, fresh_state: &mut FreshState) -> Rc<Expr> {
     match **expr {
         Expr::Var(Var::Free(ref name)) => lookup(env, name).unwrap_or(expr).clone(),
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
         Expr::Lam(_) => expr.clone(),
         Expr::Let(ref scope) => {
-            let (bindings, body) = scope.clone().unbind();
+            let (bindings, body) = scope.clone().unbind(fresh_state);
             let mut env = env.clone();
             for (name, Embed(value)) in bindings.unnest() {
-                let value = eval(&env, &value);
+                let value = eval(&env, &value, fresh_state);
                 env = extend(env, name, value);
             }
-            eval(&env, &body)
+            eval(&env, &body, fresh_state)
         },
-        Expr::App(ref fun, ref arg) => match *eval(env, fun) {
+        Expr::App(ref fun, ref arg) => match *eval(env, fun, fresh_state) {
             Expr::Lam(ref scope) => {
-                let (name, body) = scope.clone().unbind();
-                eval(&extend(env.clone(), name, eval(env, arg)), &body)
+                let (name, body) = scope.clone().unbind(fresh_state);
+                let env = extend(env.clone(), name, eval(env, arg, fresh_state));
+                eval(&env, &body, fresh_state)
             },
             _ => expr.clone(),
         },
@@ -62,6 +63,8 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Rc<Expr> {
 
 #[test]
 fn test_eval() {
+    let mut fresh_state = FreshState::new();
+
     // expr = (\x -> x) y
     let expr = Rc::new(Expr::App(
         Rc::new(Expr::Lam(Scope::new(
@@ -72,13 +75,15 @@ fn test_eval() {
     ));
 
     assert_term_eq!(
-        eval(&Rc::new(Env::Empty), &expr),
+        eval(&Rc::new(Env::Empty), &expr, &mut fresh_state),
         Rc::new(Expr::Var(Var::Free(FreeVar::user("y")))),
     );
 }
 
 #[test]
 fn test_eval_let() {
+    let mut fresh_state = FreshState::new();
+
     // expr =
     //      let id = \x -> x
     //          foo =  y
@@ -109,7 +114,7 @@ fn test_eval_let() {
     )));
 
     assert_term_eq!(
-        eval(&Rc::new(Env::Empty), &expr),
+        eval(&Rc::new(Env::Empty), &expr, &mut fresh_state),
         Rc::new(Expr::Var(Var::Free(FreeVar::user("y")))),
     );
 }

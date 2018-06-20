@@ -1,4 +1,4 @@
-use {BoundPattern, BoundVar, FreeVar, PatternIndex, PatternSubsts, ScopeState};
+use {BoundPattern, BoundVar, FreeVar, FreshState, PatternIndex, PatternSubsts, ScopeState};
 
 /// Nested binding patterns
 ///
@@ -56,12 +56,12 @@ impl<P: BoundPattern> BoundPattern for Nest<P> {
                 .all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+    fn freshen(&mut self, fresh_state: &mut FreshState) -> PatternSubsts<FreeVar> {
         // FIXME: intermediate allocations
         PatternSubsts::new(
             self.unsafe_patterns
                 .iter_mut()
-                .flat_map(P::freshen)
+                .flat_map(|p| p.freshen(fresh_state))
                 .collect(),
         )
     }

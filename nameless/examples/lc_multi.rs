@@ -4,7 +4,7 @@
 #[macro_use]
 extern crate nameless;
 
-use nameless::{BoundTerm, FreeVar, Multi, Scope, Var};
+use nameless::{BoundTerm, FreeVar, FreshState, Multi, Scope, Var};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -40,14 +40,18 @@ pub enum EvalError {
     ArgumentCountMismatch { expected: usize, given: usize },
 }
 
-pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
+pub fn eval(
+    env: &Rc<Env>,
+    expr: &Rc<Expr>,
+    fresh_state: &mut FreshState,
+) -> Result<Rc<Expr>, EvalError> {
     match **expr {
         Expr::Var(Var::Free(ref name)) => Ok(lookup(env, name).unwrap_or(expr).clone()),
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
         Expr::Lam(_) => Ok(expr.clone()),
-        Expr::App(ref fun, ref args) => match *eval(env, fun)? {
+        Expr::App(ref fun, ref args) => match *eval(env, fun, fresh_state)? {
             Expr::Lam(ref scope) => {
-                let (Multi(params), body) = scope.clone().unbind();
+                let (Multi(params), body) = scope.clone().unbind(fresh_state);
 
                 if params.len() != args.len() {
                     Err(EvalError::ArgumentCountMismatch {
@@ -57,9 +61,9 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
                 } else {
                     let mut acc_env = env.clone();
                     for (param_name, arg) in <_>::zip(params.into_iter(), args.iter()) {
-                        acc_env = extend(acc_env, param_name, eval(env, arg)?);
+                        acc_env = extend(acc_env, param_name, eval(env, arg, fresh_state)?);
                     }
-                    eval(&acc_env, &body)
+                    eval(&acc_env, &body, fresh_state)
                 }
             },
             _ => Ok(expr.clone()),
@@ -69,6 +73,8 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
 
 #[test]
 fn test_eval() {
+    let mut fresh_state = FreshState::new();
+
     // expr = (fn(x, y) -> y)(a, b)
     let expr = Rc::new(Expr::App(
         Rc::new(Expr::Lam(Scope::new(
@@ -82,7 +88,7 @@ fn test_eval() {
     ));
 
     assert_term_eq!(
-        eval(&Rc::new(Env::Empty), &expr).unwrap(),
+        eval(&Rc::new(Env::Empty), &expr, &mut fresh_state).unwrap(),
         Rc::new(Expr::Var(Var::Free(FreeVar::user("b")))),
     );
 }
