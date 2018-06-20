@@ -81,11 +81,11 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
                 match *self { #open_term_body }
             }
 
-            fn visit_vars(&self, __on_var: &mut impl FnMut(&Var)) {
+            fn visit_vars(&self, __on_var: &mut impl FnMut(&::nameless::Var)) {
                 match *self { #visit_vars_body }
             }
 
-            fn visit_mut_vars(&mut self, __on_var: &mut impl FnMut(&mut Var)) {
+            fn visit_mut_vars(&mut self, __on_var: &mut impl FnMut(&mut ::nameless::Var)) {
                 match *self { #visit_mut_vars_body }
             }
         },
