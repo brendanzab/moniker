@@ -1,6 +1,7 @@
 use {BoundPattern, BoundVar, FreeVar, ScopeState};
 
 /// Recursive patterns
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Rec<P> {
     pub unsafe_pattern: P,
 }
