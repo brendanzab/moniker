@@ -11,7 +11,7 @@
 //! extern crate nameless;
 //!
 //! use std::rc::Rc;
-//! use nameless::{Bind, Embed, Name, Var};
+//! use nameless::{Scope, Embed, Name, Var};
 //!
 //! #[derive(Debug, Clone, BoundTerm)]
 //! pub enum Type {
@@ -22,8 +22,8 @@
 //! #[derive(Debug, Clone, BoundTerm)]
 //! pub enum Expr {
 //!     Var(Var),
-//!     Lam(Bind<(Name, Embed<Rc<Type>>), Rc<Expr>>),
-//!     Let(Bind<Rebind<(Name, Embed<(Rc<Type>, Rc<Expr>>)>, Rc<Expr>),
+//!     Lam(Scope<(Name, Embed<Rc<Type>>), Rc<Expr>>),
+//!     Let(Scope<Rebind<(Name, Embed<(Rc<Type>, Rc<Expr>>)>, Rc<Expr>),
 //!     App(Rc<Expr>, Rc<Expr>),
 //! }
 //! ```
@@ -37,7 +37,7 @@
 //! ## Terms
 //!
 //! - `Var`: A variable that is either a `FreeVar` or `BoundVar`
-//! - `Bind<P: BoundPattern, T: BoundTerm>`: bind the term `T` using the pattern `P`
+//! - `Scope<P: BoundPattern, T: BoundTerm>`: bind the term `T` using the pattern `P`
 //!
 //! ## Patterns
 //!
@@ -57,7 +57,7 @@ extern crate nameless_derive;
 #[doc(hidden)]
 pub use nameless_derive::*;
 
-mod bind;
+mod scope;
 #[macro_use]
 mod bound_pattern;
 #[macro_use]
@@ -67,10 +67,10 @@ mod ignore;
 mod nest;
 mod var;
 
-pub use self::bind::Bind;
 pub use self::bound_pattern::BoundPattern;
 pub use self::bound_term::{BoundTerm, ScopeState};
 pub use self::embed::Embed;
 pub use self::ignore::Ignore;
 pub use self::nest::Nest;
+pub use self::scope::Scope;
 pub use self::var::{BoundVar, DebruijnIndex, FreeVar, GenId, Ident, PatternIndex, Var};

@@ -1,21 +1,21 @@
 use {BoundPattern, BoundTerm, ScopeState, Var};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Bind<P, T> {
+pub struct Scope<P, T> {
     pub unsafe_pattern: P,
     pub unsafe_body: T,
 }
 
-impl<P, T> Bind<P, T>
+impl<P, T> Scope<P, T>
 where
     P: BoundPattern,
     T: BoundTerm,
 {
-    /// Bind a term with the given pattern
-    pub fn new(pattern: P, mut body: T) -> Bind<P, T> {
+    /// Create a new scope by binding a term with the given pattern
+    pub fn new(pattern: P, mut body: T) -> Scope<P, T> {
         body.close_term(ScopeState::new(), &pattern);
 
-        Bind {
+        Scope {
             unsafe_pattern: pattern,
             unsafe_body: body,
         }
@@ -35,7 +35,7 @@ where
     /// Simultaneously unbind two terms
     ///
     /// The fresh names in the first pattern with be used for the second pattern
-    pub fn unbind2<P2, T2>(self, other: Bind<P2, T2>) -> (P, T, P2, T2)
+    pub fn unbind2<P2, T2>(self, other: Scope<P2, T2>) -> (P, T, P2, T2)
     where
         P2: BoundPattern,
         T2: BoundTerm,
@@ -56,12 +56,12 @@ where
     }
 }
 
-impl<P, T> BoundTerm for Bind<P, T>
+impl<P, T> BoundTerm for Scope<P, T>
 where
     P: BoundPattern,
     T: BoundTerm,
 {
-    fn term_eq(&self, other: &Bind<P, T>) -> bool {
+    fn term_eq(&self, other: &Scope<P, T>) -> bool {
         P::pattern_eq(&self.unsafe_pattern, &other.unsafe_pattern)
             && T::term_eq(&self.unsafe_body, &other.unsafe_body)
     }
