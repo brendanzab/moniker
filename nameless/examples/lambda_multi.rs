@@ -47,7 +47,7 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
         Expr::Lam(_) => Ok(expr.clone()),
         Expr::App(ref fun, ref args) => match *eval(env, fun)? {
             Expr::Lam(ref scope) => {
-                let (params, body) = nameless::unbind(scope.clone());
+                let (params, body) = scope.clone().unbind();
 
                 if params.len() != args.len() {
                     Err(EvalError::ArgumentCountMismatch {
@@ -71,7 +71,7 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
 fn test_eval() {
     // expr = (fn(x, y) -> y)(a, b)
     let expr = Rc::new(Expr::App(
-        Rc::new(Expr::Lam(nameless::bind(
+        Rc::new(Expr::Lam(Bind::new(
             vec![FreeVar::user("x"), FreeVar::user("y")],
             Rc::new(Expr::Var(Var::Free(FreeVar::user("y")))),
         ))),

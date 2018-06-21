@@ -67,10 +67,10 @@ mod ignore;
 mod nest;
 mod var;
 
-pub use self::bind::{bind, unbind, unbind2, Bind};
+pub use self::bind::Bind;
 pub use self::bound_pattern::BoundPattern;
 pub use self::bound_term::{BoundTerm, ScopeState};
 pub use self::embed::Embed;
 pub use self::ignore::Ignore;
-pub use self::nest::{nest, unnest, Nest};
+pub use self::nest::Nest;
 pub use self::var::{BoundVar, DebruijnIndex, FreeVar, GenId, Ident, PatternIndex, Var};

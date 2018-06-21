@@ -6,6 +6,56 @@ pub struct Bind<P, T> {
     pub unsafe_body: T,
 }
 
+impl<P, T> Bind<P, T>
+where
+    P: BoundPattern,
+    T: BoundTerm,
+{
+    /// Bind a term with the given pattern
+    pub fn new(pattern: P, mut body: T) -> Bind<P, T> {
+        body.close_term(ScopeState::new(), &pattern);
+
+        Bind {
+            unsafe_pattern: pattern,
+            unsafe_body: body,
+        }
+    }
+
+    /// Unbind a term, returning the freshened pattern and body
+    pub fn unbind(self) -> (P, T) {
+        let mut pattern = self.unsafe_pattern;
+        let mut body = self.unsafe_body;
+
+        pattern.freshen();
+        body.open_term(ScopeState::new(), &pattern);
+
+        (pattern, body)
+    }
+
+    /// Simultaneously unbind two terms
+    ///
+    /// The fresh names in the first pattern with be used for the second pattern
+    pub fn unbind2<P2, T2>(self, other: Bind<P2, T2>) -> (P, T, P2, T2)
+    where
+        P2: BoundPattern,
+        T2: BoundTerm,
+    {
+        let mut self_pattern = self.unsafe_pattern;
+        let mut self_body = self.unsafe_body;
+        let mut other_pattern = other.unsafe_pattern;
+        let mut other_body = other.unsafe_body;
+
+        {
+            let names = self_pattern.freshen();
+            other_pattern.rename(&names);
+            self_body.open_term(ScopeState::new(), &self_pattern);
+            other_body.open_term(ScopeState::new(), &other_pattern);
+        }
+
+        (self_pattern, self_body, other_pattern, other_body)
+    }
+}
+
 impl<P, T> BoundTerm for Bind<P, T>
 where
     P: BoundPattern,
@@ -33,58 +83,4 @@ where
     fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
         self.unsafe_body.visit_mut_vars(on_var);
     }
-}
-
-/// Bind a term with the given pattern
-pub fn bind<P, T>(pattern: P, mut body: T) -> Bind<P, T>
-where
-    P: BoundPattern,
-    T: BoundTerm,
-{
-    body.close_term(ScopeState::new(), &pattern);
-
-    Bind {
-        unsafe_pattern: pattern,
-        unsafe_body: body,
-    }
-}
-
-/// Unbind a term, returning the freshened pattern and body
-pub fn unbind<P, T>(term: Bind<P, T>) -> (P, T)
-where
-    P: BoundPattern,
-    T: BoundTerm,
-{
-    let mut pattern = term.unsafe_pattern;
-    let mut body = term.unsafe_body;
-
-    pattern.freshen();
-    body.open_term(ScopeState::new(), &pattern);
-
-    (pattern, body)
-}
-
-/// Simultaneously unbind two terms
-///
-/// The fresh names in the first pattern with be used for the second pattern
-pub fn unbind2<P1, T1, P2, T2>(term1: Bind<P1, T1>, term2: Bind<P2, T2>) -> (P1, T1, P2, T2)
-where
-    P1: BoundPattern,
-    T1: BoundTerm,
-    P2: BoundPattern,
-    T2: BoundTerm,
-{
-    let mut term1_pattern = term1.unsafe_pattern;
-    let mut term1_body = term1.unsafe_body;
-    let mut term2_pattern = term2.unsafe_pattern;
-    let mut term2_body = term2.unsafe_body;
-
-    {
-        let names = term1_pattern.freshen();
-        term2_pattern.rename(&names);
-        term1_body.open_term(ScopeState::new(), &term1_pattern);
-        term2_body.open_term(ScopeState::new(), &term2_pattern);
-    }
-
-    (term1_pattern, term1_body, term2_pattern, term2_body)
 }

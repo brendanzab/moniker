@@ -42,9 +42,9 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Rc<Expr> {
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
         Expr::Lam(_) => expr.clone(),
         Expr::Let(ref scope) => {
-            let (bindings, body) = nameless::unbind(scope.clone());
+            let (bindings, body) = scope.clone().unbind();
             let mut env = env.clone();
-            for (name, Embed(value)) in nameless::unnest(bindings) {
+            for (name, Embed(value)) in bindings.unnest() {
                 let value = eval(&env, &value);
                 env = extend(env, name, value);
             }
@@ -52,7 +52,7 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Rc<Expr> {
         },
         Expr::App(ref fun, ref arg) => match *eval(env, fun) {
             Expr::Lam(ref scope) => {
-                let (name, body) = nameless::unbind(scope.clone());
+                let (name, body) = scope.clone().unbind();
                 eval(&extend(env.clone(), name, eval(env, arg)), &body)
             },
             _ => expr.clone(),
@@ -64,7 +64,7 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Rc<Expr> {
 fn test_eval() {
     // expr = (\x -> x) y
     let expr = Rc::new(Expr::App(
-        Rc::new(Expr::Lam(nameless::bind(
+        Rc::new(Expr::Lam(Bind::new(
             FreeVar::user("x"),
             Rc::new(Expr::Var(Var::Free(FreeVar::user("x")))),
         ))),
@@ -84,11 +84,11 @@ fn test_eval_let() {
     //          foo =  y
     //          bar = id foo
     //      in bar
-    let expr = Rc::new(Expr::Let(nameless::bind(
-        nameless::nest(vec![
+    let expr = Rc::new(Expr::Let(Bind::new(
+        Nest::new(vec![
             (
                 FreeVar::user("id"),
-                Embed(Rc::new(Expr::Lam(nameless::bind(
+                Embed(Rc::new(Expr::Lam(Bind::new(
                     FreeVar::user("x"),
                     Rc::new(Expr::Var(Var::Free(FreeVar::user("x")))),
                 )))),

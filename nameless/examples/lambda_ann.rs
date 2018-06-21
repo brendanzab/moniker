@@ -45,7 +45,7 @@ pub enum Expr {
 pub fn check(context: &Rc<Context>, expr: &Rc<Expr>, expected_ty: &Rc<Type>) -> Result<(), String> {
     match (&**expr, &**expected_ty) {
         (&Expr::Lam(ref scope), &Type::Arrow(ref param_ty, ref ret_ty)) => {
-            if let ((name, Embed(None)), body) = nameless::unbind(scope.clone()) {
+            if let ((name, Embed(None)), body) = scope.clone().unbind() {
                 let inner_context = extend(context.clone(), name, param_ty.clone());
                 check(&inner_context, &body, ret_ty)?;
                 return Ok(());
@@ -76,7 +76,7 @@ pub fn infer(context: &Rc<Context>, expr: &Rc<Expr>) -> Result<Rc<Type>, String>
             .cloned()
             .ok_or(format!("`{:?}` not found", name)),
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
-        Expr::Lam(ref scope) => match nameless::unbind(scope.clone()) {
+        Expr::Lam(ref scope) => match scope.clone().unbind() {
             ((name, Embed(Some(ann))), body) => {
                 let body_ty = infer(&extend(context.clone(), name, ann.clone()), &body)?;
                 Ok(Rc::new(Type::Arrow(ann, body_ty)))
@@ -105,7 +105,7 @@ pub fn infer(context: &Rc<Context>, expr: &Rc<Expr>) -> Result<Rc<Type>, String>
 #[test]
 fn test_infer() {
     // expr = (\x -> x)
-    let expr = Rc::new(Expr::Lam(nameless::bind(
+    let expr = Rc::new(Expr::Lam(Bind::new(
         (FreeVar::user("x"), Embed(Some(Rc::new(Type::Base)))),
         Rc::new(Expr::Var(Var::Free(FreeVar::user("x")))),
     )));
