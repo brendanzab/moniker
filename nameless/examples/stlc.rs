@@ -1,5 +1,5 @@
-//! An example of using the `nameless` library to implement the untyped lambda
-//! calculus
+//! An example of using the `nameless` library to implement the simply typed
+//! lambda calculus
 
 #[macro_use]
 extern crate nameless;
