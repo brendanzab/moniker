@@ -44,7 +44,7 @@
 //! - `FreeVar`: Captures a free variable within a term, but is ignored for alpha equality
 //! - `Ignore<T>`: Ignores `T` when comparing for alpha equality
 //! - `Embed<T: BoundTerm>`: Embed a term in a pattern
-//! - `Rebind<T: BoundPattern>`: Multiple nested binding patterns
+//! - `Nest<T: BoundPattern>`: Multiple nested binding patterns
 
 #[macro_use]
 extern crate lazy_static;
@@ -64,7 +64,7 @@ mod bound_pattern;
 mod bound_term;
 mod embed;
 mod ignore;
-mod rebind;
+mod nest;
 mod var;
 
 pub use self::bind::{bind, unbind, unbind2, Bind};
@@ -72,5 +72,5 @@ pub use self::bound_pattern::BoundPattern;
 pub use self::bound_term::{BoundTerm, ScopeState};
 pub use self::embed::Embed;
 pub use self::ignore::Ignore;
-pub use self::rebind::{rebind, unrebind, Rebind};
+pub use self::nest::{nest, unnest, Nest};
 pub use self::var::{BoundVar, DebruijnIndex, FreeVar, GenId, Ident, PatternIndex, Var};

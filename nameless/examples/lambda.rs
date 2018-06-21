@@ -4,7 +4,7 @@
 #[macro_use]
 extern crate nameless;
 
-use nameless::{Bind, BoundTerm, Embed, FreeVar, Rebind, Var};
+use nameless::{Bind, BoundTerm, Embed, FreeVar, Nest, Var};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -32,7 +32,7 @@ fn lookup<'a>(mut env: &'a Rc<Env>, name: &FreeVar) -> Option<&'a Rc<Expr>> {
 pub enum Expr {
     Var(Var),
     Lam(Bind<FreeVar, Rc<Expr>>),
-    Let(Bind<Rebind<(FreeVar, Embed<Rc<Expr>>)>, Rc<Expr>>),
+    Let(Bind<Nest<(FreeVar, Embed<Rc<Expr>>)>, Rc<Expr>>),
     App(Rc<Expr>, Rc<Expr>),
 }
 
@@ -44,7 +44,7 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Rc<Expr> {
         Expr::Let(ref scope) => {
             let (bindings, body) = nameless::unbind(scope.clone());
             let mut env = env.clone();
-            for (name, Embed(value)) in nameless::unrebind(bindings) {
+            for (name, Embed(value)) in nameless::unnest(bindings) {
                 let value = eval(&env, &value);
                 env = extend(env, name, value);
             }
@@ -85,7 +85,7 @@ fn test_eval_let() {
     //          bar = id foo
     //      in bar
     let expr = Rc::new(Expr::Let(nameless::bind(
-        nameless::rebind(vec![
+        nameless::nest(vec![
             (
                 FreeVar::user("id"),
                 Embed(Rc::new(Expr::Lam(nameless::bind(

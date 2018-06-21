@@ -1,12 +1,12 @@
 use {BoundPattern, BoundVar, FreeVar, ScopeState};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Rebind<P> {
+pub struct Nest<P> {
     pub unsafe_patterns: Vec<P>,
 }
 
-impl<P: BoundPattern> BoundPattern for Rebind<P> {
-    fn pattern_eq(&self, other: &Rebind<P>) -> bool {
+impl<P: BoundPattern> BoundPattern for Nest<P> {
+    fn pattern_eq(&self, other: &Nest<P>) -> bool {
         Vec::pattern_eq(&self.unsafe_patterns, &other.unsafe_patterns)
     }
 
@@ -41,8 +41,8 @@ impl<P: BoundPattern> BoundPattern for Rebind<P> {
     }
 }
 
-/// Rebind a term with the given patterns
-pub fn rebind<P: BoundPattern>(patterns: Vec<P>) -> Rebind<P> {
+/// Nest a term with the given patterns
+pub fn nest<P: BoundPattern>(patterns: Vec<P>) -> Nest<P> {
     // FIXME: Avoid allocating new vector
     let mut rebound_patterns = Vec::<P>::with_capacity(patterns.len());
 
@@ -55,13 +55,13 @@ pub fn rebind<P: BoundPattern>(patterns: Vec<P>) -> Rebind<P> {
         rebound_patterns.push(pattern);
     }
 
-    Rebind {
+    Nest {
         unsafe_patterns: rebound_patterns,
     }
 }
 
-/// Unrebind a term, returning the freshened patterns
-pub fn unrebind<P: BoundPattern>(term: Rebind<P>) -> Vec<P> {
+/// Unnest a term, returning the freshened patterns
+pub fn unnest<P: BoundPattern>(term: Nest<P>) -> Vec<P> {
     // FIXME: Avoid allocating new vector
     let mut unrebound_patterns = Vec::<P>::with_capacity(term.unsafe_patterns.len());
 
