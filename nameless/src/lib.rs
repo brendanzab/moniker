@@ -45,6 +45,7 @@
 //! - `Ignore<T>`: Ignores `T` when comparing for alpha equality
 //! - `Embed<T: BoundTerm>`: Embed a term in a pattern
 //! - `Nest<T: BoundPattern>`: Multiple nested binding patterns
+//! - `Rec<T: BoundPattern>`: Recursive binding patterns
 
 #[macro_use]
 extern crate lazy_static;
@@ -65,6 +66,7 @@ mod bound_term;
 mod embed;
 mod ignore;
 mod nest;
+mod rec;
 mod var;
 
 pub use self::bound_pattern::BoundPattern;
@@ -72,5 +74,6 @@ pub use self::bound_term::{BoundTerm, ScopeState};
 pub use self::embed::Embed;
 pub use self::ignore::Ignore;
 pub use self::nest::Nest;
+pub use self::rec::Rec;
 pub use self::scope::Scope;
 pub use self::var::{BoundVar, DebruijnIndex, FreeVar, GenId, Ident, PatternIndex, Var};
