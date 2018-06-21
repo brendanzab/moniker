@@ -1,8 +1,17 @@
 use {BoundPattern, BoundTerm, ScopeState, Var};
 
+/// A bound scope
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Scope<P, T> {
+    /// The pattern that binds the body of the scope
+    ///
+    /// You can access this directly, but only if you understand what you are
+    /// doing! Prefer calling `Scope::unbind` instead.
     pub unsafe_pattern: P,
+    /// The body of the scope
+    ///
+    /// You can access this directly, but only if you understand what you are
+    /// doing! Prefer calling `Scope::unbind` instead.
     pub unsafe_body: T,
 }
 
