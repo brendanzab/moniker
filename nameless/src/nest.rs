@@ -1,4 +1,4 @@
-use {BoundPattern, BoundVar, FreeVar, ScopeState};
+use {BoundPattern, BoundVar, FreeVar, PatternSubsts, ScopeState};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Nest<P> {
@@ -51,11 +51,11 @@ impl<P: BoundPattern> BoundPattern for Nest<P> {
         Vec::pattern_eq(&self.unsafe_patterns, &other.unsafe_patterns)
     }
 
-    fn freshen(&mut self) -> Vec<FreeVar> {
+    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
         Vec::freshen(&mut self.unsafe_patterns)
     }
 
-    fn rename(&mut self, perm: &[FreeVar]) {
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
         Vec::rename(&mut self.unsafe_patterns, perm)
     }
 

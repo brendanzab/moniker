@@ -69,7 +69,7 @@ mod nest;
 mod rec;
 mod var;
 
-pub use self::bound_pattern::BoundPattern;
+pub use self::bound_pattern::{BoundPattern, PatternSubsts};
 pub use self::bound_term::{BoundTerm, ScopeState};
 pub use self::embed::Embed;
 pub use self::ignore::Ignore;

@@ -1,4 +1,4 @@
-use {BoundPattern, BoundVar, FreeVar, ScopeState};
+use {BoundPattern, BoundVar, FreeVar, PatternSubsts, ScopeState};
 
 /// Recursive patterns
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,11 +31,11 @@ where
         P::pattern_eq(&self.unsafe_pattern, &other.unsafe_pattern)
     }
 
-    fn freshen(&mut self) -> Vec<FreeVar> {
+    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
         self.unsafe_pattern.freshen()
     }
 
-    fn rename(&mut self, perm: &[FreeVar]) {
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
         self.unsafe_pattern.rename(perm)
     }
 

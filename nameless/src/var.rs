@@ -1,6 +1,6 @@
 use std::fmt;
 
-use {BoundPattern, BoundTerm, ScopeState};
+use {BoundPattern, BoundTerm, PatternSubsts, ScopeState};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Ident(String);
@@ -86,17 +86,17 @@ impl BoundPattern for FreeVar {
         true
     }
 
-    fn freshen(&mut self) -> Vec<FreeVar> {
+    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
         *self = match *self {
             FreeVar::User(ref name) => FreeVar::Gen(GenId::fresh(), Some(name.clone())),
-            FreeVar::Gen(_, _) => return vec![self.clone()],
+            FreeVar::Gen(_, _) => return PatternSubsts::new(vec![self.clone()]),
         };
-        vec![self.clone()]
+        PatternSubsts::new(vec![self.clone()])
     }
 
-    fn rename(&mut self, perm: &[FreeVar]) {
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
         assert_eq!(perm.len(), 1); // FIXME: assert
-        *self = perm[0].clone(); // FIXME: double clone
+        *self = perm.lookup(PatternIndex(0)).unwrap().clone(); // FIXME: double clone
     }
 
     fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
