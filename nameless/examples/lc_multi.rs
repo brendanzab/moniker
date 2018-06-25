@@ -4,7 +4,7 @@
 #[macro_use]
 extern crate nameless;
 
-use nameless::{BoundTerm, FreeVar, Scope, Var};
+use nameless::{BoundTerm, FreeVar, Multi, Scope, Var};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -31,7 +31,7 @@ fn lookup<'a>(mut env: &'a Rc<Env>, name: &FreeVar) -> Option<&'a Rc<Expr>> {
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     Var(Var),
-    Lam(Scope<Vec<FreeVar>, Rc<Expr>>),
+    Lam(Scope<Multi<FreeVar>, Rc<Expr>>),
     App(Rc<Expr>, Vec<Rc<Expr>>),
 }
 
@@ -47,7 +47,7 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
         Expr::Lam(_) => Ok(expr.clone()),
         Expr::App(ref fun, ref args) => match *eval(env, fun)? {
             Expr::Lam(ref scope) => {
-                let (params, body) = scope.clone().unbind();
+                let (Multi(params), body) = scope.clone().unbind();
 
                 if params.len() != args.len() {
                     Err(EvalError::ArgumentCountMismatch {
@@ -72,7 +72,7 @@ fn test_eval() {
     // expr = (fn(x, y) -> y)(a, b)
     let expr = Rc::new(Expr::App(
         Rc::new(Expr::Lam(Scope::new(
-            vec![FreeVar::user("x"), FreeVar::user("y")],
+            Multi(vec![FreeVar::user("x"), FreeVar::user("y")]),
             Rc::new(Expr::Var(Var::Free(FreeVar::user("y")))),
         ))),
         vec![

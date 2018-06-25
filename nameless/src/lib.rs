@@ -44,6 +44,7 @@
 //! - `FreeVar`: Captures a free variable within a term, but is ignored for alpha equality
 //! - `Ignore<T>`: Ignores `T` when comparing for alpha equality
 //! - `Embed<T: BoundTerm>`: Embed a term in a pattern
+//! - `Multi<T: BoundPattern>`: Multiple parallel binding patterns
 //! - `Nest<T: BoundPattern>`: Multiple nested binding patterns
 //! - `Rec<T: BoundPattern>`: Recursive binding patterns
 
@@ -65,6 +66,7 @@ mod bound_pattern;
 mod bound_term;
 mod embed;
 mod ignore;
+mod multi;
 mod nest;
 mod rec;
 mod var;
@@ -73,6 +75,7 @@ pub use self::bound_pattern::{BoundPattern, PatternSubsts};
 pub use self::bound_term::{BoundTerm, ScopeState};
 pub use self::embed::Embed;
 pub use self::ignore::Ignore;
+pub use self::multi::Multi;
 pub use self::nest::Nest;
 pub use self::rec::Rec;
 pub use self::scope::Scope;

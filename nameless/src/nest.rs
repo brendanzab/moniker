@@ -1,5 +1,8 @@
-use {BoundPattern, BoundVar, FreeVar, PatternSubsts, ScopeState};
+use {BoundPattern, BoundVar, FreeVar, PatternIndex, PatternSubsts, ScopeState};
 
+/// Nested binding patterns
+///
+/// Contrast with `Multi`
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Nest<P> {
     pub unsafe_patterns: Vec<P>,
@@ -48,15 +51,27 @@ where
 
 impl<P: BoundPattern> BoundPattern for Nest<P> {
     fn pattern_eq(&self, other: &Nest<P>) -> bool {
-        Vec::pattern_eq(&self.unsafe_patterns, &other.unsafe_patterns)
+        self.unsafe_patterns.len() == other.unsafe_patterns.len()
+            && <_>::zip(self.unsafe_patterns.iter(), other.unsafe_patterns.iter())
+                .all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
     }
 
     fn freshen(&mut self) -> PatternSubsts<FreeVar> {
-        Vec::freshen(&mut self.unsafe_patterns)
+        // FIXME: intermediate allocations
+        PatternSubsts::new(
+            self.unsafe_patterns
+                .iter_mut()
+                .flat_map(P::freshen)
+                .collect(),
+        )
     }
 
     fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
-        Vec::rename(&mut self.unsafe_patterns, perm)
+        assert_eq!(self.unsafe_patterns.len(), perm.len()); // FIXME: assertion
+
+        for (pattern, perm) in <_>::zip(self.unsafe_patterns.iter_mut(), perm.iter()) {
+            pattern.rename(&PatternSubsts::new(vec![perm.clone()])); // FIXME: clone
+        }
     }
 
     fn close_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern) {
@@ -74,10 +89,32 @@ impl<P: BoundPattern> BoundPattern for Nest<P> {
     }
 
     fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
-        Vec::on_free(&self.unsafe_patterns, state, name)
+        self.unsafe_patterns
+            .iter()
+            .enumerate()
+            .filter_map(|(i, pattern)| {
+                pattern.on_free(state, name).map(|bound| {
+                    assert_eq!(bound.pattern, PatternIndex(0));
+                    BoundVar {
+                        pattern: PatternIndex(i as u32),
+                        ..bound
+                    }
+                })
+            })
+            .next()
     }
 
     fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
-        Vec::on_bound(&self.unsafe_patterns, state, name)
+        self.unsafe_patterns
+            .get(name.pattern.0 as usize)
+            .and_then(|pattern| {
+                pattern.on_bound(
+                    state,
+                    BoundVar {
+                        pattern: PatternIndex(0),
+                        ..name
+                    },
+                )
+            })
     }
 }
