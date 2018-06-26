@@ -36,10 +36,14 @@
 //!
 //! ## Terms
 //!
+//! Terms are data types that implement the `BoundTerm` trait.
+//!
 //! - `Var`: A variable that is either a `FreeVar` or `BoundVar`
 //! - `Scope<P: BoundPattern, T: BoundTerm>`: bind the term `T` using the pattern `P`
 //!
 //! ## Patterns
+//!
+//! Patterns are data types that implement the `BoundPattern` trait.
 //!
 //! - `FreeVar`: Captures a free variable within a term, but is ignored for alpha equality
 //! - `Ignore<T>`: Ignores `T` when comparing for alpha equality
