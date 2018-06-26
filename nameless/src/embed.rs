@@ -1,4 +1,6 @@
-use {BoundPattern, BoundTerm, BoundVar, FreeVar, PatternSubsts, ScopeState};
+use bound_pattern::{BoundPattern, PatternSubsts};
+use bound_term::{BoundTerm, ScopeState};
+use var::{BoundVar, FreeVar};
 
 /// Embed a term in a pattern
 #[derive(Debug, Clone, PartialEq, Eq)]

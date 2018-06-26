@@ -1,4 +1,6 @@
-use {BoundPattern, BoundVar, FreeVar, PatternSubsts, ScopeState};
+use bound_pattern::{BoundPattern, PatternSubsts};
+use bound_term::ScopeState;
+use var::{BoundVar, FreeVar};
 
 /// Recursive patterns
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1,6 +1,7 @@
 use std::{slice, vec};
 
-use {BoundVar, FreeVar, PatternIndex, ScopeState};
+use bound_term::ScopeState;
+use var::{BoundVar, FreeVar, PatternIndex};
 
 /// A mapping of `PatternIndex`s to `T`s
 pub struct PatternSubsts<T> {

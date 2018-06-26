@@ -1,6 +1,7 @@
 use std::fmt;
 
-use {BoundPattern, BoundTerm, PatternSubsts, ScopeState};
+use bound_pattern::{BoundPattern, PatternSubsts};
+use bound_term::{BoundTerm, ScopeState};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Ident(String);

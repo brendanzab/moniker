@@ -1,4 +1,6 @@
-use {BoundPattern, BoundTerm, ScopeState, Var};
+use bound_pattern::BoundPattern;
+use bound_term::{BoundTerm, ScopeState};
+use var::Var;
 
 /// A bound scope
 #[derive(Debug, Clone, PartialEq, Eq)]

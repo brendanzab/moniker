@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 use std::rc::Rc;
 
-use {BoundPattern, DebruijnIndex, FreeVar, Var};
+use bound_pattern::BoundPattern;
+use var::{DebruijnIndex, FreeVar, Var};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScopeState {
