@@ -17,6 +17,18 @@ impl From<String> for Ident {
     }
 }
 
+impl PartialEq<str> for Ident {
+    fn eq(&self, other: &str) -> bool {
+        self.0 == other
+    }
+}
+
+impl PartialEq<String> for Ident {
+    fn eq(&self, other: &String) -> bool {
+        self.0 == *other
+    }
+}
+
 impl fmt::Display for Ident {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -126,6 +138,24 @@ impl From<GenId> for FreeVar {
     }
 }
 
+impl PartialEq<str> for FreeVar {
+    fn eq(&self, other: &str) -> bool {
+        match *self {
+            FreeVar::User(ref name) => name == other,
+            FreeVar::Gen(_, _) => false,
+        }
+    }
+}
+
+impl PartialEq<String> for FreeVar {
+    fn eq(&self, other: &String) -> bool {
+        match *self {
+            FreeVar::User(ref name) => name == other,
+            FreeVar::Gen(_, _) => false,
+        }
+    }
+}
+
 impl fmt::Display for FreeVar {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -225,6 +255,24 @@ impl BoundTerm for Var {
 
     fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
         on_var(self);
+    }
+}
+
+impl PartialEq<str> for Var {
+    fn eq(&self, other: &str) -> bool {
+        match *self {
+            Var::Free(ref name) => name == other,
+            Var::Bound(_, _) => false,
+        }
+    }
+}
+
+impl PartialEq<String> for Var {
+    fn eq(&self, other: &String) -> bool {
+        match *self {
+            Var::Free(ref name) => name == other,
+            Var::Bound(_, _) => false,
+        }
     }
 }
 
