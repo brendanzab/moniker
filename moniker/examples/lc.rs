@@ -4,7 +4,7 @@
 #[macro_use]
 extern crate moniker;
 
-use moniker::{Binder, Scope, Var};
+use moniker::{Binder, FreeVar, Scope, Subst, Var};
 use std::rc::Rc;
 
 /// Expressions
@@ -49,6 +49,31 @@ impl RcExpr {
                 fun.subst(name, replacement),
                 arg.subst(name, replacement),
             )),
+        }
+    }
+}
+
+// TODO: Implement this, then figure out how to derive it!
+impl Subst<String, RcExpr> for RcExpr {
+    fn subst(&mut self, name: &FreeVar<String>, replacement: &RcExpr) {
+        match Rc::make_mut(&mut self.inner) {
+            Expr::Var(ref mut var) => var.subst(name, replacement),
+            Expr::Lam(ref mut scope) => scope.subst(name, replacement),
+            Expr::App(ref mut fun, ref mut arg) => {
+                fun.subst(name, replacement);
+                arg.subst(name, replacement);
+            },
+        }
+    }
+
+    fn substs(&mut self, mappings: &[(FreeVar<String>, RcExpr)]) {
+        match Rc::make_mut(&mut self.inner) {
+            Expr::Var(ref mut var) => var.substs(mappings),
+            Expr::Lam(ref mut scope) => scope.substs(mappings),
+            Expr::App(ref mut fun, ref mut arg) => {
+                fun.substs(mappings);
+                arg.substs(mappings);
+            },
         }
     }
 }

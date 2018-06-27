@@ -1,4 +1,5 @@
 use bound::{BoundPattern, Permutations, ScopeState};
+use subst::Subst;
 use var::{Binder, BinderIndex, BinderOffset, FreeVar};
 
 /// Recursively bind a pattern in itself
@@ -60,5 +61,18 @@ where
 
     fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
         self.unsafe_pattern.find_binder_at_offset(offset)
+    }
+}
+
+impl<Ident, P, T> Subst<Ident, T> for Rec<P>
+where
+    P: Subst<Ident, T>,
+{
+    fn subst(&mut self, name: &FreeVar<Ident>, replacement: &T) {
+        self.unsafe_pattern.subst(name, replacement);
+    }
+
+    fn substs(&mut self, mappings: &[(FreeVar<Ident>, T)]) {
+        self.unsafe_pattern.substs(mappings);
     }
 }

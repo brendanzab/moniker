@@ -1,4 +1,5 @@
 use bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
+use subst::Subst;
 use var::{Binder, BinderIndex, BinderOffset, FreeVar};
 
 /// Embed a term in a pattern
@@ -31,5 +32,18 @@ where
 
     fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
         Err(offset)
+    }
+}
+
+impl<Ident, T, U> Subst<Ident, U> for Embed<T>
+where
+    T: Subst<Ident, U>,
+{
+    fn subst(&mut self, name: &FreeVar<Ident>, replacement: &U) {
+        self.0.subst(name, replacement);
+    }
+
+    fn substs(&mut self, mappings: &[(FreeVar<Ident>, U)]) {
+        self.0.substs(mappings);
     }
 }

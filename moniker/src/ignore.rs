@@ -1,4 +1,5 @@
 use bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
+use subst::Subst;
 use var::{Binder, BinderIndex, BinderOffset, FreeVar, Var};
 
 /// Data that does not participate in name binding
@@ -42,4 +43,9 @@ impl<Ident, T> BoundPattern<Ident> for Ignore<T> {
     fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
         Err(offset)
     }
+}
+
+impl<Ident, T, U> Subst<Ident, U> for Ignore<T> {
+    fn subst(&mut self, _: &FreeVar<Ident>, _: &U) {}
+    fn substs(&mut self, _: &[(FreeVar<Ident>, U)]) {}
 }

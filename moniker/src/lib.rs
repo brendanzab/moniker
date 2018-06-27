@@ -87,6 +87,7 @@ mod ignore;
 mod nest;
 mod rec;
 mod scope;
+mod subst;
 mod var;
 
 pub use self::bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
@@ -95,4 +96,5 @@ pub use self::ignore::Ignore;
 pub use self::nest::Nest;
 pub use self::rec::Rec;
 pub use self::scope::Scope;
+pub use self::subst::Subst;
 pub use self::var::{Binder, BinderIndex, BinderOffset, FreeVar, GenId, ScopeOffset, Var};

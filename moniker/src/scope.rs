@@ -1,7 +1,8 @@
 use std::hash::Hash;
 
 use bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
-use var::Var;
+use subst::Subst;
+use var::{FreeVar, Var};
 
 /// A bound scope
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -106,5 +107,21 @@ where
 
     fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
         self.unsafe_body.visit_mut_vars(on_var);
+    }
+}
+
+impl<Ident, P, T, U> Subst<Ident, U> for Scope<P, T>
+where
+    P: Subst<Ident, U>,
+    T: Subst<Ident, U>,
+{
+    fn subst(&mut self, name: &FreeVar<Ident>, replacement: &U) {
+        self.unsafe_pattern.subst(name, replacement);
+        self.unsafe_body.subst(name, replacement);
+    }
+
+    fn substs(&mut self, mappings: &[(FreeVar<Ident>, U)]) {
+        self.unsafe_pattern.substs(mappings);
+        self.unsafe_body.substs(mappings);
     }
 }

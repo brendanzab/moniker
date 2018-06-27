@@ -1,4 +1,5 @@
 use bound::{BoundPattern, Permutations, ScopeState};
+use subst::Subst;
 use var::{Binder, BinderIndex, BinderOffset, FreeVar};
 
 /// Nested binding patterns
@@ -90,5 +91,22 @@ where
 
     fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
         <[P]>::find_binder_at_offset(&self.unsafe_patterns, offset)
+    }
+}
+
+impl<Ident, P, T> Subst<Ident, T> for Nest<P>
+where
+    P: Subst<Ident, T>,
+{
+    fn subst(&mut self, name: &FreeVar<Ident>, replacement: &T) {
+        for unsafe_pattern in &mut self.unsafe_patterns {
+            unsafe_pattern.subst(name, replacement);
+        }
+    }
+
+    fn substs(&mut self, mappings: &[(FreeVar<Ident>, T)]) {
+        for unsafe_pattern in &mut self.unsafe_patterns {
+            unsafe_pattern.substs(mappings);
+        }
     }
 }

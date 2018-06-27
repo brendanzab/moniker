@@ -9,7 +9,7 @@ extern crate im;
 extern crate moniker;
 
 use im::HashMap;
-use moniker::{Binder, BoundTerm, Embed, FreeVar, Scope, Var};
+use moniker::{Binder, BoundTerm, Embed, FreeVar, Scope, Subst, Var};
 use std::rc::Rc;
 
 /// Types
@@ -31,6 +31,11 @@ pub struct RcType {
     pub inner: Rc<Type>,
 }
 
+impl Subst<String, RcExpr> for RcType {
+    fn subst(&mut self, _: &FreeVar<String>, _: &RcExpr) {}
+    fn substs(&mut self, _: &[(FreeVar<String>, RcExpr)]) {}
+}
+
 impl From<Type> for RcType {
     fn from(src: Type) -> RcType {
         RcType {
@@ -48,6 +53,11 @@ pub enum Literal {
     Float(f32),
     /// String literals
     String(String),
+}
+
+impl Subst<String, RcExpr> for Literal {
+    fn subst(&mut self, _: &FreeVar<String>, _: &RcExpr) {}
+    fn substs(&mut self, _: &[(FreeVar<String>, RcExpr)]) {}
 }
 
 /// Expressions
@@ -99,6 +109,41 @@ impl RcExpr {
                 fun.subst(name, replacement),
                 arg.subst(name, replacement),
             )),
+        }
+    }
+}
+
+// TODO: Implement this, then figure out how to derive it!
+impl Subst<String, RcExpr> for RcExpr {
+    fn subst(&mut self, name: &FreeVar<String>, replacement: &RcExpr) {
+        match Rc::make_mut(&mut self.inner) {
+            Expr::Ann(ref mut expr, ref mut ty) => {
+                expr.subst(name, replacement);
+                ty.subst(name, replacement);
+            },
+            Expr::Literal(ref mut lit) => lit.subst(name, replacement),
+            Expr::Var(ref mut var) => var.subst(name, replacement),
+            Expr::Lam(ref mut scope) => scope.subst(name, replacement),
+            Expr::App(ref mut fun, ref mut arg) => {
+                fun.subst(name, replacement);
+                arg.subst(name, replacement);
+            },
+        }
+    }
+
+    fn substs(&mut self, mappings: &[(FreeVar<String>, RcExpr)]) {
+        match Rc::make_mut(&mut self.inner) {
+            Expr::Ann(ref mut expr, ref mut ty) => {
+                expr.substs(mappings);
+                ty.substs(mappings);
+            },
+            Expr::Literal(ref mut lit) => lit.substs(mappings),
+            Expr::Var(ref mut var) => var.substs(mappings),
+            Expr::Lam(ref mut scope) => scope.substs(mappings),
+            Expr::App(ref mut fun, ref mut arg) => {
+                fun.substs(mappings);
+                arg.substs(mappings);
+            },
         }
     }
 }

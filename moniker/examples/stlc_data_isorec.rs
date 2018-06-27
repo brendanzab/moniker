@@ -9,7 +9,7 @@ extern crate im;
 extern crate moniker;
 
 use im::HashMap;
-use moniker::{Binder, BoundTerm, Embed, FreeVar, Rec, Scope, Var};
+use moniker::{Binder, BoundTerm, Embed, FreeVar, Rec, Scope, Subst, Var};
 use std::rc::Rc;
 
 /// Types
@@ -86,6 +86,17 @@ impl RcType {
                 }))
             },
         }
+    }
+}
+
+// TODO: Implement this, then figure out how to derive it!
+impl Subst<String, RcType> for RcType {
+    fn subst(&mut self, name: &FreeVar<String>, replacement: &RcType) {
+        unimplemented!()
+    }
+
+    fn substs(&mut self, mappings: &[(FreeVar<String>, RcType)]) {
+        unimplemented!()
     }
 }
 
@@ -180,6 +191,17 @@ impl RcExpr {
                 RcExpr::from(Expr::Unfold(ty.clone(), expr.subst(name, replacement)))
             },
         }
+    }
+}
+
+// TODO: Implement this, then figure out how to derive it!
+impl Subst<String, RcExpr> for RcExpr {
+    fn subst(&mut self, name: &FreeVar<String>, replacement: &RcExpr) {
+        unimplemented!()
+    }
+
+    fn substs(&mut self, mappings: &[(FreeVar<String>, RcExpr)]) {
+        unimplemented!()
     }
 }
 

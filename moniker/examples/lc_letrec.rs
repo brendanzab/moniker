@@ -4,7 +4,7 @@
 #[macro_use]
 extern crate moniker;
 
-use moniker::{Binder, BoundTerm, Embed, Rec, Scope, Var};
+use moniker::{Binder, BoundTerm, Embed, FreeVar, Rec, Scope, Subst, Var};
 use std::rc::Rc;
 
 /// Expressions
@@ -65,6 +65,17 @@ impl RcExpr {
                 unsafe_body: scope.unsafe_body.subst(name, replacement),
             })),
         }
+    }
+}
+
+// TODO: Implement this, then figure out how to derive it!
+impl Subst<String, RcExpr> for RcExpr {
+    fn subst(&mut self, name: &FreeVar<String>, replacement: &RcExpr) {
+        unimplemented!()
+    }
+
+    fn substs(&mut self, mappings: &[(FreeVar<String>, RcExpr)]) {
+        unimplemented!()
     }
 }
 

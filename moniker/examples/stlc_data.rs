@@ -14,7 +14,7 @@ extern crate im;
 extern crate moniker;
 
 use im::HashMap;
-use moniker::{Binder, BoundTerm, Embed, FreeVar, Scope, Var};
+use moniker::{Binder, BoundTerm, Embed, FreeVar, Scope, Subst, Var};
 use std::rc::Rc;
 
 /// Types
@@ -172,6 +172,17 @@ impl RcExpr {
                     .collect(),
             )),
         }
+    }
+}
+
+// TODO: Implement this, then figure out how to derive it!
+impl Subst<String, RcExpr> for Expr {
+    fn subst(&mut self, name: &FreeVar<String>, replacement: &RcExpr) {
+        unimplemented!()
+    }
+
+    fn substs(&mut self, mappings: &[(FreeVar<String>, RcExpr)]) {
+        unimplemented!()
     }
 }
 
