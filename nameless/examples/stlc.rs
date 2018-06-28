@@ -1,5 +1,7 @@
 //! An example of using the `nameless` library to implement the simply typed
 //! lambda calculus
+//!
+//! We use bidirectional type checking to get some level of type inference
 
 #[macro_use]
 extern crate nameless;
@@ -115,5 +117,8 @@ fn test_infer() {
         Rc::new(Type::Arrow(Rc::new(Type::Base), Rc::new(Type::Base))),
     );
 }
+
+// TODO: Use property testing for this!
+// http://janmidtgaard.dk/papers/Midtgaard-al%3AICFP17-full.pdf
 
 fn main() {}
