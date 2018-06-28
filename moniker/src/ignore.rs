@@ -8,28 +8,28 @@ use var::{BoundVar, FreeVar};
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub struct Ignore<T>(pub T);
 
-impl<T> BoundTerm for Ignore<T> {
+impl<Ident, T> BoundTerm<Ident> for Ignore<T> {
     fn term_eq(&self, _: &Ignore<T>) -> bool {
         true
     }
 }
 
-impl<T> BoundPattern for Ignore<T> {
+impl<Ident, T> BoundPattern<Ident> for Ignore<T> {
     fn pattern_eq(&self, _: &Ignore<T>) -> bool {
         true
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
         PatternSubsts::new(Vec::new())
     }
 
-    fn rename(&mut self, _: &PatternSubsts<FreeVar>) {}
+    fn rename(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
 
-    fn on_free(&self, _: ScopeState, _: &FreeVar) -> Option<BoundVar> {
+    fn on_free(&self, _: ScopeState, _: &FreeVar<Ident>) -> Option<BoundVar> {
         None
     }
 
-    fn on_bound(&self, _: ScopeState, _: BoundVar) -> Option<FreeVar> {
+    fn on_bound(&self, _: ScopeState, _: BoundVar) -> Option<FreeVar<Ident>> {
         None
     }
 }

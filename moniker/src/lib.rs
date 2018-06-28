@@ -80,4 +80,4 @@ pub use self::multi::Multi;
 pub use self::nest::Nest;
 pub use self::rec::Rec;
 pub use self::scope::Scope;
-pub use self::var::{BoundVar, DebruijnIndex, FreeVar, GenId, Ident, PatternIndex, Var};
+pub use self::var::{BoundVar, DebruijnIndex, FreeVar, GenId, PatternIndex, Var};

@@ -8,21 +8,22 @@ use var::{BoundVar, FreeVar, PatternIndex};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Multi<P>(pub Vec<P>);
 
-impl<P> BoundPattern for Multi<P>
+impl<Ident, P> BoundPattern<Ident> for Multi<P>
 where
-    P: BoundPattern,
+    Ident: Clone,
+    P: BoundPattern<Ident>,
 {
     fn pattern_eq(&self, other: &Multi<P>) -> bool {
         self.0.len() == other.0.len()
             && <_>::zip(self.0.iter(), other.0.iter()).all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
         // FIXME: intermediate allocations
         PatternSubsts::new(self.0.iter_mut().flat_map(P::freshen).collect())
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
         assert_eq!(self.0.len(), perm.len()); // FIXME: assertion
 
         for (pattern, perm) in <_>::zip(self.0.iter_mut(), perm.iter()) {
@@ -30,19 +31,19 @@ where
         }
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         for elem in &mut self.0 {
             elem.close_pattern(state, pattern);
         }
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         for elem in &mut self.0 {
             elem.open_pattern(state, pattern);
         }
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
+    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
         self.0
             .iter()
             .enumerate()
@@ -58,7 +59,7 @@ where
             .next()
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
         self.0.get(name.pattern.0 as usize).and_then(|pattern| {
             pattern.on_bound(
                 state,

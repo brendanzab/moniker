@@ -9,14 +9,14 @@ use std::rc::Rc;
 
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
-    Var(Var),
-    Lam(Scope<FreeVar, Rc<Expr>>),
-    LetRec(Scope<Rec<Multi<(FreeVar, Embed<Rc<Expr>>)>>, Rc<Expr>>),
+    Var(Var<String>),
+    Lam(Scope<FreeVar<String>, Rc<Expr>>),
+    LetRec(Scope<Rec<Multi<(FreeVar<String>, Embed<Rc<Expr>>)>>, Rc<Expr>>),
     App(Rc<Expr>, Rc<Expr>),
 }
 
 // FIXME: auto-derive this somehow!
-fn subst(expr: &Rc<Expr>, subst_name: &FreeVar, subst_expr: &Rc<Expr>) -> Rc<Expr> {
+fn subst(expr: &Rc<Expr>, subst_name: &FreeVar<String>, subst_expr: &Rc<Expr>) -> Rc<Expr> {
     match **expr {
         Expr::Var(Var::Free(ref n)) if subst_name == n => subst_expr.clone(),
         Expr::Var(_) => expr.clone(),
