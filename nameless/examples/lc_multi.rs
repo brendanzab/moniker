@@ -4,29 +4,8 @@
 #[macro_use]
 extern crate nameless;
 
-use nameless::{BoundTerm, FreeVar, Multi, Scope, Var};
+use nameless::{FreeVar, Multi, Scope, Var};
 use std::rc::Rc;
-
-#[derive(Debug, Clone)]
-pub enum Env {
-    Empty,
-    Extend(Rc<Env>, FreeVar, Rc<Expr>),
-}
-
-fn extend(env: Rc<Env>, name: FreeVar, expr: Rc<Expr>) -> Rc<Env> {
-    Rc::new(Env::Extend(env, name, expr))
-}
-
-fn lookup<'a>(mut env: &'a Rc<Env>, name: &FreeVar) -> Option<&'a Rc<Expr>> {
-    while let Env::Extend(ref next_env, ref curr_name, ref expr) = **env {
-        if FreeVar::term_eq(curr_name, name) {
-            return Some(expr);
-        } else {
-            env = next_env;
-        }
-    }
-    None
-}
 
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
@@ -35,17 +14,37 @@ pub enum Expr {
     App(Rc<Expr>, Vec<Rc<Expr>>),
 }
 
+// FIXME: auto-derive this somehow!
+fn substs(expr: &Rc<Expr>, mappings: &[(FreeVar, Rc<Expr>)]) -> Rc<Expr> {
+    match **expr {
+        Expr::Var(Var::Free(ref n)) => match mappings.iter().find(|&(n2, _)| n == n2) {
+            Some((_, ref subst_expr)) => subst_expr.clone(),
+            None => expr.clone(),
+        },
+        Expr::Var(_) => expr.clone(),
+        Expr::Lam(ref scope) => {
+            let (n, mut body) = scope.clone().unbind();
+            substs(&body, mappings);
+            Rc::new(Expr::Lam(Scope::new(n, body)))
+        },
+        Expr::App(ref fun, ref args) => Rc::new(Expr::App(
+            substs(fun, mappings),
+            args.iter().map(|arg| substs(arg, mappings)).collect(),
+        )),
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum EvalError {
     ArgumentCountMismatch { expected: usize, given: usize },
 }
 
-pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
+pub fn eval(expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
     match **expr {
-        Expr::Var(Var::Free(ref name)) => Ok(lookup(env, name).unwrap_or(expr).clone()),
+        Expr::Var(Var::Free(_)) => Ok(expr.clone()),
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
         Expr::Lam(_) => Ok(expr.clone()),
-        Expr::App(ref fun, ref args) => match *eval(env, fun)? {
+        Expr::App(ref fun, ref args) => match *eval(fun)? {
             Expr::Lam(ref scope) => {
                 let (Multi(params), body) = scope.clone().unbind();
 
@@ -55,11 +54,13 @@ pub fn eval(env: &Rc<Env>, expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
                         given: args.len(),
                     })
                 } else {
-                    let mut acc_env = env.clone();
-                    for (param_name, arg) in <_>::zip(params.into_iter(), args.iter()) {
-                        acc_env = extend(acc_env, param_name, eval(env, arg)?);
-                    }
-                    eval(&acc_env, &body)
+                    eval(&substs(
+                        &body,
+                        &<_>::zip(
+                            params.into_iter(),
+                            args.iter().map(|arg| eval(arg).unwrap()),
+                        ).collect::<Vec<_>>(),
+                    ))
                 }
             },
             _ => Ok(expr.clone()),
@@ -82,7 +83,7 @@ fn test_eval() {
     ));
 
     assert_term_eq!(
-        eval(&Rc::new(Env::Empty), &expr).unwrap(),
+        eval(&expr).unwrap(),
         Rc::new(Expr::Var(Var::Free(FreeVar::user("b")))),
     );
 }
