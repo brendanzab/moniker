@@ -23,24 +23,21 @@ fn substs(expr: &Rc<Expr>, mappings: &[(FreeVar, Rc<Expr>)]) -> Rc<Expr> {
             None => expr.clone(),
         },
         Expr::Var(_) => expr.clone(),
-        Expr::Let(ref scope) => {
-            let (bindings, body) = scope.clone().unbind();
-            let bindings = bindings
-                .unnest()
-                .into_iter()
-                .map(|(n, Embed(value))| (n, Embed(substs(&value, mappings))))
-                .collect();
-
-            Rc::new(Expr::Let(Scope::new(
-                Nest::new(bindings),
-                substs(&body, mappings),
-            )))
-        },
-        Expr::Lam(ref scope) => {
-            let (n, mut body) = scope.clone().unbind();
-            substs(&body, mappings);
-            Rc::new(Expr::Lam(Scope::new(n, body)))
-        },
+        Expr::Let(ref scope) => Rc::new(Expr::Let(Scope {
+            unsafe_pattern: Nest {
+                unsafe_patterns: scope
+                    .unsafe_pattern
+                    .unsafe_patterns
+                    .iter()
+                    .map(|&(ref n, Embed(ref value))| (n.clone(), Embed(substs(value, mappings))))
+                    .collect(),
+            },
+            unsafe_body: substs(&scope.unsafe_body, mappings),
+        })),
+        Expr::Lam(ref scope) => Rc::new(Expr::Lam(Scope {
+            unsafe_pattern: scope.unsafe_pattern.clone(),
+            unsafe_body: substs(&scope.unsafe_body, mappings),
+        })),
         Expr::App(ref fun, ref arg) => {
             Rc::new(Expr::App(substs(fun, mappings), substs(arg, mappings)))
         },

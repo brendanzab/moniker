@@ -22,11 +22,10 @@ fn substs(expr: &Rc<Expr>, mappings: &[(FreeVar, Rc<Expr>)]) -> Rc<Expr> {
             None => expr.clone(),
         },
         Expr::Var(_) => expr.clone(),
-        Expr::Lam(ref scope) => {
-            let (n, mut body) = scope.clone().unbind();
-            substs(&body, mappings);
-            Rc::new(Expr::Lam(Scope::new(n, body)))
-        },
+        Expr::Lam(ref scope) => Rc::new(Expr::Lam(Scope {
+            unsafe_pattern: scope.unsafe_pattern.clone(),
+            unsafe_body: substs(&scope.unsafe_body, mappings),
+        })),
         Expr::App(ref fun, ref args) => Rc::new(Expr::App(
             substs(fun, mappings),
             args.iter().map(|arg| substs(arg, mappings)).collect(),

@@ -19,11 +19,10 @@ fn subst(expr: &Rc<Expr>, subst_name: &FreeVar, subst_expr: &Rc<Expr>) -> Rc<Exp
     match **expr {
         Expr::Var(Var::Free(ref n)) if subst_name == n => subst_expr.clone(),
         Expr::Var(_) => expr.clone(),
-        Expr::Lam(ref scope) => {
-            let (n, mut body) = scope.clone().unbind();
-            subst(&body, subst_name, subst_expr);
-            Rc::new(Expr::Lam(Scope::new(n, body)))
-        },
+        Expr::Lam(ref scope) => Rc::new(Expr::Lam(Scope {
+            unsafe_pattern: scope.unsafe_pattern.clone(),
+            unsafe_body: subst(&scope.unsafe_body, subst_name, subst_expr),
+        })),
         Expr::App(ref fun, ref arg) => Rc::new(Expr::App(
             subst(fun, subst_name, subst_expr),
             subst(arg, subst_name, subst_expr),
