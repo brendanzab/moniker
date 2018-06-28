@@ -23,6 +23,10 @@ fn substs(expr: &Rc<Expr>, mappings: &[(FreeVar, Rc<Expr>)]) -> Rc<Expr> {
             None => expr.clone(),
         },
         Expr::Var(_) => expr.clone(),
+        Expr::Lam(ref scope) => Rc::new(Expr::Lam(Scope {
+            unsafe_pattern: scope.unsafe_pattern.clone(),
+            unsafe_body: substs(&scope.unsafe_body, mappings),
+        })),
         Expr::Let(ref scope) => Rc::new(Expr::Let(Scope {
             unsafe_pattern: Nest {
                 unsafe_patterns: scope
@@ -32,10 +36,6 @@ fn substs(expr: &Rc<Expr>, mappings: &[(FreeVar, Rc<Expr>)]) -> Rc<Expr> {
                     .map(|&(ref n, Embed(ref value))| (n.clone(), Embed(substs(value, mappings))))
                     .collect(),
             },
-            unsafe_body: substs(&scope.unsafe_body, mappings),
-        })),
-        Expr::Lam(ref scope) => Rc::new(Expr::Lam(Scope {
-            unsafe_pattern: scope.unsafe_pattern.clone(),
             unsafe_body: substs(&scope.unsafe_body, mappings),
         })),
         Expr::App(ref fun, ref arg) => {
