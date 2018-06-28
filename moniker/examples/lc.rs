@@ -1,10 +1,10 @@
-//! An example of using the `nameless` library to implement the untyped lambda
+//! An example of using the `moniker` library to implement the untyped lambda
 //! calculus
 
 #[macro_use]
-extern crate nameless;
+extern crate moniker;
 
-use nameless::{FreeVar, Scope, Var};
+use moniker::{FreeVar, Scope, Var};
 use std::rc::Rc;
 
 #[derive(Debug, Clone, BoundTerm)]

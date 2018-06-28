@@ -1,12 +1,12 @@
-//! An example of using the `nameless` library to implement the simply typed
+//! An example of using the `moniker` library to implement the simply typed
 //! lambda calculus
 //!
 //! We use bidirectional type checking to get some level of type inference
 
 #[macro_use]
-extern crate nameless;
+extern crate moniker;
 
-use nameless::{BoundTerm, Embed, FreeVar, Scope, Var};
+use moniker::{BoundTerm, Embed, FreeVar, Scope, Var};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]

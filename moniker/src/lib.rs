@@ -3,15 +3,15 @@
 //!
 //! # Example
 //!
-//! Here is an example of how you might use `nameless` to define the AST for the
+//! Here is an example of how you might use `moniker` to define the AST for the
 //! [simply typed lambda calculus][stlc]:
 //!
 //! ```rust,ignore
 //! #[macro_use]
-//! extern crate nameless;
+//! extern crate moniker;
 //!
 //! use std::rc::Rc;
-//! use nameless::{Scope, Embed, Name, Var};
+//! use moniker::{Scope, Embed, Name, Var};
 //!
 //! #[derive(Debug, Clone, BoundTerm)]
 //! pub enum Type {
@@ -54,14 +54,14 @@
 
 #[macro_use]
 extern crate lazy_static;
-#[cfg(feature = "nameless-derive")]
+#[cfg(feature = "moniker-derive")]
 #[allow(unused_imports)]
 #[macro_use]
-extern crate nameless_derive;
+extern crate moniker_derive;
 
-#[cfg(feature = "nameless-derive")]
+#[cfg(feature = "moniker-derive")]
 #[doc(hidden)]
-pub use nameless_derive::*;
+pub use moniker_derive::*;
 
 mod scope;
 #[macro_use]

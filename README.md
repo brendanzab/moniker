@@ -1,25 +1,26 @@
-# Nameless
+# Moniker
 
 [![Build Status][travis-badge]][travis-url]
 [![Gitter][gitter-badge]][gitter-lobby]
 
-[travis-badge]: https://travis-ci.org/brendanzab/nameless.svg?branch=master
-[travis-url]: https://travis-ci.org/brendanzab/nameless
-[gitter-badge]: https://badges.gitter.im/nameless-rs/nameless.svg
-[gitter-lobby]: https://gitter.im/nameless-rs/Lobby
+[travis-badge]: https://travis-ci.org/brendanzab/moniker.svg?branch=master
+[travis-url]: https://travis-ci.org/brendanzab/moniker
+[gitter-badge]: https://badges.gitter.im/moniker-rs/moniker.svg
+[gitter-lobby]: https://gitter.im/moniker-rs/Lobby
 
-Automatically derive variable binding and alpha equivalence for abstract syntax
-trees. This is useful for eliminating error-prone boilerplate code for name
-binding, and make it easier to implement new languages in Rust.
+This crate automatically derives variable binding and alpha equivalence for
+abstract syntax trees. This is really handy for eliminating error-prone
+boilerplate code for name binding, and make it easier to implement new languages
+in Rust.
 
 ## Example
 
 ```rust
 #[macro_use]
-extern crate nameless;
+extern crate moniker;
 
+use moniker::{Scope, Embed, Name, Var};
 use std::rc::Rc;
-use nameless::{Scope, Embed, Name, Var};
 
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Type {
@@ -50,7 +51,7 @@ locally nameless representation that is used by this crate:
 The API was mainly inspired by the Unbound and Unbound-Generics libraries for
 Haskell, with some differences. The main change that we make is to have two
 separate traits (`BoundTerm` and `BoundPattern`) in place of Unbound's single
-`Alpha` typeclass. We've found that this better capures the semantics of the
+`Alpha` type class. We've found that this better captures the semantics of the
 library, and greatly cuts down on the potential for accidental misuse.
 
 Other auto-binding libraries exist for a number of different languages:

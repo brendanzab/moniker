@@ -1,12 +1,12 @@
 [package]
-name = "nameless"
+name = "moniker"
 version = "0.1.0"
 readme = "../README.md"
 license = "Apache-2.0"
 authors = ["Brendan Zabarauskas <bjzaba@yahoo.com.au>"]
 description = "Automatically derive variable binding and alpha equivalence for abstract syntax trees"
-homepage = "https://github.com/brendanzab/nameless"
-repository = "https://github.com/brendanzab/nameless"
+homepage = "https://github.com/brendanzab/moniker"
+repository = "https://github.com/brendanzab/moniker"
 keywords = [
     "alpha equivalence",
     "ast",
@@ -19,8 +19,8 @@ categories = ["data-structures"]
 publish = false
 
 [features]
-default = ["nameless-derive"]
+default = ["moniker-derive"]
 
 [dependencies]
 lazy_static = "1.0"
-nameless-derive = { path = "../nameless-derive", version = "0.1.0", optional = true }
+moniker-derive = { path = "../moniker-derive", version = "0.1.0", optional = true }

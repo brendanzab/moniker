@@ -77,7 +77,7 @@ macro_rules! assert_pattern_eq {
     ($left:expr, $right:expr) => ({
         match (&$left, &$right) {
             (left_val, right_val) => {
-                if !::nameless::BoundPattern::pattern_eq(left_val, right_val) {
+                if !::moniker::BoundPattern::pattern_eq(left_val, right_val) {
                     panic!(r#"assertion failed: `<_>::pattern_eq(&left, &right)`
   left: `{:?}`,
  right: `{:?}`"#, left_val, right_val)
@@ -91,7 +91,7 @@ macro_rules! assert_pattern_eq {
     ($left:expr, $right:expr, $($arg:tt)+) => ({
         match (&($left), &($right)) {
             (left_val, right_val) => {
-                if !::nameless::BoundPattern::pattern_eq(left_val, right_val) {
+                if !::moniker::BoundPattern::pattern_eq(left_val, right_val) {
                     panic!(r#"assertion failed: `<_>::pattern_eq(&left, &right)`
   left: `{:?}`,
  right: `{:?}`: {}"#, left_val, right_val,

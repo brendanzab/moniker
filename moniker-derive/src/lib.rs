@@ -26,7 +26,7 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
             let arm_body = <_>::zip(lhs.bindings().iter(), rhs.bindings()).fold(
                 quote!(true),
                 |acc, (lhs, rhs)| {
-                    quote! { #acc && ::nameless::BoundTerm::term_eq(#lhs, #rhs) }
+                    quote! { #acc && ::moniker::BoundTerm::term_eq(#lhs, #rhs) }
                 },
             );
 
@@ -42,24 +42,24 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
 
     s.bind_with(|_| BindStyle::RefMut);
     let close_term_body = s.each(|bi| {
-        quote!{ ::nameless::BoundTerm::close_term(#bi, __state, __pattern); }
+        quote!{ ::moniker::BoundTerm::close_term(#bi, __state, __pattern); }
     });
     let open_term_body = s.each(|bi| {
-        quote!{ ::nameless::BoundTerm::open_term(#bi, __state, __pattern); }
+        quote!{ ::moniker::BoundTerm::open_term(#bi, __state, __pattern); }
     });
 
     s.bind_with(|_| BindStyle::Ref);
     let visit_vars_body = s.each(|bi| {
-        quote!{ ::nameless::BoundTerm::visit_vars(#bi, __on_var); }
+        quote!{ ::moniker::BoundTerm::visit_vars(#bi, __on_var); }
     });
 
     s.bind_with(|_| BindStyle::RefMut);
     let visit_mut_vars_body = s.each(|bi| {
-        quote!{ ::nameless::BoundTerm::visit_mut_vars(#bi, __on_var); }
+        quote!{ ::moniker::BoundTerm::visit_mut_vars(#bi, __on_var); }
     });
 
     s.bound_impl(
-        quote!(::nameless::BoundTerm),
+        quote!(::moniker::BoundTerm),
         quote! {
             fn term_eq(&self, other: &Self) -> bool {
                 match (self, other) { #term_eq_body }
@@ -67,25 +67,25 @@ fn term_derive(mut s: Structure) -> quote::Tokens {
 
             fn close_term(
                 &mut self,
-                __state: ::nameless::ScopeState,
-                __pattern: &impl ::nameless::BoundPattern,
+                __state: ::moniker::ScopeState,
+                __pattern: &impl ::moniker::BoundPattern,
             ) {
                 match *self { #close_term_body }
             }
 
             fn open_term(
                 &mut self,
-                __state: ::nameless::ScopeState,
-                __pattern: &impl ::nameless::BoundPattern,
+                __state: ::moniker::ScopeState,
+                __pattern: &impl ::moniker::BoundPattern,
             ) {
                 match *self { #open_term_body }
             }
 
-            fn visit_vars(&self, __on_var: &mut impl FnMut(&::nameless::Var)) {
+            fn visit_vars(&self, __on_var: &mut impl FnMut(&::moniker::Var)) {
                 match *self { #visit_vars_body }
             }
 
-            fn visit_mut_vars(&mut self, __on_var: &mut impl FnMut(&mut ::nameless::Var)) {
+            fn visit_mut_vars(&mut self, __on_var: &mut impl FnMut(&mut ::moniker::Var)) {
                 match *self { #visit_mut_vars_body }
             }
         },

@@ -65,7 +65,7 @@ macro_rules! assert_term_eq {
     ($left:expr, $right:expr) => ({
         match (&$left, &$right) {
             (left_val, right_val) => {
-                if !::nameless::BoundTerm::term_eq(left_val, right_val) {
+                if !::moniker::BoundTerm::term_eq(left_val, right_val) {
                     panic!(r#"assertion failed: `<_>::term_eq(&left, &right)`
   left: `{:?}`,
  right: `{:?}`"#, left_val, right_val)
@@ -79,7 +79,7 @@ macro_rules! assert_term_eq {
     ($left:expr, $right:expr, $($arg:tt)+) => ({
         match (&($left), &($right)) {
             (left_val, right_val) => {
-                if !::nameless::BoundTerm::term_eq(left_val, right_val) {
+                if !::moniker::BoundTerm::term_eq(left_val, right_val) {
                     panic!(r#"assertion failed: `<_>::term_eq(&left, &right)`
   left: `{:?}`,
  right: `{:?}`: {}"#, left_val, right_val,

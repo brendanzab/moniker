@@ -1,12 +1,12 @@
 [package]
-name = "nameless-derive"
+name = "moniker-derive"
 version = "0.1.0"
 readme = "./README.md"
 license = "Apache-2.0"
 authors = ["Brendan Zabarauskas <bjzaba@yahoo.com.au>"]
-description = "Derives for the nameless crate"
-homepage = "https://github.com/brendanzab/nameless"
-repository = "https://github.com/brendanzab/nameless"
+description = "Derives for the moniker crate"
+homepage = "https://github.com/brendanzab/moniker"
+repository = "https://github.com/brendanzab/moniker"
 keywords = [
     "alpha equivalence",
     "ast",

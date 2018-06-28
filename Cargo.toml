@@ -1,5 +1,5 @@
 [workspace]
 members = [
-    "./nameless",
-    "./nameless-derive",
+    "./moniker",
+    "./moniker-derive",
 ]
