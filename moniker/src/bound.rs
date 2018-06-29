@@ -245,6 +245,64 @@ impl<T: BoundTerm + Clone> BoundTerm for Rc<T> {
     }
 }
 
+impl<T: BoundTerm, U: BoundTerm> BoundTerm for (T, U) {
+    fn term_eq(&self, other: &(T, U)) -> bool {
+        T::term_eq(&self.0, &other.0) && U::term_eq(&self.1, &other.1)
+    }
+
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+        self.0.close_term(state, pattern);
+        self.1.close_term(state, pattern);
+    }
+
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+        self.0.open_term(state, pattern);
+        self.1.open_term(state, pattern);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+        self.0.visit_vars(on_var);
+        self.1.visit_vars(on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+        self.0.visit_mut_vars(on_var);
+        self.1.visit_mut_vars(on_var);
+    }
+}
+
+impl<T: BoundTerm, U: BoundTerm, V: BoundTerm> BoundTerm for (T, U, V) {
+    fn term_eq(&self, other: &(T, U, V)) -> bool {
+        T::term_eq(&self.0, &other.0)
+            && U::term_eq(&self.1, &other.1)
+            && V::term_eq(&self.2, &other.2)
+    }
+
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+        self.0.close_term(state, pattern);
+        self.1.close_term(state, pattern);
+        self.2.close_term(state, pattern);
+    }
+
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+        self.0.open_term(state, pattern);
+        self.1.open_term(state, pattern);
+        self.2.open_term(state, pattern);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+        self.0.visit_vars(on_var);
+        self.1.visit_vars(on_var);
+        self.2.visit_vars(on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+        self.0.visit_mut_vars(on_var);
+        self.1.visit_mut_vars(on_var);
+        self.2.visit_mut_vars(on_var);
+    }
+}
+
 impl<T: BoundTerm + Clone> BoundTerm for [T] {
     fn term_eq(&self, other: &[T]) -> bool {
         self.len() == other.len()
