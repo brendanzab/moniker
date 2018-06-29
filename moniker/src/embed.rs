@@ -1,5 +1,4 @@
-use bound_pattern::{BoundPattern, PatternSubsts};
-use bound_term::{BoundTerm, ScopeState};
+use bound::{BoundPattern, BoundTerm, PatternSubsts, ScopeState};
 use var::{BoundVar, FreeVar};
 
 /// Embed a term in a pattern

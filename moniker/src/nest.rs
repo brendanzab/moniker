@@ -1,5 +1,4 @@
-use bound_pattern::{BoundPattern, PatternSubsts};
-use bound_term::ScopeState;
+use bound::{BoundPattern, PatternSubsts, ScopeState};
 use var::{BoundVar, FreeVar, PatternIndex};
 
 /// Nested binding patterns

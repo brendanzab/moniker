@@ -1,5 +1,4 @@
-use bound_pattern::BoundPattern;
-use bound_term::{BoundTerm, ScopeState};
+use bound::{BoundPattern, BoundTerm, ScopeState};
 use var::Var;
 
 /// A bound scope

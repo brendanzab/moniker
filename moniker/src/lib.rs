@@ -63,20 +63,17 @@ extern crate moniker_derive;
 #[doc(hidden)]
 pub use moniker_derive::*;
 
-mod scope;
 #[macro_use]
-mod bound_pattern;
-#[macro_use]
-mod bound_term;
+mod bound;
 mod embed;
 mod ignore;
 mod multi;
 mod nest;
 mod rec;
+mod scope;
 mod var;
 
-pub use self::bound_pattern::{BoundPattern, PatternSubsts};
-pub use self::bound_term::{BoundTerm, ScopeState};
+pub use self::bound::{BoundPattern, BoundTerm, PatternSubsts, ScopeState};
 pub use self::embed::Embed;
 pub use self::ignore::Ignore;
 pub use self::multi::Multi;
