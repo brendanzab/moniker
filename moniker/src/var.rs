@@ -1,8 +1,5 @@
 use std::fmt;
 
-use bound_pattern::{BoundPattern, PatternSubsts};
-use bound_term::{BoundTerm, ScopeState};
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Ident(String);
 
@@ -80,55 +77,6 @@ impl FreeVar {
         match *self {
             FreeVar::User(ref name) => Some(name),
             FreeVar::Gen(_, ref hint) => hint.as_ref(),
-        }
-    }
-}
-
-impl BoundTerm for FreeVar {
-    fn term_eq(&self, other: &FreeVar) -> bool {
-        match (self, other) {
-            (&FreeVar::User(ref lhs), &FreeVar::User(ref rhs)) => lhs == rhs,
-            (&FreeVar::Gen(ref lhs, _), &FreeVar::Gen(ref rhs, _)) => lhs == rhs,
-            _ => false,
-        }
-    }
-}
-
-impl BoundPattern for FreeVar {
-    fn pattern_eq(&self, _other: &FreeVar) -> bool {
-        true
-    }
-
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
-        *self = match *self {
-            FreeVar::User(ref name) => FreeVar::Gen(GenId::fresh(), Some(name.clone())),
-            FreeVar::Gen(_, _) => return PatternSubsts::new(vec![self.clone()]),
-        };
-        PatternSubsts::new(vec![self.clone()])
-    }
-
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
-        assert_eq!(perm.len(), 1); // FIXME: assert
-        *self = perm.lookup(PatternIndex(0)).unwrap().clone(); // FIXME: double clone
-    }
-
-    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
-        match name == self {
-            true => Some(BoundVar {
-                scope: state.depth(),
-                pattern: PatternIndex(0),
-            }),
-            false => None,
-        }
-    }
-
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
-        match name.scope == state.depth() {
-            true => {
-                assert_eq!(name.pattern, PatternIndex(0));
-                Some(self.clone())
-            },
-            false => None,
         }
     }
 }
@@ -219,44 +167,6 @@ pub enum Var {
     Free(FreeVar),
     /// A variable that is bound by a lambda or pi binder
     Bound(BoundVar, Option<Ident>),
-}
-
-impl BoundTerm for Var {
-    fn term_eq(&self, other: &Var) -> bool {
-        match (self, other) {
-            (&Var::Free(ref lhs), &Var::Free(ref rhs)) => FreeVar::term_eq(lhs, rhs),
-            (&Var::Bound(ref lhs, _), &Var::Bound(ref rhs, _)) => lhs == rhs,
-            (_, _) => false,
-        }
-    }
-
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
-        *self = match *self {
-            Var::Bound(_, _) => return,
-            Var::Free(ref name) => match pattern.on_free(state, name) {
-                Some(bound) => Var::Bound(bound, name.ident().cloned()),
-                None => return,
-            },
-        };
-    }
-
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
-        *self = match *self {
-            Var::Free(_) => return,
-            Var::Bound(bound, _) => match pattern.on_bound(state, bound) {
-                Some(name) => Var::Free(name),
-                None => return,
-            },
-        };
-    }
-
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
-        on_var(self);
-    }
-
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
-        on_var(self);
-    }
 }
 
 impl PartialEq<str> for Var {

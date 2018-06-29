@@ -90,6 +90,56 @@ macro_rules! assert_term_eq {
     });
 }
 
+impl BoundTerm for FreeVar {
+    fn term_eq(&self, other: &FreeVar) -> bool {
+        match (self, other) {
+            (&FreeVar::User(ref lhs), &FreeVar::User(ref rhs)) => lhs == rhs,
+            (&FreeVar::Gen(ref lhs, _), &FreeVar::Gen(ref rhs, _)) => lhs == rhs,
+            _ => false,
+        }
+    }
+}
+
+impl BoundTerm for Var {
+    fn term_eq(&self, other: &Var) -> bool {
+        match (self, other) {
+            (&Var::Free(ref lhs), &Var::Free(ref rhs)) => FreeVar::term_eq(lhs, rhs),
+            (&Var::Bound(ref lhs, _), &Var::Bound(ref rhs, _)) => lhs == rhs,
+            (_, _) => false,
+        }
+    }
+
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+        *self = match *self {
+            Var::Bound(_, _) => return,
+            Var::Free(ref name) => match pattern.on_free(state, name) {
+                Some(bound) => Var::Bound(bound, name.ident().cloned()),
+                None => return,
+            },
+        };
+    }
+
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+        *self = match *self {
+            Var::Free(_) => return,
+            Var::Bound(bound, _) => match pattern.on_bound(state, bound) {
+                Some(name) => Var::Free(name),
+                None => return,
+            },
+        };
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+        on_var(self);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+        on_var(self);
+    }
+}
+
+// Implementations for common types
+
 macro_rules! impl_bound_term {
     ($T:ty) => {
         impl BoundTerm for $T {

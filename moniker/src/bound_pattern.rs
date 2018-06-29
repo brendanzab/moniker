@@ -1,7 +1,7 @@
 use std::{slice, vec};
 
 use bound_term::ScopeState;
-use var::{BoundVar, FreeVar, PatternIndex};
+use var::{BoundVar, FreeVar, GenId, PatternIndex};
 
 /// A mapping of `PatternIndex`s to `T`s
 pub struct PatternSubsts<T> {
@@ -101,6 +101,47 @@ macro_rules! assert_pattern_eq {
         }
     });
 }
+
+impl BoundPattern for FreeVar {
+    fn pattern_eq(&self, _other: &FreeVar) -> bool {
+        true
+    }
+
+    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+        *self = match *self {
+            FreeVar::User(ref name) => FreeVar::Gen(GenId::fresh(), Some(name.clone())),
+            FreeVar::Gen(_, _) => return PatternSubsts::new(vec![self.clone()]),
+        };
+        PatternSubsts::new(vec![self.clone()])
+    }
+
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
+        assert_eq!(perm.len(), 1); // FIXME: assert
+        *self = perm.lookup(PatternIndex(0)).unwrap().clone(); // FIXME: double clone
+    }
+
+    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
+        match name == self {
+            true => Some(BoundVar {
+                scope: state.depth(),
+                pattern: PatternIndex(0),
+            }),
+            false => None,
+        }
+    }
+
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
+        match name.scope == state.depth() {
+            true => {
+                assert_eq!(name.pattern, PatternIndex(0));
+                Some(self.clone())
+            },
+            false => None,
+        }
+    }
+}
+
+// Implementations for common types
 
 impl<P1, P2> BoundPattern for (P1, P2)
 where
