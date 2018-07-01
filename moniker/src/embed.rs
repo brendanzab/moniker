@@ -5,7 +5,10 @@ use var::{BoundVar, FreeVar};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Embed<T>(pub T);
 
-impl<T: BoundTerm> BoundPattern for Embed<T> {
+impl<T> BoundPattern for Embed<T>
+where
+    T: BoundTerm,
+{
     fn pattern_eq(&self, other: &Embed<T>) -> bool {
         T::term_eq(&self.0, &other.0)
     }

@@ -168,7 +168,10 @@ impl_bound_term!(isize);
 impl_bound_term!(f32);
 impl_bound_term!(f64);
 
-impl<T: BoundTerm> BoundTerm for Option<T> {
+impl<T> BoundTerm for Option<T>
+where
+    T: BoundTerm,
+{
     fn term_eq(&self, other: &Option<T>) -> bool {
         match (self, other) {
             (&Some(ref lhs), &Some(ref rhs)) => T::term_eq(lhs, rhs),
@@ -201,7 +204,10 @@ impl<T: BoundTerm> BoundTerm for Option<T> {
     }
 }
 
-impl<T: BoundTerm> BoundTerm for Box<T> {
+impl<T> BoundTerm for Box<T>
+where
+    T: BoundTerm,
+{
     fn term_eq(&self, other: &Box<T>) -> bool {
         T::term_eq(self, other)
     }
@@ -223,7 +229,10 @@ impl<T: BoundTerm> BoundTerm for Box<T> {
     }
 }
 
-impl<T: BoundTerm + Clone> BoundTerm for Rc<T> {
+impl<T> BoundTerm for Rc<T>
+where
+    T: BoundTerm + Clone,
+{
     fn term_eq(&self, other: &Rc<T>) -> bool {
         T::term_eq(self, other)
     }
@@ -245,7 +254,11 @@ impl<T: BoundTerm + Clone> BoundTerm for Rc<T> {
     }
 }
 
-impl<T: BoundTerm, U: BoundTerm> BoundTerm for (T, U) {
+impl<T, U> BoundTerm for (T, U)
+where
+    T: BoundTerm,
+    U: BoundTerm,
+{
     fn term_eq(&self, other: &(T, U)) -> bool {
         T::term_eq(&self.0, &other.0) && U::term_eq(&self.1, &other.1)
     }
@@ -271,7 +284,12 @@ impl<T: BoundTerm, U: BoundTerm> BoundTerm for (T, U) {
     }
 }
 
-impl<T: BoundTerm, U: BoundTerm, V: BoundTerm> BoundTerm for (T, U, V) {
+impl<T, U, V> BoundTerm for (T, U, V)
+where
+    T: BoundTerm,
+    U: BoundTerm,
+    V: BoundTerm,
+{
     fn term_eq(&self, other: &(T, U, V)) -> bool {
         T::term_eq(&self.0, &other.0)
             && U::term_eq(&self.1, &other.1)
@@ -303,7 +321,10 @@ impl<T: BoundTerm, U: BoundTerm, V: BoundTerm> BoundTerm for (T, U, V) {
     }
 }
 
-impl<T: BoundTerm + Clone> BoundTerm for [T] {
+impl<T> BoundTerm for [T]
+where
+    T: BoundTerm + Clone,
+{
     fn term_eq(&self, other: &[T]) -> bool {
         self.len() == other.len()
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| T::term_eq(lhs, rhs))
@@ -334,7 +355,10 @@ impl<T: BoundTerm + Clone> BoundTerm for [T] {
     }
 }
 
-impl<T: BoundTerm + Clone> BoundTerm for Vec<T> {
+impl<T> BoundTerm for Vec<T>
+where
+    T: BoundTerm + Clone,
+{
     fn term_eq(&self, other: &Vec<T>) -> bool {
         <[T]>::term_eq(self, other)
     }

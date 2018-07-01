@@ -8,7 +8,10 @@ use var::{BoundVar, FreeVar, PatternIndex};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Multi<P>(pub Vec<P>);
 
-impl<P: BoundPattern> BoundPattern for Multi<P> {
+impl<P> BoundPattern for Multi<P>
+where
+    P: BoundPattern,
+{
     fn pattern_eq(&self, other: &Multi<P>) -> bool {
         self.0.len() == other.0.len()
             && <_>::zip(self.0.iter(), other.0.iter()).all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
