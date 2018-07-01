@@ -213,19 +213,19 @@ where
     }
 
     fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
-        (**self).close_term(state, pattern);
+        T::close_term(self, state, pattern);
     }
 
     fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
-        (**self).open_term(state, pattern);
+        T::open_term(self, state, pattern);
     }
 
     fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
-        (**self).visit_vars(on_var);
+        T::visit_vars(self, on_var);
     }
 
     fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
-        (**self).visit_mut_vars(on_var);
+        T::visit_mut_vars(self, on_var);
     }
 }
 
@@ -238,19 +238,19 @@ where
     }
 
     fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
-        Rc::make_mut(self).close_term(state, pattern);
+        T::close_term(Rc::make_mut(self), state, pattern);
     }
 
     fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
-        Rc::make_mut(self).open_term(state, pattern);
+        T::open_term(Rc::make_mut(self), state, pattern);
     }
 
     fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
-        (**self).visit_vars(on_var);
+        T::visit_vars(self, on_var);
     }
 
     fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
-        Rc::make_mut(self).visit_mut_vars(on_var);
+        T::visit_mut_vars(Rc::make_mut(self), on_var);
     }
 }
 
@@ -560,5 +560,71 @@ where
         self.0
             .on_bound(state, name)
             .or_else(|| self.1.on_bound(state, name))
+    }
+}
+
+impl<P> BoundPattern for Box<P>
+where
+    P: BoundPattern,
+{
+    fn pattern_eq(&self, other: &Box<P>) -> bool {
+        P::pattern_eq(self, other)
+    }
+
+    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+        P::freshen(self)
+    }
+
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
+        P::rename(self, perm);
+    }
+
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+        P::close_pattern(self, state, pattern);
+    }
+
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+        P::open_pattern(self, state, pattern);
+    }
+
+    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
+        P::on_free(self, state, name)
+    }
+
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
+        P::on_bound(self, state, name)
+    }
+}
+
+impl<P> BoundPattern for Rc<P>
+where
+    P: BoundPattern + Clone,
+{
+    fn pattern_eq(&self, other: &Rc<P>) -> bool {
+        P::pattern_eq(self, other)
+    }
+
+    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+        P::freshen(Rc::make_mut(self))
+    }
+
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
+        P::rename(Rc::make_mut(self), perm);
+    }
+
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+        P::close_pattern(Rc::make_mut(self), state, pattern);
+    }
+
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+        P::open_pattern(Rc::make_mut(self), state, pattern);
+    }
+
+    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
+        P::on_free(self, state, name)
+    }
+
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
+        P::on_bound(self, state, name)
     }
 }
