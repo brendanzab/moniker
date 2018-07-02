@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::hash::Hash;
 use std::rc::Rc;
 use std::{slice, vec};
 
@@ -24,23 +25,26 @@ impl ScopeState {
     }
 }
 
-pub trait BoundTerm {
+pub trait BoundTerm<Ident> {
     /// Alpha equivalence in a term context
     fn term_eq(&self, other: &Self) -> bool;
 
     #[allow(unused_variables)]
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {}
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {}
 
     #[allow(unused_variables)]
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {}
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {}
 
     #[allow(unused_variables)]
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {}
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {}
 
     #[allow(unused_variables)]
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {}
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {}
 
-    fn free_vars(&self) -> HashSet<FreeVar> {
+    fn free_vars(&self) -> HashSet<FreeVar<Ident>>
+    where
+        Ident: Eq + Hash + Clone,
+    {
         let mut free_vars = HashSet::new();
         self.visit_vars(&mut |var| match *var {
             Var::Bound(_, _) => {},
@@ -90,8 +94,8 @@ macro_rules! assert_term_eq {
     });
 }
 
-impl BoundTerm for FreeVar {
-    fn term_eq(&self, other: &FreeVar) -> bool {
+impl<Ident: PartialEq> BoundTerm<Ident> for FreeVar<Ident> {
+    fn term_eq(&self, other: &FreeVar<Ident>) -> bool {
         match (self, other) {
             (&FreeVar::User(ref lhs), &FreeVar::User(ref rhs)) => lhs == rhs,
             (&FreeVar::Gen(ref lhs, _), &FreeVar::Gen(ref rhs, _)) => lhs == rhs,
@@ -100,8 +104,8 @@ impl BoundTerm for FreeVar {
     }
 }
 
-impl BoundTerm for Var {
-    fn term_eq(&self, other: &Var) -> bool {
+impl<Ident: PartialEq + Clone> BoundTerm<Ident> for Var<Ident> {
+    fn term_eq(&self, other: &Var<Ident>) -> bool {
         match (self, other) {
             (&Var::Free(ref lhs), &Var::Free(ref rhs)) => FreeVar::term_eq(lhs, rhs),
             (&Var::Bound(ref lhs, _), &Var::Bound(ref rhs, _)) => lhs == rhs,
@@ -109,7 +113,7 @@ impl BoundTerm for Var {
         }
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         *self = match *self {
             Var::Bound(_, _) => return,
             Var::Free(ref name) => match pattern.on_free(state, name) {
@@ -119,7 +123,7 @@ impl BoundTerm for Var {
         };
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         *self = match *self {
             Var::Free(_) => return,
             Var::Bound(bound, _) => match pattern.on_bound(state, bound) {
@@ -129,11 +133,11 @@ impl BoundTerm for Var {
         };
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
         on_var(self);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
         on_var(self);
     }
 }
@@ -142,7 +146,7 @@ impl BoundTerm for Var {
 
 macro_rules! impl_bound_term {
     ($T:ty) => {
-        impl BoundTerm for $T {
+        impl<Ident> BoundTerm<Ident> for $T {
             fn term_eq(&self, other: &$T) -> bool {
                 self == other
             }
@@ -168,9 +172,9 @@ impl_bound_term!(isize);
 impl_bound_term!(f32);
 impl_bound_term!(f64);
 
-impl<T> BoundTerm for Option<T>
+impl<Ident, T> BoundTerm<Ident> for Option<T>
 where
-    T: BoundTerm,
+    T: BoundTerm<Ident>,
 {
     fn term_eq(&self, other: &Option<T>) -> bool {
         match (self, other) {
@@ -179,116 +183,116 @@ where
         }
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         if let Some(ref mut inner) = *self {
             inner.close_term(state, pattern);
         }
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         if let Some(ref mut inner) = *self {
             inner.open_term(state, pattern);
         }
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
         if let Some(ref inner) = *self {
             inner.visit_vars(on_var);
         }
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
         if let Some(ref mut inner) = *self {
             inner.visit_mut_vars(on_var);
         }
     }
 }
 
-impl<T> BoundTerm for Box<T>
+impl<Ident, T> BoundTerm<Ident> for Box<T>
 where
-    T: BoundTerm,
+    T: BoundTerm<Ident>,
 {
     fn term_eq(&self, other: &Box<T>) -> bool {
         T::term_eq(self, other)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         T::close_term(self, state, pattern);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         T::open_term(self, state, pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
         T::visit_vars(self, on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
         T::visit_mut_vars(self, on_var);
     }
 }
 
-impl<T> BoundTerm for Rc<T>
+impl<Ident, T> BoundTerm<Ident> for Rc<T>
 where
-    T: BoundTerm + Clone,
+    T: BoundTerm<Ident> + Clone,
 {
     fn term_eq(&self, other: &Rc<T>) -> bool {
         T::term_eq(self, other)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         T::close_term(Rc::make_mut(self), state, pattern);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         T::open_term(Rc::make_mut(self), state, pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
         T::visit_vars(self, on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
         T::visit_mut_vars(Rc::make_mut(self), on_var);
     }
 }
 
-impl<T, U> BoundTerm for (T, U)
+impl<Ident, T, U> BoundTerm<Ident> for (T, U)
 where
-    T: BoundTerm,
-    U: BoundTerm,
+    T: BoundTerm<Ident>,
+    U: BoundTerm<Ident>,
 {
     fn term_eq(&self, other: &(T, U)) -> bool {
         T::term_eq(&self.0, &other.0) && U::term_eq(&self.1, &other.1)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         self.0.close_term(state, pattern);
         self.1.close_term(state, pattern);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         self.0.open_term(state, pattern);
         self.1.open_term(state, pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
         self.0.visit_vars(on_var);
         self.1.visit_vars(on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
         self.0.visit_mut_vars(on_var);
         self.1.visit_mut_vars(on_var);
     }
 }
 
-impl<T, U, V> BoundTerm for (T, U, V)
+impl<Ident, T, U, V> BoundTerm<Ident> for (T, U, V)
 where
-    T: BoundTerm,
-    U: BoundTerm,
-    V: BoundTerm,
+    T: BoundTerm<Ident>,
+    U: BoundTerm<Ident>,
+    V: BoundTerm<Ident>,
 {
     fn term_eq(&self, other: &(T, U, V)) -> bool {
         T::term_eq(&self.0, &other.0)
@@ -296,86 +300,86 @@ where
             && V::term_eq(&self.2, &other.2)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         self.0.close_term(state, pattern);
         self.1.close_term(state, pattern);
         self.2.close_term(state, pattern);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         self.0.open_term(state, pattern);
         self.1.open_term(state, pattern);
         self.2.open_term(state, pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
         self.0.visit_vars(on_var);
         self.1.visit_vars(on_var);
         self.2.visit_vars(on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
         self.0.visit_mut_vars(on_var);
         self.1.visit_mut_vars(on_var);
         self.2.visit_mut_vars(on_var);
     }
 }
 
-impl<T> BoundTerm for [T]
+impl<Ident, T> BoundTerm<Ident> for [T]
 where
-    T: BoundTerm + Clone,
+    T: BoundTerm<Ident> + Clone,
 {
     fn term_eq(&self, other: &[T]) -> bool {
         self.len() == other.len()
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| T::term_eq(lhs, rhs))
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         for elem in self {
             elem.close_term(state, pattern);
         }
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         for elem in self {
             elem.open_term(state, pattern);
         }
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
         for elem in self {
             elem.visit_vars(on_var);
         }
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
         for elem in self {
             elem.visit_mut_vars(on_var);
         }
     }
 }
 
-impl<T> BoundTerm for Vec<T>
+impl<Ident, T> BoundTerm<Ident> for Vec<T>
 where
-    T: BoundTerm + Clone,
+    T: BoundTerm<Ident> + Clone,
 {
     fn term_eq(&self, other: &Vec<T>) -> bool {
         <[T]>::term_eq(self, other)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         <[T]>::close_term(self, state, pattern)
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         <[T]>::open_term(self, state, pattern)
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
         <[T]>::visit_vars(self, on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
         <[T]>::visit_mut_vars(self, on_var);
     }
 }
@@ -418,27 +422,27 @@ impl<T> IntoIterator for PatternSubsts<T> {
     }
 }
 
-pub trait BoundPattern {
+pub trait BoundPattern<Ident> {
     /// Alpha equivalence in a pattern context
     fn pattern_eq(&self, other: &Self) -> bool;
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar>;
+    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>>;
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar>);
-
-    #[allow(unused_variables)]
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {}
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>);
 
     #[allow(unused_variables)]
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {}
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {}
+
+    #[allow(unused_variables)]
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {}
 
     /// A callback that is used when `unbind`ing `Bind`s to replace free names
     /// with bound names based on the contents of the pattern
-    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar>;
+    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar>;
 
     /// A callback that is used when `bind`ing `Bind`s to replace bound names
     /// with free names based on the contents of the pattern
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar>;
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>>;
 }
 
 /// Asserts that two expressions are alpha equivalent to each other (using
@@ -479,12 +483,12 @@ macro_rules! assert_pattern_eq {
     });
 }
 
-impl BoundPattern for FreeVar {
-    fn pattern_eq(&self, _other: &FreeVar) -> bool {
+impl<Ident: Clone + PartialEq> BoundPattern<Ident> for FreeVar<Ident> {
+    fn pattern_eq(&self, _other: &FreeVar<Ident>) -> bool {
         true
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
         *self = match *self {
             FreeVar::User(ref name) => FreeVar::Gen(GenId::fresh(), Some(name.clone())),
             FreeVar::Gen(_, _) => return PatternSubsts::new(vec![self.clone()]),
@@ -492,13 +496,13 @@ impl BoundPattern for FreeVar {
         PatternSubsts::new(vec![self.clone()])
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
         assert_eq!(perm.len(), 1); // FIXME: assert
         *self = perm.lookup(PatternIndex(0)).unwrap().clone(); // FIXME: double clone
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
-        match name == self {
+    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
+        match FreeVar::term_eq(name, self) {
             true => Some(BoundVar {
                 scope: state.depth(),
                 pattern: PatternIndex(0),
@@ -507,7 +511,7 @@ impl BoundPattern for FreeVar {
         }
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
         match name.scope == state.depth() {
             true => {
                 assert_eq!(name.pattern, PatternIndex(0));
@@ -520,111 +524,111 @@ impl BoundPattern for FreeVar {
 
 // Implementations for common types
 
-impl<P1, P2> BoundPattern for (P1, P2)
+impl<Ident, P1, P2> BoundPattern<Ident> for (P1, P2)
 where
-    P1: BoundPattern,
-    P2: BoundPattern,
+    P1: BoundPattern<Ident>,
+    P2: BoundPattern<Ident>,
 {
     fn pattern_eq(&self, other: &(P1, P2)) -> bool {
         P1::pattern_eq(&self.0, &other.0) && P2::pattern_eq(&self.1, &other.1)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
         let mut perm = self.0.freshen();
         perm.extend(self.1.freshen());
         perm
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
         self.0.rename(perm);
         self.1.rename(perm);
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         self.0.close_pattern(state, pattern);
         self.1.close_pattern(state, pattern);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         self.0.open_pattern(state, pattern);
         self.1.open_pattern(state, pattern);
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
+    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
         self.0
             .on_free(state, name)
             .or_else(|| self.1.on_free(state, name))
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
         self.0
             .on_bound(state, name)
             .or_else(|| self.1.on_bound(state, name))
     }
 }
 
-impl<P> BoundPattern for Box<P>
+impl<Ident, P> BoundPattern<Ident> for Box<P>
 where
-    P: BoundPattern,
+    P: BoundPattern<Ident>,
 {
     fn pattern_eq(&self, other: &Box<P>) -> bool {
         P::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
         P::freshen(self)
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
         P::rename(self, perm);
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         P::close_pattern(self, state, pattern);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         P::open_pattern(self, state, pattern);
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
+    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
         P::on_free(self, state, name)
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
         P::on_bound(self, state, name)
     }
 }
 
-impl<P> BoundPattern for Rc<P>
+impl<Ident, P> BoundPattern<Ident> for Rc<P>
 where
-    P: BoundPattern + Clone,
+    P: BoundPattern<Ident> + Clone,
 {
     fn pattern_eq(&self, other: &Rc<P>) -> bool {
         P::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
         P::freshen(Rc::make_mut(self))
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
         P::rename(Rc::make_mut(self), perm);
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         P::close_pattern(Rc::make_mut(self), state, pattern);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         P::open_pattern(Rc::make_mut(self), state, pattern);
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
+    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
         P::on_free(self, state, name)
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
         P::on_bound(self, state, name)
     }
 }

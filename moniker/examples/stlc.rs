@@ -11,7 +11,7 @@ use im::HashMap;
 use moniker::{BoundTerm, Embed, FreeVar, Scope, Var};
 use std::rc::Rc;
 
-type Context = HashMap<FreeVar, Rc<Type>>;
+type Context = HashMap<FreeVar<String>, Rc<Type>>;
 
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Type {
@@ -22,13 +22,13 @@ pub enum Type {
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     Ann(Rc<Expr>, Rc<Type>),
-    Var(Var),
-    Lam(Scope<(FreeVar, Embed<Option<Rc<Type>>>), Rc<Expr>>),
+    Var(Var<String>),
+    Lam(Scope<(FreeVar<String>, Embed<Option<Rc<Type>>>), Rc<Expr>>),
     App(Rc<Expr>, Rc<Expr>),
 }
 
 // FIXME: auto-derive this somehow!
-fn subst(expr: &Rc<Expr>, subst_name: &FreeVar, subst_expr: &Rc<Expr>) -> Rc<Expr> {
+fn subst(expr: &Rc<Expr>, subst_name: &FreeVar<String>, subst_expr: &Rc<Expr>) -> Rc<Expr> {
     match **expr {
         Expr::Ann(ref expr, ref ty) => {
             Rc::new(Expr::Ann(subst(expr, subst_name, subst_expr), ty.clone()))

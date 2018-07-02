@@ -9,12 +9,12 @@ pub struct Nest<P> {
     pub unsafe_patterns: Vec<P>,
 }
 
-impl<P> Nest<P>
-where
-    P: BoundPattern,
-{
+impl<P> Nest<P> {
     /// Nest a term with the given patterns
-    pub fn new(patterns: Vec<P>) -> Nest<P> {
+    pub fn new<Ident>(patterns: Vec<P>) -> Nest<P>
+    where
+        P: BoundPattern<Ident>,
+    {
         // FIXME: Avoid allocating new vector
         let mut rebound_patterns = Vec::<P>::with_capacity(patterns.len());
 
@@ -33,7 +33,10 @@ where
     }
 
     /// Unnest a term, returning the freshened patterns
-    pub fn unnest(self) -> Vec<P> {
+    pub fn unnest<Ident>(self) -> Vec<P>
+    where
+        P: BoundPattern<Ident>,
+    {
         // FIXME: Avoid allocating new vector
         let mut unrebound_patterns = Vec::<P>::with_capacity(self.unsafe_patterns.len());
 
@@ -50,14 +53,18 @@ where
     }
 }
 
-impl<P: BoundPattern> BoundPattern for Nest<P> {
+impl<Ident, P> BoundPattern<Ident> for Nest<P>
+where
+    Ident: Clone,
+    P: BoundPattern<Ident>,
+{
     fn pattern_eq(&self, other: &Nest<P>) -> bool {
         self.unsafe_patterns.len() == other.unsafe_patterns.len()
             && <_>::zip(self.unsafe_patterns.iter(), other.unsafe_patterns.iter())
                 .all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
         // FIXME: intermediate allocations
         PatternSubsts::new(
             self.unsafe_patterns
@@ -67,7 +74,7 @@ impl<P: BoundPattern> BoundPattern for Nest<P> {
         )
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar>) {
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
         assert_eq!(self.unsafe_patterns.len(), perm.len()); // FIXME: assertion
 
         for (pattern, perm) in <_>::zip(self.unsafe_patterns.iter_mut(), perm.iter()) {
@@ -75,21 +82,21 @@ impl<P: BoundPattern> BoundPattern for Nest<P> {
         }
     }
 
-    fn close_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         for elem in &mut self.unsafe_patterns {
             elem.close_pattern(state, pattern);
             state = state.incr();
         }
     }
 
-    fn open_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         for elem in &mut self.unsafe_patterns {
             elem.close_pattern(state, pattern);
             state = state.incr();
         }
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar) -> Option<BoundVar> {
+    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
         self.unsafe_patterns
             .iter()
             .enumerate()
@@ -105,7 +112,7 @@ impl<P: BoundPattern> BoundPattern for Nest<P> {
             .next()
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar> {
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
         self.unsafe_patterns
             .get(name.pattern.0 as usize)
             .and_then(|pattern| {

@@ -5,33 +5,33 @@ use var::{BoundVar, FreeVar};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Embed<T>(pub T);
 
-impl<T> BoundPattern for Embed<T>
+impl<Ident, T> BoundPattern<Ident> for Embed<T>
 where
-    T: BoundTerm,
+    T: BoundTerm<Ident>,
 {
     fn pattern_eq(&self, other: &Embed<T>) -> bool {
         T::term_eq(&self.0, &other.0)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar> {
+    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
         PatternSubsts::new(Vec::new())
     }
 
-    fn rename(&mut self, _perm: &PatternSubsts<FreeVar>) {}
+    fn rename(&mut self, _perm: &PatternSubsts<FreeVar<Ident>>) {}
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         self.0.close_term(state, pattern);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         self.0.open_term(state, pattern);
     }
 
-    fn on_free(&self, _state: ScopeState, _name: &FreeVar) -> Option<BoundVar> {
+    fn on_free(&self, _state: ScopeState, _name: &FreeVar<Ident>) -> Option<BoundVar> {
         None
     }
 
-    fn on_bound(&self, _state: ScopeState, _name: BoundVar) -> Option<FreeVar> {
+    fn on_bound(&self, _state: ScopeState, _name: BoundVar) -> Option<FreeVar<Ident>> {
         None
     }
 }

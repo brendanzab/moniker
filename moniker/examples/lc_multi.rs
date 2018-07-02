@@ -9,13 +9,13 @@ use std::rc::Rc;
 
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
-    Var(Var),
-    Lam(Scope<Multi<FreeVar>, Rc<Expr>>),
+    Var(Var<String>),
+    Lam(Scope<Multi<FreeVar<String>>, Rc<Expr>>),
     App(Rc<Expr>, Vec<Rc<Expr>>),
 }
 
 // FIXME: auto-derive this somehow!
-fn substs(expr: &Rc<Expr>, mappings: &[(FreeVar, Rc<Expr>)]) -> Rc<Expr> {
+fn substs(expr: &Rc<Expr>, mappings: &[(FreeVar<String>, Rc<Expr>)]) -> Rc<Expr> {
     match **expr {
         Expr::Var(Var::Free(ref n)) => match mappings.iter().find(|&(n2, _)| n == n2) {
             Some((_, ref subst_expr)) => subst_expr.clone(),

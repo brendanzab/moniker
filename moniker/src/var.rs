@@ -1,38 +1,5 @@
 use std::fmt;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Ident(String);
-
-impl<'a> From<&'a str> for Ident {
-    fn from(src: &'a str) -> Ident {
-        Ident(String::from(src))
-    }
-}
-
-impl From<String> for Ident {
-    fn from(src: String) -> Ident {
-        Ident(src)
-    }
-}
-
-impl PartialEq<str> for Ident {
-    fn eq(&self, other: &str) -> bool {
-        self.0 == other
-    }
-}
-
-impl PartialEq<String> for Ident {
-    fn eq(&self, other: &String) -> bool {
-        self.0 == *other
-    }
-}
-
-impl fmt::Display for Ident {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
 /// A generated id
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct GenId(u32);
@@ -59,7 +26,7 @@ impl fmt::Display for GenId {
 
 /// A free variable
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum FreeVar {
+pub enum FreeVar<Ident> {
     /// Names originating from user input
     User(Ident),
     /// A generated id with an optional string that may have come from user
@@ -67,10 +34,10 @@ pub enum FreeVar {
     Gen(GenId, Option<Ident>),
 }
 
-impl FreeVar {
+impl<Ident> FreeVar<Ident> {
     /// Create a name from a human-readable string
-    pub fn user<S: Into<Ident>>(name: S) -> FreeVar {
-        FreeVar::User(name.into())
+    pub fn user<T: Into<Ident>>(ident: T) -> FreeVar<Ident> {
+        FreeVar::User(ident.into())
     }
 
     pub fn ident(&self) -> Option<&Ident> {
@@ -81,31 +48,13 @@ impl FreeVar {
     }
 }
 
-impl From<GenId> for FreeVar {
-    fn from(src: GenId) -> FreeVar {
+impl<Ident> From<GenId> for FreeVar<Ident> {
+    fn from(src: GenId) -> FreeVar<Ident> {
         FreeVar::Gen(src, None)
     }
 }
 
-impl PartialEq<str> for FreeVar {
-    fn eq(&self, other: &str) -> bool {
-        match *self {
-            FreeVar::User(ref name) => name == other,
-            FreeVar::Gen(_, _) => false,
-        }
-    }
-}
-
-impl PartialEq<String> for FreeVar {
-    fn eq(&self, other: &String) -> bool {
-        match *self {
-            FreeVar::User(ref name) => name == other,
-            FreeVar::Gen(_, _) => false,
-        }
-    }
-}
-
-impl fmt::Display for FreeVar {
+impl<Ident: fmt::Display> fmt::Display for FreeVar<Ident> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             FreeVar::User(ref name) => write!(f, "{}", name),
@@ -162,32 +111,14 @@ impl fmt::Display for BoundVar {
 
 /// A variable that can either be free or bound
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Var {
+pub enum Var<Ident> {
     /// A free variable
-    Free(FreeVar),
+    Free(FreeVar<Ident>),
     /// A variable that is bound by a lambda or pi binder
     Bound(BoundVar, Option<Ident>),
 }
 
-impl PartialEq<str> for Var {
-    fn eq(&self, other: &str) -> bool {
-        match *self {
-            Var::Free(ref name) => name == other,
-            Var::Bound(_, _) => false,
-        }
-    }
-}
-
-impl PartialEq<String> for Var {
-    fn eq(&self, other: &String) -> bool {
-        match *self {
-            Var::Free(ref name) => name == other,
-            Var::Bound(_, _) => false,
-        }
-    }
-}
-
-impl fmt::Display for Var {
+impl<Ident: fmt::Display> fmt::Display for Var<Ident> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Var::Bound(bound, None) => write!(f, "@{}", bound),
