@@ -19,7 +19,7 @@ in Rust.
 #[macro_use]
 extern crate moniker;
 
-use moniker::{Scope, Embed, Name, Var};
+use moniker::{Scope, Embed, FreeVar, Var};
 use std::rc::Rc;
 
 #[derive(Debug, Clone, BoundTerm)]
@@ -30,8 +30,8 @@ pub enum Type {
 
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
-    Var(Var),
-    Lam(Scope<(Name, Embed<Rc<Type>>), Rc<Expr>>),
+    Var(Var<String>),
+    Lam(Scope<(FreeVar<String>, Embed<Rc<Type>>), Rc<Expr>>),
     App(Rc<Expr>, Rc<Expr>),
 }
 ```

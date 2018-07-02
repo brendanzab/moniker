@@ -11,7 +11,7 @@
 //! extern crate moniker;
 //!
 //! use std::rc::Rc;
-//! use moniker::{Scope, Embed, Name, Var};
+//! use moniker::{Scope, Embed, FreeVar, Var};
 //!
 //! #[derive(Debug, Clone, BoundTerm)]
 //! pub enum Type {
@@ -21,9 +21,9 @@
 //!
 //! #[derive(Debug, Clone, BoundTerm)]
 //! pub enum Expr {
-//!     Var(Var),
-//!     Lam(Scope<(Name, Embed<Rc<Type>>), Rc<Expr>>),
-//!     Let(Scope<Rebind<(Name, Embed<(Rc<Type>, Rc<Expr>>)>, Rc<Expr>),
+//!     Var(Var<String>),
+//!     Lam(Scope<(FreeVar<Ident>, Embed<Rc<Type>>), Rc<Expr>>),
+//!     Let(Scope<Rebind<(FreeVar<String>, Embed<(Rc<Type>, Rc<Expr>>)>, Rc<Expr>),
 //!     App(Rc<Expr>, Rc<Expr>),
 //! }
 //! ```
@@ -38,19 +38,19 @@
 //!
 //! Terms are data types that implement the `BoundTerm` trait.
 //!
-//! - `Var`: A variable that is either a `FreeVar` or `BoundVar`
-//! - `Scope<P: BoundPattern, T: BoundTerm>`: bind the term `T` using the pattern `P`
+//! - `Var<Ident>`: A variable that is either a `FreeVar<Ident>` or `BoundVar`
+//! - `Scope<P: BoundPattern<Ident>, T: BoundTerm<Ident>>`: bind the term `T` using the pattern `P`
 //!
 //! ## Patterns
 //!
 //! Patterns are data types that implement the `BoundPattern` trait.
 //!
-//! - `FreeVar`: Captures a free variable within a term, but is ignored for alpha equality
+//! - `FreeVar<Ident>`: Captures a free variable within a term, but is ignored for alpha equality
 //! - `Ignore<T>`: Ignores `T` when comparing for alpha equality
-//! - `Embed<T: BoundTerm>`: Embed a term in a pattern
-//! - `Multi<T: BoundPattern>`: Multiple parallel binding patterns
-//! - `Nest<T: BoundPattern>`: Multiple nested binding patterns
-//! - `Rec<T: BoundPattern>`: Recursive binding patterns
+//! - `Embed<T: BoundTerm<Ident>>`: Embed a term in a pattern
+//! - `Multi<T: BoundPattern<Ident>>`: Multiple parallel binding patterns
+//! - `Nest<T: BoundPattern<Ident>>`: Multiple nested binding patterns
+//! - `Rec<T: BoundPattern<Ident>>`: Recursive binding patterns
 
 #[macro_use]
 extern crate lazy_static;
