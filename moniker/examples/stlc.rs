@@ -3,32 +3,15 @@
 //!
 //! We use bidirectional type checking to get some level of type inference
 
+extern crate im;
 #[macro_use]
 extern crate moniker;
 
+use im::HashMap;
 use moniker::{BoundTerm, Embed, FreeVar, Scope, Var};
 use std::rc::Rc;
 
-#[derive(Debug, Clone)]
-pub enum Context {
-    Empty,
-    Extend(Rc<Context>, FreeVar, Rc<Type>),
-}
-
-fn extend(context: Rc<Context>, name: FreeVar, expr: Rc<Type>) -> Rc<Context> {
-    Rc::new(Context::Extend(context, name, expr))
-}
-
-fn lookup<'a>(mut context: &'a Rc<Context>, name: &FreeVar) -> Option<&'a Rc<Type>> {
-    while let Context::Extend(ref next_context, ref curr_name, ref expr) = **context {
-        if FreeVar::term_eq(curr_name, name) {
-            return Some(expr);
-        } else {
-            context = next_context;
-        }
-    }
-    None
-}
+type Context = HashMap<FreeVar, Rc<Type>>;
 
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Type {
@@ -44,12 +27,11 @@ pub enum Expr {
     App(Rc<Expr>, Rc<Expr>),
 }
 
-pub fn check(context: &Rc<Context>, expr: &Rc<Expr>, expected_ty: &Rc<Type>) -> Result<(), String> {
+pub fn check(context: &Context, expr: &Rc<Expr>, expected_ty: &Rc<Type>) -> Result<(), String> {
     match (&**expr, &**expected_ty) {
         (&Expr::Lam(ref scope), &Type::Arrow(ref param_ty, ref ret_ty)) => {
             if let ((name, Embed(None)), body) = scope.clone().unbind() {
-                let inner_context = extend(context.clone(), name, param_ty.clone());
-                check(&inner_context, &body, ret_ty)?;
+                check(&context.insert(name, param_ty.clone()), &body, ret_ty)?;
                 return Ok(());
             }
         },
@@ -68,19 +50,20 @@ pub fn check(context: &Rc<Context>, expr: &Rc<Expr>, expected_ty: &Rc<Type>) -> 
     }
 }
 
-pub fn infer(context: &Rc<Context>, expr: &Rc<Expr>) -> Result<Rc<Type>, String> {
+pub fn infer(context: &Context, expr: &Rc<Expr>) -> Result<Rc<Type>, String> {
     match **expr {
         Expr::Ann(ref expr, ref ty) => {
             check(context, expr, ty)?;
             Ok(ty.clone())
         },
-        Expr::Var(Var::Free(ref name)) => lookup(context, name)
-            .cloned()
-            .ok_or(format!("`{:?}` not found", name)),
+        Expr::Var(Var::Free(ref name)) => match context.get(name) {
+            Some(term) => Ok((*term).clone()),
+            None => Err(format!("`{:?}` not found", name)),
+        },
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
         Expr::Lam(ref scope) => match scope.clone().unbind() {
             ((name, Embed(Some(ann))), body) => {
-                let body_ty = infer(&extend(context.clone(), name, ann.clone()), &body)?;
+                let body_ty = infer(&context.insert(name, ann.clone()), &body)?;
                 Ok(Rc::new(Type::Arrow(ann, body_ty)))
             },
             ((name, Embed(None)), _) => {
@@ -113,7 +96,7 @@ fn test_infer() {
     )));
 
     assert_term_eq!(
-        infer(&Rc::new(Context::Empty), &expr).unwrap(),
+        infer(&Context::new(), &expr).unwrap(),
         Rc::new(Type::Arrow(Rc::new(Type::Base), Rc::new(Type::Base))),
     );
 }
