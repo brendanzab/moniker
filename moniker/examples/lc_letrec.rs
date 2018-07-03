@@ -7,12 +7,17 @@ extern crate moniker;
 use moniker::{BoundTerm, Embed, FreeVar, Multi, Rec, Scope, Var};
 use std::rc::Rc;
 
+/// Expressions
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
+    /// Variables
     Var(Var<String>),
+    /// Lambda expressions
     Lam(Scope<FreeVar<String>, Rc<Expr>>),
-    LetRec(Scope<Rec<Multi<(FreeVar<String>, Embed<Rc<Expr>>)>>, Rc<Expr>>),
+    /// Function application
     App(Rc<Expr>, Rc<Expr>),
+    /// Mutually recursive let bindings
+    LetRec(Scope<Rec<Multi<(FreeVar<String>, Embed<Rc<Expr>>)>>, Rc<Expr>>),
 }
 
 // FIXME: auto-derive this somehow!
@@ -24,6 +29,10 @@ fn subst(expr: &Rc<Expr>, subst_name: &FreeVar<String>, subst_expr: &Rc<Expr>) -
             unsafe_pattern: scope.unsafe_pattern.clone(),
             unsafe_body: subst(&scope.unsafe_body, subst_name, subst_expr),
         })),
+        Expr::App(ref fun, ref arg) => Rc::new(Expr::App(
+            subst(fun, subst_name, subst_expr),
+            subst(arg, subst_name, subst_expr),
+        )),
         Expr::LetRec(ref scope) => {
             let Multi(ref bindings) = scope.unsafe_pattern.unsafe_pattern;
 
@@ -41,18 +50,22 @@ fn subst(expr: &Rc<Expr>, subst_name: &FreeVar<String>, subst_expr: &Rc<Expr>) -
                 unsafe_body: subst(&scope.unsafe_body, subst_name, subst_expr),
             }))
         },
-        Expr::App(ref fun, ref arg) => Rc::new(Expr::App(
-            subst(fun, subst_name, subst_expr),
-            subst(arg, subst_name, subst_expr),
-        )),
     }
 }
 
+/// Evaluate an expression into its normal form
 pub fn eval(expr: &Rc<Expr>) -> Rc<Expr> {
     match **expr {
         Expr::Var(Var::Free(_)) => expr.clone(),
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
         Expr::Lam(_) => expr.clone(),
+        Expr::App(ref fun, ref arg) => match *eval(fun) {
+            Expr::Lam(ref scope) => {
+                let (name, body) = scope.clone().unbind();
+                eval(&subst(&body, &name, &eval(arg)))
+            },
+            _ => expr.clone(),
+        },
         Expr::LetRec(ref scope) => {
             let (bindings, mut body) = scope.clone().unbind();
             let Multi(bindings) = bindings.unrec();
@@ -63,19 +76,13 @@ pub fn eval(expr: &Rc<Expr>) -> Rc<Expr> {
             }
 
             // garbage collect, if possible
+            // FIXME: `free_vars` is slow! We probably want this to be faster - see issue #10
             let fvs = body.free_vars();
             if bindings.iter().any(|&(ref name, _)| fvs.contains(name)) {
                 Rc::new(Expr::LetRec(Scope::new(Rec::new(&Multi(bindings)), body)))
             } else {
                 eval(&body)
             }
-        },
-        Expr::App(ref fun, ref arg) => match *eval(fun) {
-            Expr::Lam(ref scope) => {
-                let (name, body) = scope.clone().unbind();
-                eval(&subst(&body, &name, &eval(arg)))
-            },
-            _ => expr.clone(),
         },
     }
 }

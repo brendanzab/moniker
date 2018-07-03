@@ -7,10 +7,14 @@ extern crate moniker;
 use moniker::{FreeVar, Multi, Scope, Var};
 use std::rc::Rc;
 
+/// Expressions
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
+    /// Variables
     Var(Var<String>),
+    /// Lambda expressions
     Lam(Scope<Multi<FreeVar<String>>, Rc<Expr>>),
+    /// Function application
     App(Rc<Expr>, Vec<Rc<Expr>>),
 }
 
@@ -38,6 +42,7 @@ pub enum EvalError {
     ArgumentCountMismatch { expected: usize, given: usize },
 }
 
+/// Evaluate an expression into its normal form
 pub fn eval(expr: &Rc<Expr>) -> Result<Rc<Expr>, EvalError> {
     match **expr {
         Expr::Var(Var::Free(_)) => Ok(expr.clone()),

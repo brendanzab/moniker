@@ -1,7 +1,8 @@
 //! An example of using the `moniker` library to implement the simply typed
 //! lambda calculus
 //!
-//! We use bidirectional type checking to get some level of type inference
+//! We use [bidirectional type checking](http://www.davidchristiansen.dk/tutorials/bidirectional.pdf)
+//! to get some level of type inference.
 
 extern crate im;
 #[macro_use]
@@ -11,19 +12,25 @@ use im::HashMap;
 use moniker::{BoundTerm, Embed, FreeVar, Scope, Var};
 use std::rc::Rc;
 
-type Context = HashMap<FreeVar<String>, Rc<Type>>;
-
+/// Types
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Type {
+    /// Base types
     Base,
+    /// Function types
     Arrow(Rc<Type>, Rc<Type>),
 }
 
+/// Expressions
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
+    /// Annotated expressions
     Ann(Rc<Expr>, Rc<Type>),
+    /// Variables
     Var(Var<String>),
+    /// Lambda expressions, with an optional type annotation for the parameter
     Lam(Scope<(FreeVar<String>, Embed<Option<Rc<Type>>>), Rc<Expr>>),
+    /// Function application
     App(Rc<Expr>, Rc<Expr>),
 }
 
@@ -46,6 +53,7 @@ fn subst(expr: &Rc<Expr>, subst_name: &FreeVar<String>, subst_expr: &Rc<Expr>) -
     }
 }
 
+/// Evaluate an expression into its normal form
 pub fn eval(expr: &Rc<Expr>) -> Rc<Expr> {
     match **expr {
         Expr::Ann(ref expr, _) => eval(expr),
@@ -62,6 +70,11 @@ pub fn eval(expr: &Rc<Expr>) -> Rc<Expr> {
     }
 }
 
+/// A context containing a series of type annotations
+type Context = HashMap<FreeVar<String>, Rc<Type>>;
+
+/// Check that a (potentially ambiguous) expression can conforms to a given
+/// expected type
 pub fn check(context: &Context, expr: &Rc<Expr>, expected_ty: &Rc<Type>) -> Result<(), String> {
     match (&**expr, &**expected_ty) {
         (&Expr::Lam(ref scope), &Type::Arrow(ref param_ty, ref ret_ty)) => {
@@ -85,6 +98,7 @@ pub fn check(context: &Context, expr: &Rc<Expr>, expected_ty: &Rc<Type>) -> Resu
     }
 }
 
+/// Synthesize the types of unambiguous expressions
 pub fn infer(context: &Context, expr: &Rc<Expr>) -> Result<Rc<Type>, String> {
     match **expr {
         Expr::Ann(ref expr, ref ty) => {

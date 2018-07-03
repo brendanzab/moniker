@@ -7,10 +7,14 @@ extern crate moniker;
 use moniker::{FreeVar, Scope, Var};
 use std::rc::Rc;
 
+/// Expressions
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
+    /// Variables
     Var(Var<String>),
+    /// Lambda expressions
     Lam(Scope<FreeVar<String>, Rc<Expr>>),
+    /// Function application
     App(Rc<Expr>, Rc<Expr>),
 }
 
@@ -30,6 +34,7 @@ fn subst(expr: &Rc<Expr>, subst_name: &FreeVar<String>, subst_expr: &Rc<Expr>) -
     }
 }
 
+/// Evaluate an expression into its normal form
 pub fn eval(expr: &Rc<Expr>) -> Rc<Expr> {
     match **expr {
         Expr::Var(Var::Free(_)) => expr.clone(),

@@ -7,12 +7,17 @@ extern crate moniker;
 use moniker::{Embed, FreeVar, Nest, Scope, Var};
 use std::rc::Rc;
 
+/// Expressions
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
+    /// Variables
     Var(Var<String>),
+    /// Lambda expressions
     Lam(Scope<FreeVar<String>, Rc<Expr>>),
-    Let(Scope<Nest<(FreeVar<String>, Embed<Rc<Expr>>)>, Rc<Expr>>),
+    /// Function application
     App(Rc<Expr>, Rc<Expr>),
+    /// Nested let bindings
+    Let(Scope<Nest<(FreeVar<String>, Embed<Rc<Expr>>)>, Rc<Expr>>),
 }
 
 // FIXME: auto-derive this somehow!
@@ -27,6 +32,9 @@ fn substs(expr: &Rc<Expr>, mappings: &[(FreeVar<String>, Rc<Expr>)]) -> Rc<Expr>
             unsafe_pattern: scope.unsafe_pattern.clone(),
             unsafe_body: substs(&scope.unsafe_body, mappings),
         })),
+        Expr::App(ref fun, ref arg) => {
+            Rc::new(Expr::App(substs(fun, mappings), substs(arg, mappings)))
+        },
         Expr::Let(ref scope) => Rc::new(Expr::Let(Scope {
             unsafe_pattern: Nest {
                 unsafe_patterns: scope
@@ -38,17 +46,22 @@ fn substs(expr: &Rc<Expr>, mappings: &[(FreeVar<String>, Rc<Expr>)]) -> Rc<Expr>
             },
             unsafe_body: substs(&scope.unsafe_body, mappings),
         })),
-        Expr::App(ref fun, ref arg) => {
-            Rc::new(Expr::App(substs(fun, mappings), substs(arg, mappings)))
-        },
     }
 }
 
+/// Evaluate an expression into its normal form
 pub fn eval(expr: &Rc<Expr>) -> Rc<Expr> {
     match **expr {
         Expr::Var(Var::Free(_)) => expr.clone(),
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
         Expr::Lam(_) => expr.clone(),
+        Expr::App(ref fun, ref arg) => match *eval(fun) {
+            Expr::Lam(ref scope) => {
+                let (name, body) = scope.clone().unbind();
+                eval(&substs(&body, &[(name, eval(arg))]))
+            },
+            _ => expr.clone(),
+        },
         Expr::Let(ref scope) => {
             let (bindings, body) = scope.clone().unbind();
             let mut mappings = Vec::with_capacity(bindings.unsafe_patterns.len());
@@ -59,13 +72,6 @@ pub fn eval(expr: &Rc<Expr>) -> Rc<Expr> {
             }
 
             eval(&substs(&body, &mappings))
-        },
-        Expr::App(ref fun, ref arg) => match *eval(fun) {
-            Expr::Lam(ref scope) => {
-                let (name, body) = scope.clone().unbind();
-                eval(&substs(&body, &[(name, eval(arg))]))
-            },
-            _ => expr.clone(),
         },
     }
 }
