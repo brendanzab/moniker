@@ -9,6 +9,7 @@ use std::rc::Rc;
 
 /// Expressions
 #[derive(Debug, Clone, BoundTerm)]
+#[moniker(ident = "String")]
 pub enum Expr {
     /// Variables
     Var(Var<String>),

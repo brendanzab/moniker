@@ -14,6 +14,7 @@ use std::rc::Rc;
 
 /// Types
 #[derive(Debug, Clone, BoundTerm)]
+#[moniker(ident = "String")]
 pub enum Type {
     /// Integers
     Int,
@@ -84,6 +85,7 @@ pub enum Literal {
 
 /// Expressions
 #[derive(Debug, Clone, BoundTerm)]
+#[moniker(ident = "String")]
 pub enum Expr {
     /// Annotated expressions
     Ann(Rc<Expr>, Rc<Type>),
