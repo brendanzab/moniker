@@ -1,5 +1,6 @@
 //! An example of using the `moniker` library to implement the simply typed
-//! lambda calculus
+//! lambda calculus, with the ability to construct compound datatypes like
+//! records and variants
 //!
 //! We use [bidirectional type checking](http://www.davidchristiansen.dk/tutorials/bidirectional.pdf)
 //! to get some level of type inference.
@@ -23,6 +24,10 @@ pub enum Type {
     String,
     /// Function types
     Arrow(Rc<Type>, Rc<Type>),
+    /// Record types
+    Record(Vec<(String, Rc<Type>)>),
+    /// Variant types
+    Variant(Vec<(String, Rc<Type>)>),
 }
 
 /// Literal values
@@ -49,6 +54,12 @@ pub enum Expr {
     Lam(Scope<(FreeVar<String>, Embed<Option<Rc<Type>>>), Rc<Expr>>),
     /// Function application
     App(Rc<Expr>, Rc<Expr>),
+    /// Record values
+    Record(Vec<(String, Rc<Expr>)>),
+    /// Field projection on records
+    Proj(Rc<Expr>, String),
+    /// Variant introduction
+    Tag(String, Rc<Expr>),
 }
 
 // FIXME: auto-derive this somehow!
@@ -68,6 +79,22 @@ fn subst(expr: &Rc<Expr>, subst_name: &FreeVar<String>, subst_expr: &Rc<Expr>) -
             subst(fun, subst_name, subst_expr),
             subst(arg, subst_name, subst_expr),
         )),
+        Expr::Record(ref fields) => {
+            let fields = fields
+                .iter()
+                .map(|&(ref label, ref elem)| (label.clone(), subst(elem, subst_name, subst_expr)))
+                .collect();
+
+            Rc::new(Expr::Record(fields))
+        },
+        Expr::Proj(ref expr, ref label) => Rc::new(Expr::Proj(
+            subst(expr, subst_name, subst_expr),
+            label.clone(),
+        )),
+        Expr::Tag(ref label, ref expr) => Rc::new(Expr::Tag(
+            label.clone(),
+            subst(expr, subst_name, subst_expr),
+        )),
     }
 }
 
@@ -86,13 +113,33 @@ pub fn eval(expr: &Rc<Expr>) -> Rc<Expr> {
             },
             _ => expr.clone(),
         },
+        Expr::Record(ref fields) => {
+            let fields = fields
+                .iter()
+                .map(|&(ref label, ref elem)| (label.clone(), eval(elem)))
+                .collect();
+
+            Rc::new(Expr::Record(fields))
+        },
+        Expr::Proj(ref expr, ref label) => {
+            let expr = eval(expr);
+
+            if let Expr::Record(ref fields) = *expr {
+                if let Some(&(_, ref e)) = fields.iter().find(|&(ref l, _)| l == label) {
+                    return e.clone();
+                }
+            }
+
+            expr
+        },
+        Expr::Tag(ref label, ref expr) => Rc::new(Expr::Tag(label.clone(), eval(expr))),
     }
 }
 
 /// A context containing a series of type annotations
 type Context = HashMap<FreeVar<String>, Rc<Type>>;
 
-/// Check that a (potentially ambiguous) expression conforms to a given type
+/// Check that a (potentially ambiguous) expression conforms to a given ype
 pub fn check(context: &Context, expr: &Rc<Expr>, expected_ty: &Rc<Type>) -> Result<(), String> {
     match (&**expr, &**expected_ty) {
         (&Expr::Lam(ref scope), &Type::Arrow(ref param_ty, ref ret_ty)) => {
@@ -100,6 +147,15 @@ pub fn check(context: &Context, expr: &Rc<Expr>, expected_ty: &Rc<Type>) -> Resu
                 check(&context.insert(name, param_ty.clone()), &body, ret_ty)?;
                 return Ok(());
             }
+        },
+        (&Expr::Tag(ref label, ref expr), &Type::Variant(ref variants)) => {
+            return match variants.iter().find(|&(l, _)| l == label) {
+                None => Err(format!(
+                    "variant type did not contain the label `{}`",
+                    label
+                )),
+                Some(&(_, ref ty)) => check(context, expr, ty),
+            };
         },
         (_, _) => {},
     }
@@ -154,6 +210,20 @@ pub fn infer(context: &Context, expr: &Rc<Expr>) -> Result<Rc<Type>, String> {
             },
             _ => Err(format!("`{:?}` is not a function", fun)),
         },
+        Expr::Record(ref elems) => Ok(Rc::new(Type::Record(
+            elems
+                .iter()
+                .map(|&(ref label, ref expr)| Ok((label.clone(), infer(context, expr)?)))
+                .collect::<Result<_, String>>()?,
+        ))),
+        Expr::Proj(ref expr, ref label) => match *infer(context, expr)? {
+            Type::Record(ref elems) => match elems.iter().find(|&(l, _)| l == label) {
+                Some(&(_, ref ty)) => Ok(ty.clone()),
+                None => Err(format!("field `{}` not found in type", label)),
+            },
+            _ => Err("record expected".to_string()),
+        },
+        Expr::Tag(_, _) => Err("type annotations needed".to_string()),
     }
 }
 
