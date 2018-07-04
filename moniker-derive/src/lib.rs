@@ -37,7 +37,7 @@ fn term_derive(mut s: Structure) -> proc_macro2::TokenStream {
             let arm_body = <_>::zip(lhs.bindings().iter(), rhs.bindings()).fold(
                 quote!(true),
                 |acc, (lhs, rhs)| {
-                    quote! { #acc && moniker::BoundTerm::term_eq(#lhs, #rhs) }
+                    quote! { #acc && moniker::BoundTerm::<String>::term_eq(#lhs, #rhs) }
                 },
             );
 
@@ -53,20 +53,20 @@ fn term_derive(mut s: Structure) -> proc_macro2::TokenStream {
 
     s.bind_with(|_| BindStyle::RefMut);
     let close_term_body = s.each(|bi| {
-        quote!{ moniker::BoundTerm::close_term(#bi, __state, __pattern); }
+        quote!{ moniker::BoundTerm::<String>::close_term(#bi, __state, __pattern); }
     });
     let open_term_body = s.each(|bi| {
-        quote!{ moniker::BoundTerm::open_term(#bi, __state, __pattern); }
+        quote!{ moniker::BoundTerm::<String>::open_term(#bi, __state, __pattern); }
     });
 
     s.bind_with(|_| BindStyle::Ref);
     let visit_vars_body = s.each(|bi| {
-        quote!{ moniker::BoundTerm::visit_vars(#bi, __on_var); }
+        quote!{ moniker::BoundTerm::<String>::visit_vars(#bi, __on_var); }
     });
 
     s.bind_with(|_| BindStyle::RefMut);
     let visit_mut_vars_body = s.each(|bi| {
-        quote!{ moniker::BoundTerm::visit_mut_vars(#bi, __on_var); }
+        quote!{ moniker::BoundTerm::<String>::visit_mut_vars(#bi, __on_var); }
     });
 
     s.gen_impl(quote! {

@@ -15,10 +15,25 @@ use std::rc::Rc;
 /// Types
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Type {
-    /// Base types
-    Base,
+    /// Integers
+    Int,
+    /// Floating point numbers
+    Float,
+    /// Strings
+    String,
     /// Function types
     Arrow(Rc<Type>, Rc<Type>),
+}
+
+/// Literal values
+#[derive(Debug, Clone, BoundTerm)]
+pub enum Literal {
+    /// Integer literals
+    Int(i32),
+    /// Floating point literals
+    Float(f32),
+    /// String literals
+    String(String),
 }
 
 /// Expressions
@@ -26,6 +41,8 @@ pub enum Type {
 pub enum Expr {
     /// Annotated expressions
     Ann(Rc<Expr>, Rc<Type>),
+    /// Literals
+    Literal(Literal),
     /// Variables
     Var(Var<String>),
     /// Lambda expressions, with an optional type annotation for the parameter
@@ -40,6 +57,7 @@ fn subst(expr: &Rc<Expr>, subst_name: &FreeVar<String>, subst_expr: &Rc<Expr>) -
         Expr::Ann(ref expr, ref ty) => {
             Rc::new(Expr::Ann(subst(expr, subst_name, subst_expr), ty.clone()))
         },
+        Expr::Literal(_) => expr.clone(),
         Expr::Var(Var::Free(ref n)) if subst_name == n => subst_expr.clone(),
         Expr::Var(_) => expr.clone(),
         Expr::Lam(ref scope) => Rc::new(Expr::Lam(Scope {
@@ -57,6 +75,7 @@ fn subst(expr: &Rc<Expr>, subst_name: &FreeVar<String>, subst_expr: &Rc<Expr>) -
 pub fn eval(expr: &Rc<Expr>) -> Rc<Expr> {
     match **expr {
         Expr::Ann(ref expr, _) => eval(expr),
+        Expr::Literal(_) => expr.clone(),
         Expr::Var(Var::Free(_)) => expr.clone(),
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
         Expr::Lam(_) => expr.clone(),
@@ -105,6 +124,9 @@ pub fn infer(context: &Context, expr: &Rc<Expr>) -> Result<Rc<Type>, String> {
             check(context, expr, ty)?;
             Ok(ty.clone())
         },
+        Expr::Literal(Literal::Int(_)) => Ok(Rc::new(Type::Int)),
+        Expr::Literal(Literal::Float(_)) => Ok(Rc::new(Type::Float)),
+        Expr::Literal(Literal::String(_)) => Ok(Rc::new(Type::String)),
         Expr::Var(Var::Free(ref name)) => match context.get(name) {
             Some(term) => Ok((*term).clone()),
             None => Err(format!("`{:?}` not found", name)),
@@ -138,15 +160,15 @@ pub fn infer(context: &Context, expr: &Rc<Expr>) -> Result<Rc<Type>, String> {
 
 #[test]
 fn test_infer() {
-    // expr = (\x -> x)
+    // expr = (\x : Int -> x)
     let expr = Rc::new(Expr::Lam(Scope::new(
-        (FreeVar::user("x"), Embed(Some(Rc::new(Type::Base)))),
+        (FreeVar::user("x"), Embed(Some(Rc::new(Type::Int)))),
         Rc::new(Expr::Var(Var::Free(FreeVar::user("x")))),
     )));
 
     assert_term_eq!(
         infer(&Context::new(), &expr).unwrap(),
-        Rc::new(Type::Arrow(Rc::new(Type::Base), Rc::new(Type::Base))),
+        Rc::new(Type::Arrow(Rc::new(Type::Int), Rc::new(Type::Int))),
     );
 }
 
