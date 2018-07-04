@@ -139,8 +139,7 @@ pub fn eval(expr: &Rc<Expr>) -> Rc<Expr> {
 /// A context containing a series of type annotations
 type Context = HashMap<FreeVar<String>, Rc<Type>>;
 
-/// Check that a (potentially ambiguous) expression can conforms to a given
-/// expected type
+/// Check that a (potentially ambiguous) expression conforms to a given ype
 pub fn check(context: &Context, expr: &Rc<Expr>, expected_ty: &Rc<Type>) -> Result<(), String> {
     match (&**expr, &**expected_ty) {
         (&Expr::Lam(ref scope), &Type::Arrow(ref param_ty, ref ret_ty)) => {
