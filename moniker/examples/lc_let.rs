@@ -13,52 +13,70 @@ pub enum Expr {
     /// Variables
     Var(Var<String>),
     /// Lambda expressions
-    Lam(Scope<FreeVar<String>, Rc<Expr>>),
+    Lam(Scope<FreeVar<String>, RcExpr>),
     /// Function application
-    App(Rc<Expr>, Rc<Expr>),
+    App(RcExpr, RcExpr),
     /// Nested let bindings
-    Let(Scope<Nest<(FreeVar<String>, Embed<Rc<Expr>>)>, Rc<Expr>>),
+    Let(Scope<Nest<(FreeVar<String>, Embed<RcExpr>)>, RcExpr>),
 }
 
-// FIXME: auto-derive this somehow!
-fn substs(expr: &Rc<Expr>, mappings: &[(FreeVar<String>, Rc<Expr>)]) -> Rc<Expr> {
-    match **expr {
-        Expr::Var(Var::Free(ref n)) => match mappings.iter().find(|&(n2, _)| n == n2) {
-            Some((_, ref subst_expr)) => subst_expr.clone(),
-            None => expr.clone(),
-        },
-        Expr::Var(_) => expr.clone(),
-        Expr::Lam(ref scope) => Rc::new(Expr::Lam(Scope {
-            unsafe_pattern: scope.unsafe_pattern.clone(),
-            unsafe_body: substs(&scope.unsafe_body, mappings),
-        })),
-        Expr::App(ref fun, ref arg) => {
-            Rc::new(Expr::App(substs(fun, mappings), substs(arg, mappings)))
-        },
-        Expr::Let(ref scope) => Rc::new(Expr::Let(Scope {
-            unsafe_pattern: Nest {
-                unsafe_patterns: scope
-                    .unsafe_pattern
-                    .unsafe_patterns
-                    .iter()
-                    .map(|&(ref n, Embed(ref value))| (n.clone(), Embed(substs(value, mappings))))
-                    .collect(),
+/// Reference counted expressions
+#[derive(Debug, Clone, BoundTerm)]
+pub struct RcExpr {
+    pub inner: Rc<Expr>,
+}
+
+impl From<Expr> for RcExpr {
+    fn from(src: Expr) -> RcExpr {
+        RcExpr {
+            inner: Rc::new(src),
+        }
+    }
+}
+
+impl RcExpr {
+    // FIXME: auto-derive this somehow!
+    fn substs(&self, mappings: &[(FreeVar<String>, RcExpr)]) -> RcExpr {
+        match *self.inner {
+            Expr::Var(Var::Free(ref n)) => match mappings.iter().find(|&(n2, _)| n == n2) {
+                Some((_, ref subst_expr)) => subst_expr.clone(),
+                None => self.clone(),
             },
-            unsafe_body: substs(&scope.unsafe_body, mappings),
-        })),
+            Expr::Var(_) => self.clone(),
+            Expr::Lam(ref scope) => RcExpr::from(Expr::Lam(Scope {
+                unsafe_pattern: scope.unsafe_pattern.clone(),
+                unsafe_body: scope.unsafe_body.substs(mappings),
+            })),
+            Expr::App(ref fun, ref arg) => {
+                RcExpr::from(Expr::App(fun.substs(mappings), arg.substs(mappings)))
+            },
+            Expr::Let(ref scope) => RcExpr::from(Expr::Let(Scope {
+                unsafe_pattern: Nest {
+                    unsafe_patterns: scope
+                        .unsafe_pattern
+                        .unsafe_patterns
+                        .iter()
+                        .map(|&(ref n, Embed(ref value))| {
+                            (n.clone(), Embed(value.substs(mappings)))
+                        })
+                        .collect(),
+                },
+                unsafe_body: scope.unsafe_body.substs(mappings),
+            })),
+        }
     }
 }
 
 /// Evaluate an expression into its normal form
-pub fn eval(expr: &Rc<Expr>) -> Rc<Expr> {
-    match **expr {
+pub fn eval(expr: &RcExpr) -> RcExpr {
+    match *expr.inner {
         Expr::Var(Var::Free(_)) => expr.clone(),
         Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
         Expr::Lam(_) => expr.clone(),
-        Expr::App(ref fun, ref arg) => match *eval(fun) {
+        Expr::App(ref fun, ref arg) => match *eval(fun).inner {
             Expr::Lam(ref scope) => {
                 let (name, body) = scope.clone().unbind();
-                eval(&substs(&body, &[(name, eval(arg))]))
+                eval(&body.substs(&[(name, eval(arg))]))
             },
             _ => expr.clone(),
         },
@@ -67,11 +85,11 @@ pub fn eval(expr: &Rc<Expr>) -> Rc<Expr> {
             let mut mappings = Vec::with_capacity(bindings.unsafe_patterns.len());
 
             for (name, Embed(value)) in bindings.unnest() {
-                let value = eval(&substs(&value, &mappings));
+                let value = eval(&value.substs(&mappings));
                 mappings.push((name, value));
             }
 
-            eval(&substs(&body, &mappings))
+            eval(&body.substs(&mappings))
         },
     }
 }
@@ -79,17 +97,17 @@ pub fn eval(expr: &Rc<Expr>) -> Rc<Expr> {
 #[test]
 fn test_eval() {
     // expr = (\x -> x) y
-    let expr = Rc::new(Expr::App(
-        Rc::new(Expr::Lam(Scope::new(
+    let expr = RcExpr::from(Expr::App(
+        RcExpr::from(Expr::Lam(Scope::new(
             FreeVar::user("x"),
-            Rc::new(Expr::Var(Var::Free(FreeVar::user("x")))),
+            RcExpr::from(Expr::Var(Var::Free(FreeVar::user("x")))),
         ))),
-        Rc::new(Expr::Var(Var::Free(FreeVar::user("y")))),
+        RcExpr::from(Expr::Var(Var::Free(FreeVar::user("y")))),
     ));
 
     assert_term_eq!(
         eval(&expr),
-        Rc::new(Expr::Var(Var::Free(FreeVar::user("y")))),
+        RcExpr::from(Expr::Var(Var::Free(FreeVar::user("y")))),
     );
 }
 
@@ -100,33 +118,33 @@ fn test_eval_let() {
     //          foo =  y
     //          bar = id foo
     //      in bar
-    let expr = Rc::new(Expr::Let(Scope::new(
+    let expr = RcExpr::from(Expr::Let(Scope::new(
         Nest::new(vec![
             (
                 FreeVar::user("id"),
-                Embed(Rc::new(Expr::Lam(Scope::new(
+                Embed(RcExpr::from(Expr::Lam(Scope::new(
                     FreeVar::user("x"),
-                    Rc::new(Expr::Var(Var::Free(FreeVar::user("x")))),
+                    RcExpr::from(Expr::Var(Var::Free(FreeVar::user("x")))),
                 )))),
             ),
             (
                 FreeVar::user("foo"),
-                Embed(Rc::new(Expr::Var(Var::Free(FreeVar::user("y"))))),
+                Embed(RcExpr::from(Expr::Var(Var::Free(FreeVar::user("y"))))),
             ),
             (
                 FreeVar::user("bar"),
-                Embed(Rc::new(Expr::App(
-                    Rc::new(Expr::Var(Var::Free(FreeVar::user("id")))),
-                    Rc::new(Expr::Var(Var::Free(FreeVar::user("foo")))),
+                Embed(RcExpr::from(Expr::App(
+                    RcExpr::from(Expr::Var(Var::Free(FreeVar::user("id")))),
+                    RcExpr::from(Expr::Var(Var::Free(FreeVar::user("foo")))),
                 ))),
             ),
         ]),
-        Rc::new(Expr::Var(Var::Free(FreeVar::user("bar")))),
+        RcExpr::from(Expr::Var(Var::Free(FreeVar::user("bar")))),
     )));
 
     assert_term_eq!(
         eval(&expr),
-        Rc::new(Expr::Var(Var::Free(FreeVar::user("y")))),
+        RcExpr::from(Expr::Var(Var::Free(FreeVar::user("y")))),
     );
 }
 
