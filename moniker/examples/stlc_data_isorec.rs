@@ -186,10 +186,7 @@ type Context = HashMap<FreeVar<String>, RcType>;
 pub fn eval(expr: &RcExpr) -> RcExpr {
     match *expr.inner {
         Expr::Ann(ref expr, _) => eval(expr),
-        Expr::Literal(_) => expr.clone(),
-        Expr::Var(Var::Free(_)) => expr.clone(),
-        Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
-        Expr::Lam(_) => expr.clone(),
+        Expr::Literal(_) | Expr::Var(_) | Expr::Lam(_) => expr.clone(),
         Expr::App(ref fun, ref arg) => match *eval(fun).inner {
             Expr::Lam(ref scope) => {
                 let ((name, _), body) = scope.clone().unbind();

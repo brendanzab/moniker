@@ -72,9 +72,7 @@ impl RcExpr {
 /// Evaluate an expression into its normal form
 pub fn eval(expr: &RcExpr) -> RcExpr {
     match *expr.inner {
-        Expr::Var(Var::Free(_)) => expr.clone(),
-        Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
-        Expr::Lam(_) => expr.clone(),
+        Expr::Var(_) | Expr::Lam(_) => expr.clone(),
         Expr::App(ref fun, ref arg) => match *eval(fun).inner {
             Expr::Lam(ref scope) => {
                 let (name, body) = scope.clone().unbind();

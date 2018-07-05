@@ -61,9 +61,7 @@ pub enum EvalError {
 /// Evaluate an expression into its normal form
 pub fn eval(expr: &RcExpr) -> Result<RcExpr, EvalError> {
     match *expr.inner {
-        Expr::Var(Var::Free(_)) => Ok(expr.clone()),
-        Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
-        Expr::Lam(_) => Ok(expr.clone()),
+        Expr::Var(_) | Expr::Lam(_) => Ok(expr.clone()),
         Expr::App(ref fun, ref args) => match *eval(fun)?.inner {
             Expr::Lam(ref scope) => {
                 let (Multi(params), body) = scope.clone().unbind();
