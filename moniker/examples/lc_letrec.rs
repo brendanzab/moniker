@@ -21,17 +21,17 @@ pub enum Expr {
 }
 
 // FIXME: auto-derive this somehow!
-fn subst(expr: &Rc<Expr>, subst_name: &FreeVar<String>, subst_expr: &Rc<Expr>) -> Rc<Expr> {
+fn subst(expr: &Rc<Expr>, name: &FreeVar<String>, replacement: &Rc<Expr>) -> Rc<Expr> {
     match **expr {
-        Expr::Var(Var::Free(ref n)) if subst_name == n => subst_expr.clone(),
+        Expr::Var(Var::Free(ref n)) if name == n => replacement.clone(),
         Expr::Var(_) => expr.clone(),
         Expr::Lam(ref scope) => Rc::new(Expr::Lam(Scope {
             unsafe_pattern: scope.unsafe_pattern.clone(),
-            unsafe_body: subst(&scope.unsafe_body, subst_name, subst_expr),
+            unsafe_body: subst(&scope.unsafe_body, name, replacement),
         })),
         Expr::App(ref fun, ref arg) => Rc::new(Expr::App(
-            subst(fun, subst_name, subst_expr),
-            subst(arg, subst_name, subst_expr),
+            subst(fun, name, replacement),
+            subst(arg, name, replacement),
         )),
         Expr::LetRec(ref scope) => {
             let Multi(ref bindings) = scope.unsafe_pattern.unsafe_pattern;
@@ -42,12 +42,12 @@ fn subst(expr: &Rc<Expr>, subst_name: &FreeVar<String>, subst_expr: &Rc<Expr>) -
                         bindings
                             .iter()
                             .map(|&(ref n, Embed(ref value))| {
-                                (n.clone(), Embed(subst(value, subst_name, subst_expr)))
+                                (n.clone(), Embed(subst(value, name, replacement)))
                             })
                             .collect(),
                     ),
                 },
-                unsafe_body: subst(&scope.unsafe_body, subst_name, subst_expr),
+                unsafe_body: subst(&scope.unsafe_body, name, replacement),
             }))
         },
     }

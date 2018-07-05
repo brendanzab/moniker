@@ -63,38 +63,36 @@ pub enum Expr {
 }
 
 // FIXME: auto-derive this somehow!
-fn subst(expr: &Rc<Expr>, subst_name: &FreeVar<String>, subst_expr: &Rc<Expr>) -> Rc<Expr> {
+fn subst(expr: &Rc<Expr>, name: &FreeVar<String>, replacement: &Rc<Expr>) -> Rc<Expr> {
     match **expr {
         Expr::Ann(ref expr, ref ty) => {
-            Rc::new(Expr::Ann(subst(expr, subst_name, subst_expr), ty.clone()))
+            Rc::new(Expr::Ann(subst(expr, name, replacement), ty.clone()))
         },
         Expr::Literal(_) => expr.clone(),
-        Expr::Var(Var::Free(ref n)) if subst_name == n => subst_expr.clone(),
+        Expr::Var(Var::Free(ref n)) if name == n => replacement.clone(),
         Expr::Var(_) => expr.clone(),
         Expr::Lam(ref scope) => Rc::new(Expr::Lam(Scope {
             unsafe_pattern: scope.unsafe_pattern.clone(),
-            unsafe_body: subst(&scope.unsafe_body, subst_name, subst_expr),
+            unsafe_body: subst(&scope.unsafe_body, name, replacement),
         })),
         Expr::App(ref fun, ref arg) => Rc::new(Expr::App(
-            subst(fun, subst_name, subst_expr),
-            subst(arg, subst_name, subst_expr),
+            subst(fun, name, replacement),
+            subst(arg, name, replacement),
         )),
         Expr::Record(ref fields) => {
             let fields = fields
                 .iter()
-                .map(|&(ref label, ref elem)| (label.clone(), subst(elem, subst_name, subst_expr)))
+                .map(|&(ref label, ref elem)| (label.clone(), subst(elem, name, replacement)))
                 .collect();
 
             Rc::new(Expr::Record(fields))
         },
-        Expr::Proj(ref expr, ref label) => Rc::new(Expr::Proj(
-            subst(expr, subst_name, subst_expr),
-            label.clone(),
-        )),
-        Expr::Tag(ref label, ref expr) => Rc::new(Expr::Tag(
-            label.clone(),
-            subst(expr, subst_name, subst_expr),
-        )),
+        Expr::Proj(ref expr, ref label) => {
+            Rc::new(Expr::Proj(subst(expr, name, replacement), label.clone()))
+        },
+        Expr::Tag(ref label, ref expr) => {
+            Rc::new(Expr::Tag(label.clone(), subst(expr, name, replacement)))
+        },
     }
 }
 
