@@ -36,6 +36,9 @@ pub enum Expr {
 }
 ```
 
+More complete examples, including evaluators and type checkers, can be found in
+the [`moniker/examples`](/moniker/examples) directory.
+
 ## References
 
 Here are some interesting references that were helpful in understanding the
