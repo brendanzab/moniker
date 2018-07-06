@@ -179,6 +179,7 @@ where
     fn term_eq(&self, other: &Option<T>) -> bool {
         match (self, other) {
             (&Some(ref lhs), &Some(ref rhs)) => T::term_eq(lhs, rhs),
+            (&None, &None) => true,
             (_, _) => false,
         }
     }
@@ -430,11 +431,9 @@ pub trait BoundPattern<Ident> {
 
     fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>);
 
-    #[allow(unused_variables)]
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {}
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>);
 
-    #[allow(unused_variables)]
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {}
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>);
 
     /// A callback that is used when `unbind`ing `Bind`s to replace free names
     /// with bound names based on the contents of the pattern
@@ -501,6 +500,10 @@ impl<Ident: Clone + PartialEq> BoundPattern<Ident> for FreeVar<Ident> {
         *self = perm.lookup(PatternIndex(0)).unwrap().clone(); // FIXME: double clone
     }
 
+    fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+    fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
     fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
         match FreeVar::term_eq(name, self) {
             true => Some(BoundVar {
@@ -523,6 +526,98 @@ impl<Ident: Clone + PartialEq> BoundPattern<Ident> for FreeVar<Ident> {
 }
 
 // Implementations for common types
+
+macro_rules! impl_bound_pattern {
+    ($T:ty) => {
+        impl<Ident> BoundPattern<Ident> for $T {
+            fn pattern_eq(&self, other: &$T) -> bool {
+                self == other
+            }
+
+            fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
+                PatternSubsts::new(vec![])
+            }
+
+            fn rename(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
+
+            fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+            fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+            fn on_free(&self, _: ScopeState, _: &FreeVar<Ident>) -> Option<BoundVar> {
+                None
+            }
+
+            fn on_bound(&self, _: ScopeState, _: BoundVar) -> Option<FreeVar<Ident>> {
+                None
+            }
+        }
+    };
+}
+
+impl_bound_pattern!(());
+impl_bound_pattern!(String);
+impl_bound_pattern!(str);
+impl_bound_pattern!(char);
+impl_bound_pattern!(bool);
+impl_bound_pattern!(u8);
+impl_bound_pattern!(u16);
+impl_bound_pattern!(u32);
+impl_bound_pattern!(u64);
+impl_bound_pattern!(usize);
+impl_bound_pattern!(i8);
+impl_bound_pattern!(i16);
+impl_bound_pattern!(i32);
+impl_bound_pattern!(i64);
+impl_bound_pattern!(isize);
+impl_bound_pattern!(f32);
+impl_bound_pattern!(f64);
+
+impl<Ident, P> BoundPattern<Ident> for Option<P>
+where
+    P: BoundPattern<Ident>,
+{
+    fn pattern_eq(&self, other: &Option<P>) -> bool {
+        match (self, other) {
+            (&Some(ref lhs), &Some(ref rhs)) => P::pattern_eq(lhs, rhs),
+            (&None, &None) => true,
+            (_, _) => false,
+        }
+    }
+
+    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
+        match *self {
+            Some(ref mut inner) => inner.freshen(),
+            None => PatternSubsts::new(vec![]),
+        }
+    }
+
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
+        if let Some(ref mut inner) = *self {
+            inner.rename(perm);
+        }
+    }
+
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        if let Some(ref mut inner) = *self {
+            inner.close_pattern(state, pattern);
+        }
+    }
+
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        if let Some(ref mut inner) = *self {
+            inner.open_pattern(state, pattern);
+        }
+    }
+
+    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
+        self.as_ref().and_then(|inner| inner.on_free(state, name))
+    }
+
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
+        self.as_ref().and_then(|inner| inner.on_bound(state, name))
+    }
+}
 
 impl<Ident, P1, P2> BoundPattern<Ident> for (P1, P2)
 where
