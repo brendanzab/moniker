@@ -25,6 +25,10 @@ impl<Ident, T> BoundPattern<Ident> for Ignore<T> {
 
     fn rename(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
 
+    fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+    fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
     fn on_free(&self, _: ScopeState, _: &FreeVar<Ident>) -> Option<BoundVar> {
         None
     }
