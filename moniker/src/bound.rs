@@ -29,17 +29,13 @@ pub trait BoundTerm<Ident> {
     /// Alpha equivalence in a term context
     fn term_eq(&self, other: &Self) -> bool;
 
-    #[allow(unused_variables)]
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {}
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>);
 
-    #[allow(unused_variables)]
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {}
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>);
 
-    #[allow(unused_variables)]
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {}
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>));
 
-    #[allow(unused_variables)]
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {}
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>));
 
     fn free_vars(&self) -> HashSet<FreeVar<Ident>>
     where
@@ -102,6 +98,14 @@ impl<Ident: PartialEq> BoundTerm<Ident> for FreeVar<Ident> {
             _ => false,
         }
     }
+
+    fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+    fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+    fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+
+    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
 }
 
 impl<Ident: PartialEq + Clone> BoundTerm<Ident> for Var<Ident> {
@@ -150,6 +154,14 @@ macro_rules! impl_bound_term {
             fn term_eq(&self, other: &$T) -> bool {
                 self == other
             }
+
+            fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+            fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+            fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+
+            fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
         }
     };
 }
