@@ -1,5 +1,5 @@
 use bound::{BoundPattern, BoundTerm, PatternSubsts, ScopeState};
-use var::{BoundVar, FreeVar};
+use var::{BoundVar, FreeVar, Var};
 
 /// Data that does not participate in name binding
 ///
@@ -12,6 +12,14 @@ impl<Ident, T> BoundTerm<Ident> for Ignore<T> {
     fn term_eq(&self, _: &Ignore<T>) -> bool {
         true
     }
+
+    fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+    fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+    fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+
+    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
 }
 
 impl<Ident, T> BoundPattern<Ident> for Ignore<T> {
