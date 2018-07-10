@@ -1,3 +1,8 @@
+#[cfg(feature = "codespan")]
+use codespan::{
+    ByteIndex, ByteOffset, ColumnIndex, ColumnNumber, ColumnOffset, LineIndex, LineNumber,
+    LineOffset, Span,
+};
 use std::collections::HashSet;
 use std::hash::Hash;
 use std::rc::Rc;
@@ -148,7 +153,7 @@ impl<Ident: PartialEq + Clone> BoundTerm<Ident> for Var<Ident> {
 
 // Implementations for common types
 
-macro_rules! impl_bound_term {
+macro_rules! impl_bound_term_partial_eq {
     ($T:ty) => {
         impl<Ident> BoundTerm<Ident> for $T {
             fn term_eq(&self, other: &$T) -> bool {
@@ -166,23 +171,74 @@ macro_rules! impl_bound_term {
     };
 }
 
-impl_bound_term!(());
-impl_bound_term!(String);
-impl_bound_term!(str);
-impl_bound_term!(char);
-impl_bound_term!(bool);
-impl_bound_term!(u8);
-impl_bound_term!(u16);
-impl_bound_term!(u32);
-impl_bound_term!(u64);
-impl_bound_term!(usize);
-impl_bound_term!(i8);
-impl_bound_term!(i16);
-impl_bound_term!(i32);
-impl_bound_term!(i64);
-impl_bound_term!(isize);
-impl_bound_term!(f32);
-impl_bound_term!(f64);
+impl_bound_term_partial_eq!(());
+impl_bound_term_partial_eq!(String);
+impl_bound_term_partial_eq!(str);
+impl_bound_term_partial_eq!(char);
+impl_bound_term_partial_eq!(bool);
+impl_bound_term_partial_eq!(u8);
+impl_bound_term_partial_eq!(u16);
+impl_bound_term_partial_eq!(u32);
+impl_bound_term_partial_eq!(u64);
+impl_bound_term_partial_eq!(usize);
+impl_bound_term_partial_eq!(i8);
+impl_bound_term_partial_eq!(i16);
+impl_bound_term_partial_eq!(i32);
+impl_bound_term_partial_eq!(i64);
+impl_bound_term_partial_eq!(isize);
+impl_bound_term_partial_eq!(f32);
+impl_bound_term_partial_eq!(f64);
+
+#[cfg(feature = "codespan")]
+macro_rules! impl_bound_term_ignore {
+    ($T:ty) => {
+        impl<Ident> BoundTerm<Ident> for $T {
+            fn term_eq(&self, other: &$T) -> bool {
+                true
+            }
+
+            fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+            fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+            fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+
+            fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
+        }
+    };
+}
+
+#[cfg(feature = "codespan")]
+impl_bound_term_ignore!(ByteIndex);
+#[cfg(feature = "codespan")]
+impl_bound_term_ignore!(ByteOffset);
+#[cfg(feature = "codespan")]
+impl_bound_term_ignore!(ColumnIndex);
+#[cfg(feature = "codespan")]
+impl_bound_term_ignore!(ColumnNumber);
+#[cfg(feature = "codespan")]
+impl_bound_term_ignore!(ColumnOffset);
+#[cfg(feature = "codespan")]
+impl_bound_term_ignore!(LineIndex);
+#[cfg(feature = "codespan")]
+impl_bound_term_ignore!(LineNumber);
+#[cfg(feature = "codespan")]
+impl_bound_term_ignore!(LineOffset);
+
+#[cfg(feature = "codespan")]
+impl<Ident, T> BoundTerm<Ident> for Span<T> {
+    fn term_eq(&self, other: &Span<T>) -> bool {
+        true
+    }
+
+    fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+    fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+    fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+
+    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
+}
 
 impl<Ident, T> BoundTerm<Ident> for Option<T>
 where
@@ -539,7 +595,7 @@ impl<Ident: Clone + PartialEq> BoundPattern<Ident> for FreeVar<Ident> {
 
 // Implementations for common types
 
-macro_rules! impl_bound_pattern {
+macro_rules! impl_bound_pattern_partial_eq {
     ($T:ty) => {
         impl<Ident> BoundPattern<Ident> for $T {
             fn pattern_eq(&self, other: &$T) -> bool {
@@ -567,23 +623,94 @@ macro_rules! impl_bound_pattern {
     };
 }
 
-impl_bound_pattern!(());
-impl_bound_pattern!(String);
-impl_bound_pattern!(str);
-impl_bound_pattern!(char);
-impl_bound_pattern!(bool);
-impl_bound_pattern!(u8);
-impl_bound_pattern!(u16);
-impl_bound_pattern!(u32);
-impl_bound_pattern!(u64);
-impl_bound_pattern!(usize);
-impl_bound_pattern!(i8);
-impl_bound_pattern!(i16);
-impl_bound_pattern!(i32);
-impl_bound_pattern!(i64);
-impl_bound_pattern!(isize);
-impl_bound_pattern!(f32);
-impl_bound_pattern!(f64);
+impl_bound_pattern_partial_eq!(());
+impl_bound_pattern_partial_eq!(String);
+impl_bound_pattern_partial_eq!(str);
+impl_bound_pattern_partial_eq!(char);
+impl_bound_pattern_partial_eq!(bool);
+impl_bound_pattern_partial_eq!(u8);
+impl_bound_pattern_partial_eq!(u16);
+impl_bound_pattern_partial_eq!(u32);
+impl_bound_pattern_partial_eq!(u64);
+impl_bound_pattern_partial_eq!(usize);
+impl_bound_pattern_partial_eq!(i8);
+impl_bound_pattern_partial_eq!(i16);
+impl_bound_pattern_partial_eq!(i32);
+impl_bound_pattern_partial_eq!(i64);
+impl_bound_pattern_partial_eq!(isize);
+impl_bound_pattern_partial_eq!(f32);
+impl_bound_pattern_partial_eq!(f64);
+
+#[cfg(feature = "codespan")]
+macro_rules! impl_bound_pattern_ignore {
+    ($T:ty) => {
+        impl<Ident> BoundPattern<Ident> for $T {
+            fn pattern_eq(&self, other: &$T) -> bool {
+                true
+            }
+
+            fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
+                PatternSubsts::new(vec![])
+            }
+
+            fn rename(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
+
+            fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+            fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+            fn on_free(&self, _: ScopeState, _: &FreeVar<Ident>) -> Option<BoundVar> {
+                None
+            }
+
+            fn on_bound(&self, _: ScopeState, _: BoundVar) -> Option<FreeVar<Ident>> {
+                None
+            }
+        }
+    };
+}
+
+#[cfg(feature = "codespan")]
+impl_bound_pattern_ignore!(ByteIndex);
+#[cfg(feature = "codespan")]
+impl_bound_pattern_ignore!(ByteOffset);
+#[cfg(feature = "codespan")]
+impl_bound_pattern_ignore!(ColumnIndex);
+#[cfg(feature = "codespan")]
+impl_bound_pattern_ignore!(ColumnNumber);
+#[cfg(feature = "codespan")]
+impl_bound_pattern_ignore!(ColumnOffset);
+#[cfg(feature = "codespan")]
+impl_bound_pattern_ignore!(LineIndex);
+#[cfg(feature = "codespan")]
+impl_bound_pattern_ignore!(LineNumber);
+#[cfg(feature = "codespan")]
+impl_bound_pattern_ignore!(LineOffset);
+
+#[cfg(feature = "codespan")]
+impl<Ident, T> BoundTerm<Ident> for Span<T> {
+    fn pattern_eq(&self, other: &Span<T>) -> bool {
+        true
+    }
+
+    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
+        PatternSubsts::new(vec![])
+    }
+
+    fn rename(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
+
+    fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+    fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+
+    fn on_free(&self, _: ScopeState, _: &FreeVar<Ident>) -> Option<BoundVar> {
+        None
+    }
+
+    fn on_bound(&self, _: ScopeState, _: BoundVar) -> Option<FreeVar<Ident>> {
+        None
+    }
+}
 
 impl<Ident, P> BoundPattern<Ident> for Option<P>
 where
