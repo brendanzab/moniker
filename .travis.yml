@@ -5,13 +5,20 @@ rust:
   - stable
   - beta
   - nightly
+env:
+  - CARGO_FEATURES=""
+  - CARGO_FEATURES="codespan"
+  - CARGO_FEATURES="default"
+  - CARGO_FEATURES="default codespan"
 matrix:
   allow_failures:
     - rust: nightly
 script:
-  - cargo build --verbose
-  - cargo test --verbose
-  - cargo test --examples --verbose
+  - cargo build --no-default-features --features "$CARGO_FEATURES" --verbose
+  - cargo test --no-default-features --features "$CARGO_FEATURES" --verbose
+  - bash -c 'if [[ $CARGO_FEATURES = *"default"* ]]; then
+      cargo test --no-default-features --features "$CARGO_FEATURES" --examples --verbose;
+    fi'
 notifications:
   webhooks:
     urls:

@@ -52,6 +52,8 @@
 //! - `Nest<T: BoundPattern<Ident>>`: Multiple nested binding patterns
 //! - `Rec<T: BoundPattern<Ident>>`: Recursive binding patterns
 
+#[cfg(feature = "codespan")]
+extern crate codespan;
 #[macro_use]
 extern crate lazy_static;
 #[cfg(feature = "moniker-derive")]
