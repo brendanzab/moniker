@@ -6,19 +6,23 @@ rust:
   - beta
   - nightly
 env:
-  - CARGO_FEATURES=""
-  - CARGO_FEATURES="codespan"
-  - CARGO_FEATURES="default"
-  - CARGO_FEATURES="default codespan"
+  - MONIKER_CARGO_FEATURES=""
+  - MONIKER_CARGO_FEATURES="codespan"
+  - MONIKER_CARGO_FEATURES="default"
+  - MONIKER_CARGO_FEATURES="default codespan"
 matrix:
   allow_failures:
     - rust: nightly
 script:
-  - cargo build --no-default-features --features "$CARGO_FEATURES" --verbose
-  - cargo test --no-default-features --features "$CARGO_FEATURES" --verbose
-  - bash -c 'if [[ $CARGO_FEATURES = *"default"* ]]; then
-      cargo test --no-default-features --features "$CARGO_FEATURES" --examples --verbose;
-    fi'
+  # moniker-derive
+  - cargo build --manifest-path=moniker-derive/Cargo.toml --verbose
+  - cargo test --manifest-path=moniker-derive/Cargo.toml --verbose
+  # moniker
+  - cargo build --manifest-path=moniker/Cargo.toml --no-default-features --features="$MONIKER_CARGO_FEATURES" --verbose
+  - cargo test --manifest-path=moniker/Cargo.toml --no-default-features --features="$MONIKER_CARGO_FEATURES" --verbose
+  # moniker examples
+  - cargo build --manifest-path=moniker/Cargo.toml --no-default-features --features="$MONIKER_CARGO_FEATURES" --verbose --examples
+  - cargo test --manifest-path=moniker/Cargo.toml --no-default-features --features="$MONIKER_CARGO_FEATURES" --verbose --examples
 notifications:
   webhooks:
     urls:

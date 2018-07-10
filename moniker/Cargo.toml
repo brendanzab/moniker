@@ -28,3 +28,31 @@ codespan = { version = "0.1.2", optional = true }
 
 [dev-dependencies]
 im = "10.2"
+
+[[example]]
+name = "lc"
+required-features = ["moniker-derive"]
+
+[[example]]
+name = "lc_let"
+required-features = ["moniker-derive"]
+
+[[example]]
+name = "lc_letrec"
+required-features = ["moniker-derive"]
+
+[[example]]
+name = "lc_multi"
+required-features = ["moniker-derive"]
+
+[[example]]
+name = "stlc"
+required-features = ["moniker-derive"]
+
+[[example]]
+name = "stlc_data"
+required-features = ["moniker-derive"]
+
+[[example]]
+name = "stlc_data_isorec"
+required-features = ["moniker-derive"]

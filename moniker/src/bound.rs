@@ -193,7 +193,7 @@ impl_bound_term_partial_eq!(f64);
 macro_rules! impl_bound_term_ignore {
     ($T:ty) => {
         impl<Ident> BoundTerm<Ident> for $T {
-            fn term_eq(&self, other: &$T) -> bool {
+            fn term_eq(&self, _: &$T) -> bool {
                 true
             }
 
@@ -227,7 +227,7 @@ impl_bound_term_ignore!(LineOffset);
 
 #[cfg(feature = "codespan")]
 impl<Ident, T> BoundTerm<Ident> for Span<T> {
-    fn term_eq(&self, other: &Span<T>) -> bool {
+    fn term_eq(&self, _: &Span<T>) -> bool {
         true
     }
 
@@ -645,7 +645,7 @@ impl_bound_pattern_partial_eq!(f64);
 macro_rules! impl_bound_pattern_ignore {
     ($T:ty) => {
         impl<Ident> BoundPattern<Ident> for $T {
-            fn pattern_eq(&self, other: &$T) -> bool {
+            fn pattern_eq(&self, _: &$T) -> bool {
                 true
             }
 
@@ -688,8 +688,8 @@ impl_bound_pattern_ignore!(LineNumber);
 impl_bound_pattern_ignore!(LineOffset);
 
 #[cfg(feature = "codespan")]
-impl<Ident, T> BoundTerm<Ident> for Span<T> {
-    fn pattern_eq(&self, other: &Span<T>) -> bool {
+impl<Ident, T> BoundPattern<Ident> for Span<T> {
+    fn pattern_eq(&self, _: &Span<T>) -> bool {
         true
     }
 
