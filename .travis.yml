@@ -1,15 +1,17 @@
 language: rust
 cache: cargo
 rust:
-  - 1.26.0
+  - 1.27.0
   - stable
   - beta
   - nightly
 env:
   - MONIKER_CARGO_FEATURES=""
   - MONIKER_CARGO_FEATURES="codespan"
+  - MONIKER_CARGO_FEATURES="proptest"
   - MONIKER_CARGO_FEATURES="default"
   - MONIKER_CARGO_FEATURES="default codespan"
+  - MONIKER_CARGO_FEATURES="default proptest"
 matrix:
   allow_failures:
     - rust: nightly

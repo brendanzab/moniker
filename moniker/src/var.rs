@@ -24,6 +24,14 @@ impl fmt::Display for GenId {
     }
 }
 
+#[cfg(feature = "proptest")]
+proptest! {
+    #[test]
+    fn test_fresh_gen_id(_ in 0..100) {
+        prop_assert_ne!(GenId::fresh(), GenId::fresh());
+    }
+}
+
 /// A free variable
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum FreeVar<Ident> {

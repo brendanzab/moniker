@@ -60,6 +60,9 @@ extern crate lazy_static;
 #[allow(unused_imports)]
 #[macro_use]
 extern crate moniker_derive;
+#[cfg(feature = "proptest")]
+#[macro_use]
+extern crate proptest;
 
 #[cfg(feature = "moniker-derive")]
 #[doc(hidden)]
