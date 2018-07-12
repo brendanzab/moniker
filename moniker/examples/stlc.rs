@@ -7,6 +7,8 @@
 extern crate im;
 #[macro_use]
 extern crate moniker;
+#[macro_use]
+extern crate proptest;
 
 use im::HashMap;
 use moniker::{BoundTerm, Embed, FreeVar, Scope, Var};
@@ -183,6 +185,123 @@ pub fn infer(context: &Context, expr: &RcExpr) -> Result<RcType, String> {
         },
     }
 }
+
+/// Proptest strategies
+mod arb {
+    use proptest::prelude::*;
+
+    use super::*;
+
+    /// `RcType` strategies
+    pub mod ty {
+        use super::*;
+
+        pub fn any() -> impl Strategy<Value = RcType> {
+            prop_oneof![
+                Just(RcType::from(Type::Int)),
+                Just(RcType::from(Type::Float)),
+                Just(RcType::from(Type::String)),
+            ].prop_recursive(8, 256, 2, |inner| {
+                (inner.clone(), inner.clone())
+                    .prop_map(|(param, body)| RcType::from(Type::Arrow(param, body)))
+            })
+        }
+    }
+
+    /// `Literal` strategies
+    pub mod literal {
+        use super::*;
+
+        pub fn int(val: impl Strategy<Value = i32>) -> impl Strategy<Value = Literal> {
+            val.prop_map(Literal::Int)
+        }
+
+        pub fn float(val: impl Strategy<Value = f32>) -> impl Strategy<Value = Literal> {
+            val.prop_map(Literal::Float)
+        }
+
+        pub fn string(val: impl Strategy<Value = String>) -> impl Strategy<Value = Literal> {
+            val.prop_map(Literal::String)
+        }
+
+        pub fn any_int() -> impl Strategy<Value = Literal> {
+            int(proptest::arbitrary::any::<i32>())
+        }
+
+        pub fn any_float() -> impl Strategy<Value = Literal> {
+            float(proptest::arbitrary::any::<f32>())
+        }
+
+        pub fn any_string() -> impl Strategy<Value = Literal> {
+            string(proptest::arbitrary::any::<String>())
+        }
+
+        pub fn any() -> impl Strategy<Value = Literal> {
+            prop_oneof![any_int(), any_float(), any_string()]
+        }
+    }
+
+    /// `RcExpr` strategies
+    pub mod expr {
+        use super::*;
+
+        pub fn literal(literal: impl Strategy<Value = Literal>) -> impl Strategy<Value = RcExpr> {
+            literal.prop_map(|lit| RcExpr::from(Expr::Literal(lit)))
+        }
+
+        pub fn any_literal() -> impl Strategy<Value = RcExpr> {
+            literal(literal::any())
+        }
+
+        pub fn any() -> impl Strategy<Value = RcExpr> {
+            prop_oneof![any_literal()]
+        }
+    }
+}
+
+// Property tests
+
+proptest! {
+    #[test]
+    fn check_int(expr in arb::expr::literal(arb::literal::any_int())) {
+        check(&Context::new(), &expr, &RcType::from(Type::Int)).unwrap();
+    }
+
+    #[test]
+    fn check_float(expr in arb::expr::literal(arb::literal::any_float())) {
+        check(&Context::new(), &expr, &RcType::from(Type::Float)).unwrap();
+    }
+
+    #[test]
+    fn check_string(expr in arb::expr::literal(arb::literal::any_string())) {
+        check(&Context::new(), &expr, &RcType::from(Type::String)).unwrap();
+    }
+
+    #[test]
+    fn infer_int(expr in arb::expr::literal(arb::literal::any_int())) {
+        assert_term_eq!(infer(&Context::new(), &expr).unwrap(), RcType::from(Type::Int));
+    }
+
+    #[test]
+    fn infer_float(expr in arb::expr::literal(arb::literal::any_float())) {
+        assert_term_eq!(infer(&Context::new(), &expr).unwrap(), RcType::from(Type::Float));
+    }
+
+    #[test]
+    fn infer_string(expr in arb::expr::literal(arb::literal::any_string())) {
+        assert_term_eq!(infer(&Context::new(), &expr).unwrap(), RcType::from(Type::String));
+    }
+
+    #[test]
+    fn infer_app_literal_is_err(
+        expr1 in arb::expr::any_literal(),
+        expr2 in arb::expr::any_literal(),
+    ) {
+        infer(&Context::new(), &RcExpr::from(Expr::App(expr1, expr2))).unwrap_err();
+    }
+}
+
+// Unit tests
 
 #[test]
 fn test_infer() {
