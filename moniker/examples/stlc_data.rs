@@ -257,7 +257,7 @@ fn test_infer() {
     // expr = (\x : Int -> x)
     let expr = RcExpr::from(Expr::Lam(Scope::new(
         (FreeVar::user("x"), Embed(Some(RcType::from(Type::Int)))),
-        RcExpr::from(Expr::Var(Var::Free(FreeVar::user("x")))),
+        RcExpr::from(Expr::Var(Var::user("x"))),
     )));
 
     assert_term_eq!(

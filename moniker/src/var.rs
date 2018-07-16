@@ -118,6 +118,12 @@ pub enum Var<Ident> {
     Bound(BoundVar, Option<Ident>),
 }
 
+impl<Ident> Var<Ident> {
+    pub fn user<T: Into<Ident>>(ident: T) -> Var<Ident> {
+        Var::Free(FreeVar::user(ident))
+    }
+}
+
 impl<Ident: fmt::Display> fmt::Display for Var<Ident> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {

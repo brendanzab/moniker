@@ -107,15 +107,12 @@ fn test_eval() {
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
             FreeVar::user("x"),
-            RcExpr::from(Expr::Var(Var::Free(FreeVar::user("x")))),
+            RcExpr::from(Expr::Var(Var::user("x"))),
         ))),
-        RcExpr::from(Expr::Var(Var::Free(FreeVar::user("y")))),
+        RcExpr::from(Expr::Var(Var::user("y"))),
     ));
 
-    assert_term_eq!(
-        eval(&expr),
-        RcExpr::from(Expr::Var(Var::Free(FreeVar::user("y")))),
-    );
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("y"))));
 }
 
 #[test]
@@ -131,25 +128,22 @@ fn test_eval_let_rec() {
             (
                 FreeVar::user("test"),
                 Embed(RcExpr::from(Expr::App(
-                    RcExpr::from(Expr::Var(Var::Free(FreeVar::user("id")))),
-                    RcExpr::from(Expr::Var(Var::Free(FreeVar::user("x")))),
+                    RcExpr::from(Expr::Var(Var::user("id"))),
+                    RcExpr::from(Expr::Var(Var::user("x"))),
                 ))),
             ),
             (
                 FreeVar::user("id"),
                 Embed(RcExpr::from(Expr::Lam(Scope::new(
                     FreeVar::user("x"),
-                    RcExpr::from(Expr::Var(Var::Free(FreeVar::user("x")))),
+                    RcExpr::from(Expr::Var(Var::user("x"))),
                 )))),
             ),
         ])),
-        RcExpr::from(Expr::Var(Var::Free(FreeVar::user("test")))),
+        RcExpr::from(Expr::Var(Var::user("test"))),
     )));
 
-    assert_term_eq!(
-        eval(&expr),
-        RcExpr::from(Expr::Var(Var::Free(FreeVar::user("x")))),
-    );
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("x"))));
 }
 
 fn main() {}

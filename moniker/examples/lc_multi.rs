@@ -91,17 +91,17 @@ fn test_eval() {
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
             Multi(vec![FreeVar::user("x"), FreeVar::user("y")]),
-            RcExpr::from(Expr::Var(Var::Free(FreeVar::user("y")))),
+            RcExpr::from(Expr::Var(Var::user("y"))),
         ))),
         vec![
-            RcExpr::from(Expr::Var(Var::Free(FreeVar::user("a")))),
-            RcExpr::from(Expr::Var(Var::Free(FreeVar::user("b")))),
+            RcExpr::from(Expr::Var(Var::user("a"))),
+            RcExpr::from(Expr::Var(Var::user("b"))),
         ],
     ));
 
     assert_term_eq!(
         eval(&expr).unwrap(),
-        RcExpr::from(Expr::Var(Var::Free(FreeVar::user("b")))),
+        RcExpr::from(Expr::Var(Var::user("b"))),
     );
 }
 
