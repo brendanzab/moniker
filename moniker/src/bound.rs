@@ -8,7 +8,7 @@ use std::hash::Hash;
 use std::rc::Rc;
 use std::{slice, vec};
 
-use var::{BoundVar, DebruijnIndex, FreeVar, GenId, PatternIndex, Var};
+use var::{BoundVar, FreeVar, GenId, PatternIndex, ScopeOffset, Var};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScopeState {
@@ -20,8 +20,8 @@ impl ScopeState {
         ScopeState { depth: 0 }
     }
 
-    pub fn depth(&self) -> DebruijnIndex {
-        DebruijnIndex(self.depth)
+    pub fn depth(&self) -> ScopeOffset {
+        ScopeOffset(self.depth)
     }
 
     pub fn incr(mut self) -> ScopeState {
