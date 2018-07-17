@@ -70,15 +70,12 @@ fn test_eval() {
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
             FreeVar::user("x"),
-            RcExpr::from(Expr::Var(Var::Free(FreeVar::user("x")))),
+            RcExpr::from(Expr::Var(Var::user("x"))),
         ))),
-        RcExpr::from(Expr::Var(Var::Free(FreeVar::user("y")))),
+        RcExpr::from(Expr::Var(Var::user("y"))),
     ));
 
-    assert_term_eq!(
-        eval(&expr),
-        RcExpr::from(Expr::Var(Var::Free(FreeVar::user("y")))),
-    );
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("y"))));
 }
 
 fn main() {}

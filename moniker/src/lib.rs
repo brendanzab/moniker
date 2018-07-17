@@ -6,26 +6,29 @@
 //! Here is an example of how you might use `moniker` to define the AST for the
 //! [simply typed lambda calculus][stlc]:
 //!
-//! ```rust,ignore
+//! ```rust
 //! #[macro_use]
 //! extern crate moniker;
 //!
 //! use std::rc::Rc;
-//! use moniker::{Scope, Embed, FreeVar, Var};
+//! use moniker::{Embed, FreeVar, Nest, Scope, Var};
 //!
+//! # #[cfg(feature = "moniker-derive")]
 //! #[derive(Debug, Clone, BoundTerm)]
 //! pub enum Type {
 //!     Base,
 //!     Arrow(Rc<Type>, Rc<Type>),
 //! }
 //!
+//! # #[cfg(feature = "moniker-derive")]
 //! #[derive(Debug, Clone, BoundTerm)]
 //! pub enum Expr {
 //!     Var(Var<String>),
-//!     Lam(Scope<(FreeVar<Ident>, Embed<Rc<Type>>), Rc<Expr>>),
-//!     Let(Scope<Rebind<(FreeVar<String>, Embed<(Rc<Type>, Rc<Expr>>)>, Rc<Expr>),
+//!     Lam(Scope<(FreeVar<String>, Embed<Rc<Type>>), Rc<Expr>>),
+//!     Let(Scope<Nest<(FreeVar<String>, Embed<(Rc<Type>, Rc<Expr>)>)>, Rc<Expr>>),
 //!     App(Rc<Expr>, Rc<Expr>),
 //! }
+//! # fn main() {}
 //! ```
 //!
 //! [stlc]: https://en.wikipedia.org/wiki/Simply_typed_lambda_calculus
@@ -69,7 +72,6 @@ pub use moniker_derive::*;
 mod bound;
 mod embed;
 mod ignore;
-mod multi;
 mod nest;
 mod rec;
 mod scope;
@@ -78,8 +80,7 @@ mod var;
 pub use self::bound::{BoundPattern, BoundTerm, PatternSubsts, ScopeState};
 pub use self::embed::Embed;
 pub use self::ignore::Ignore;
-pub use self::multi::Multi;
 pub use self::nest::Nest;
 pub use self::rec::Rec;
 pub use self::scope::Scope;
-pub use self::var::{BoundVar, DebruijnIndex, FreeVar, GenId, PatternIndex, Var};
+pub use self::var::{BoundVar, FreeVar, GenId, PatternIndex, ScopeOffset, Var};

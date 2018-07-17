@@ -1,5 +1,5 @@
 use bound::{BoundPattern, PatternSubsts, ScopeState};
-use var::{BoundVar, FreeVar, PatternIndex};
+use var::{BoundVar, FreeVar};
 
 /// Nested binding patterns
 ///
@@ -59,27 +59,15 @@ where
     P: BoundPattern<Ident>,
 {
     fn pattern_eq(&self, other: &Nest<P>) -> bool {
-        self.unsafe_patterns.len() == other.unsafe_patterns.len()
-            && <_>::zip(self.unsafe_patterns.iter(), other.unsafe_patterns.iter())
-                .all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
+        <[P]>::pattern_eq(&self.unsafe_patterns, &other.unsafe_patterns)
     }
 
     fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        // FIXME: intermediate allocations
-        PatternSubsts::new(
-            self.unsafe_patterns
-                .iter_mut()
-                .flat_map(P::freshen)
-                .collect(),
-        )
+        <[P]>::freshen(&mut self.unsafe_patterns)
     }
 
     fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        assert_eq!(self.unsafe_patterns.len(), perm.len()); // FIXME: assertion
-
-        for (pattern, perm) in <_>::zip(self.unsafe_patterns.iter_mut(), perm.iter()) {
-            pattern.rename(&PatternSubsts::new(vec![perm.clone()])); // FIXME: clone
-        }
+        <[P]>::rename(&mut self.unsafe_patterns, perm)
     }
 
     fn close_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern<Ident>) {
@@ -97,32 +85,10 @@ where
     }
 
     fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
-        self.unsafe_patterns
-            .iter()
-            .enumerate()
-            .filter_map(|(i, pattern)| {
-                pattern.on_free(state, name).map(|bound| {
-                    assert_eq!(bound.pattern, PatternIndex(0));
-                    BoundVar {
-                        pattern: PatternIndex(i as u32),
-                        ..bound
-                    }
-                })
-            })
-            .next()
+        <[P]>::on_free(&self.unsafe_patterns, state, name)
     }
 
     fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
-        self.unsafe_patterns
-            .get(name.pattern.0 as usize)
-            .and_then(|pattern| {
-                pattern.on_bound(
-                    state,
-                    BoundVar {
-                        pattern: PatternIndex(0),
-                        ..name
-                    },
-                )
-            })
+        <[P]>::on_bound(&self.unsafe_patterns, state, name)
     }
 }

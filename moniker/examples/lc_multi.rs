@@ -4,7 +4,7 @@
 #[macro_use]
 extern crate moniker;
 
-use moniker::{FreeVar, Multi, Scope, Var};
+use moniker::{FreeVar, Scope, Var};
 use std::rc::Rc;
 
 /// Expressions
@@ -13,7 +13,7 @@ pub enum Expr {
     /// Variables
     Var(Var<String>),
     /// Lambda expressions
-    Lam(Scope<Multi<FreeVar<String>>, RcExpr>),
+    Lam(Scope<Vec<FreeVar<String>>, RcExpr>),
     /// Function application
     App(RcExpr, Vec<RcExpr>),
 }
@@ -64,7 +64,7 @@ pub fn eval(expr: &RcExpr) -> Result<RcExpr, EvalError> {
         Expr::Var(_) | Expr::Lam(_) => Ok(expr.clone()),
         Expr::App(ref fun, ref args) => match *eval(fun)?.inner {
             Expr::Lam(ref scope) => {
-                let (Multi(params), body) = scope.clone().unbind();
+                let (params, body) = scope.clone().unbind();
 
                 if params.len() != args.len() {
                     Err(EvalError::ArgumentCountMismatch {
@@ -90,18 +90,18 @@ fn test_eval() {
     // expr = (fn(x, y) -> y)(a, b)
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
-            Multi(vec![FreeVar::user("x"), FreeVar::user("y")]),
-            RcExpr::from(Expr::Var(Var::Free(FreeVar::user("y")))),
+            vec![FreeVar::user("x"), FreeVar::user("y")],
+            RcExpr::from(Expr::Var(Var::user("y"))),
         ))),
         vec![
-            RcExpr::from(Expr::Var(Var::Free(FreeVar::user("a")))),
-            RcExpr::from(Expr::Var(Var::Free(FreeVar::user("b")))),
+            RcExpr::from(Expr::Var(Var::user("a"))),
+            RcExpr::from(Expr::Var(Var::user("b"))),
         ],
     ));
 
     assert_term_eq!(
         eval(&expr).unwrap(),
-        RcExpr::from(Expr::Var(Var::Free(FreeVar::user("b")))),
+        RcExpr::from(Expr::Var(Var::user("b"))),
     );
 }
 

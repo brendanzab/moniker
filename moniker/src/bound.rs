@@ -8,7 +8,7 @@ use std::hash::Hash;
 use std::rc::Rc;
 use std::{slice, vec};
 
-use var::{BoundVar, DebruijnIndex, FreeVar, GenId, PatternIndex, Var};
+use var::{BoundVar, FreeVar, GenId, PatternIndex, ScopeOffset, Var};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScopeState {
@@ -20,8 +20,8 @@ impl ScopeState {
         ScopeState { depth: 0 }
     }
 
-    pub fn depth(&self) -> DebruijnIndex {
-        DebruijnIndex(self.depth)
+    pub fn depth(&self) -> ScopeOffset {
+        ScopeOffset(self.depth)
     }
 
     pub fn incr(mut self) -> ScopeState {
@@ -864,5 +864,102 @@ where
 
     fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
         P::on_bound(self, state, name)
+    }
+}
+
+impl<Ident, P> BoundPattern<Ident> for [P]
+where
+    Ident: Clone,
+    P: BoundPattern<Ident>,
+{
+    fn pattern_eq(&self, other: &[P]) -> bool {
+        self.len() == other.len()
+            && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
+    }
+
+    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
+        // FIXME: intermediate allocations
+        PatternSubsts::new(self.iter_mut().flat_map(P::freshen).collect())
+    }
+
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
+        assert_eq!(self.len(), perm.len()); // FIXME: assertion
+
+        for (pattern, perm) in <_>::zip(self.iter_mut(), perm.iter()) {
+            pattern.rename(&PatternSubsts::new(vec![perm.clone()])); // FIXME: clone
+        }
+    }
+
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        for elem in self {
+            elem.close_pattern(state, pattern);
+        }
+    }
+
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        for elem in self {
+            elem.open_pattern(state, pattern);
+        }
+    }
+
+    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
+        self.iter()
+            .enumerate()
+            .filter_map(|(i, pattern)| {
+                pattern.on_free(state, name).map(|bound| {
+                    assert_eq!(bound.pattern, PatternIndex(0));
+                    BoundVar {
+                        pattern: PatternIndex(i as u32),
+                        ..bound
+                    }
+                })
+            })
+            .next()
+    }
+
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
+        self.get(name.pattern.0 as usize).and_then(|pattern| {
+            pattern.on_bound(
+                state,
+                BoundVar {
+                    pattern: PatternIndex(0),
+                    ..name
+                },
+            )
+        })
+    }
+}
+
+impl<Ident, P> BoundPattern<Ident> for Vec<P>
+where
+    Ident: Clone,
+    P: BoundPattern<Ident>,
+{
+    fn pattern_eq(&self, other: &Vec<P>) -> bool {
+        <[P]>::pattern_eq(self, other)
+    }
+
+    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
+        <[P]>::freshen(self)
+    }
+
+    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
+        <[P]>::rename(self, perm);
+    }
+
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        <[P]>::close_pattern(self, state, pattern);
+    }
+
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        <[P]>::open_pattern(self, state, pattern);
+    }
+
+    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
+        <[P]>::on_free(self, state, name)
+    }
+
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
+        <[P]>::on_bound(self, state, name)
     }
 }
