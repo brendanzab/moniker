@@ -123,8 +123,20 @@ impl DebruijnIndex {
     }
 }
 
+impl fmt::Display for DebruijnIndex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
+}
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PatternIndex(pub u32);
+
+impl fmt::Display for PatternIndex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
+}
 
 /// A bound variable
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -135,7 +147,7 @@ pub struct BoundVar {
 
 impl fmt::Display for BoundVar {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}.{}", self.scope.0, self.pattern.0)
+        write!(f, "{}.{}", self.scope, self.pattern)
     }
 }
 
