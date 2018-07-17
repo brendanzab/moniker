@@ -19,7 +19,7 @@ in Rust.
 #[macro_use]
 extern crate moniker;
 
-use moniker::{Scope, Embed, FreeVar, Var};
+use moniker::{Embed, FreeVar, Scope, Var};
 use std::rc::Rc;
 
 #[derive(Debug, Clone, BoundTerm)]
