@@ -1,4 +1,6 @@
 use std::fmt;
+use std::hash::{Hash, Hasher};
+use std::mem;
 
 /// A generated id
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -25,7 +27,7 @@ impl fmt::Display for GenId {
 }
 
 /// A free variable
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone)]
 pub enum FreeVar<Ident> {
     /// Names originating from user input
     User(Ident),
@@ -54,6 +56,34 @@ impl<Ident> From<GenId> for FreeVar<Ident> {
     }
 }
 
+impl<Ident> PartialEq for FreeVar<Ident>
+where
+    Ident: PartialEq,
+{
+    fn eq(&self, other: &FreeVar<Ident>) -> bool {
+        match (self, other) {
+            (&FreeVar::User(ref lhs), &FreeVar::User(ref rhs)) => lhs == rhs,
+            (&FreeVar::Gen(lhs, _), &FreeVar::Gen(rhs, _)) => lhs == rhs,
+            _ => false,
+        }
+    }
+}
+
+impl<Ident> Eq for FreeVar<Ident> where Ident: Eq {}
+
+impl<Ident> Hash for FreeVar<Ident>
+where
+    Ident: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        mem::discriminant(self).hash(state);
+        match *self {
+            FreeVar::User(ref name) => name.hash(state),
+            FreeVar::Gen(id, _) => id.hash(state),
+        }
+    }
+}
+
 impl<Ident: fmt::Display> fmt::Display for FreeVar<Ident> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -76,7 +106,7 @@ impl<Ident: fmt::Display> fmt::Display for FreeVar<Ident> {
 /// ```
 ///
 /// [Debruijn index]: https://en.wikipedia.org/wiki/De_Bruijn_index
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct DebruijnIndex(pub u32);
 
 impl DebruijnIndex {
@@ -93,11 +123,11 @@ impl DebruijnIndex {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct PatternIndex(pub u32);
 
 /// A bound variable
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct BoundVar {
     pub scope: DebruijnIndex,
     pub pattern: PatternIndex,
@@ -110,7 +140,7 @@ impl fmt::Display for BoundVar {
 }
 
 /// A variable that can either be free or bound
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum Var<Ident> {
     /// A free variable
     Free(FreeVar<Ident>),
@@ -124,11 +154,41 @@ impl<Ident> Var<Ident> {
     }
 }
 
+impl<Ident> PartialEq for Var<Ident>
+where
+    Ident: PartialEq,
+{
+    fn eq(&self, other: &Var<Ident>) -> bool {
+        match (self, other) {
+            (&Var::Free(ref lhs), &Var::Free(ref rhs)) => lhs == rhs,
+            (&Var::Bound(bound_lhs, _), &Var::Bound(bound_rhs, _)) => bound_lhs == bound_rhs,
+            _ => false,
+        }
+    }
+}
+
+impl<Ident> Eq for Var<Ident> where Ident: Eq {}
+
+impl<Ident> Hash for Var<Ident>
+where
+    Ident: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        mem::discriminant(self).hash(state);
+        match *self {
+            Var::Free(ref name) => name.hash(state),
+            Var::Bound(bound_var, _) => {
+                bound_var.hash(state);
+            },
+        }
+    }
+}
+
 impl<Ident: fmt::Display> fmt::Display for Var<Ident> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            Var::Bound(bound, None) => write!(f, "@{}", bound),
-            Var::Bound(bound, Some(ref hint)) => write!(f, "{}@{}", hint, bound),
+            Var::Bound(bound_var, None) => write!(f, "@{}", bound_var),
+            Var::Bound(bound_var, Some(ref hint)) => write!(f, "{}@{}", hint, bound_var),
             Var::Free(ref free) => write!(f, "{}", free),
         }
     }
