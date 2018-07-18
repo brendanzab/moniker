@@ -69,6 +69,9 @@ extern crate moniker_derive;
 pub use moniker_derive::*;
 
 #[macro_use]
+#[doc(hidden)]
+pub mod macros;
+
 mod bound;
 mod embed;
 mod ignore;

@@ -57,44 +57,6 @@ pub trait BoundTerm<Ident> {
     }
 }
 
-/// Asserts that two expressions are alpha equivalent to each other (using
-/// `BoundTerm::term_eq`).
-///
-/// On panic, this macro will print the values of the expressions with their
-/// debug representations.
-///
-/// Like `assert!`, this macro has a second form, where a custom
-/// panic message can be provided.
-#[macro_export]
-macro_rules! assert_term_eq {
-    ($left:expr, $right:expr) => ({
-        match (&$left, &$right) {
-            (left_val, right_val) => {
-                if !::moniker::BoundTerm::term_eq(left_val, right_val) {
-                    panic!(r#"assertion failed: `<_>::term_eq(&left, &right)`
-  left: `{:?}`,
- right: `{:?}`"#, left_val, right_val)
-                }
-            }
-        }
-    });
-    ($left:expr, $right:expr,) => ({
-        assert_term_eq!($left, $right)
-    });
-    ($left:expr, $right:expr, $($arg:tt)+) => ({
-        match (&($left), &($right)) {
-            (left_val, right_val) => {
-                if !::moniker::BoundTerm::term_eq(left_val, right_val) {
-                    panic!(r#"assertion failed: `<_>::term_eq(&left, &right)`
-  left: `{:?}`,
- right: `{:?}`: {}"#, left_val, right_val,
-                           format_args!($($arg)+))
-                }
-            }
-        }
-    });
-}
-
 impl<Ident: PartialEq> BoundTerm<Ident> for FreeVar<Ident> {
     fn term_eq(&self, other: &FreeVar<Ident>) -> bool {
         match (self, other) {
@@ -514,44 +476,6 @@ pub trait BoundPattern<Ident> {
     /// A callback that is used when `bind`ing `Bind`s to replace bound names
     /// with free names based on the contents of the pattern
     fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>>;
-}
-
-/// Asserts that two expressions are alpha equivalent to each other (using
-/// `BoundPattern::pattern_eq`).
-///
-/// On panic, this macro will print the values of the expressions with their
-/// debug representations.
-///
-/// Like `assert!`, this macro has a second form, where a custom
-/// panic message can be provided.
-#[macro_export]
-macro_rules! assert_pattern_eq {
-    ($left:expr, $right:expr) => ({
-        match (&$left, &$right) {
-            (left_val, right_val) => {
-                if !::moniker::BoundPattern::pattern_eq(left_val, right_val) {
-                    panic!(r#"assertion failed: `<_>::pattern_eq(&left, &right)`
-  left: `{:?}`,
- right: `{:?}`"#, left_val, right_val)
-                }
-            }
-        }
-    });
-    ($left:expr, $right:expr,) => ({
-        assert_pattern_eq!($left, $right)
-    });
-    ($left:expr, $right:expr, $($arg:tt)+) => ({
-        match (&($left), &($right)) {
-            (left_val, right_val) => {
-                if !::moniker::BoundPattern::pattern_eq(left_val, right_val) {
-                    panic!(r#"assertion failed: `<_>::pattern_eq(&left, &right)`
-  left: `{:?}`,
- right: `{:?}`: {}"#, left_val, right_val,
-                           format_args!($($arg)+))
-                }
-            }
-        }
-    });
 }
 
 impl<Ident: Clone + PartialEq> BoundPattern<Ident> for FreeVar<Ident> {
