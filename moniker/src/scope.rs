@@ -63,7 +63,7 @@ impl<P, T> Scope<P, T> {
 
         {
             let names = self_pattern.freshen();
-            other_pattern.rename(&names);
+            other_pattern.swaps(&names);
             self_body.open_term(ScopeState::new(), &self_pattern);
             other_body.open_term(ScopeState::new(), &other_pattern);
         }

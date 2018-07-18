@@ -66,8 +66,8 @@ where
         <[P]>::freshen(&mut self.unsafe_patterns)
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        <[P]>::rename(&mut self.unsafe_patterns, perm)
+    fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
+        <[P]>::swaps(&mut self.unsafe_patterns, permutations)
     }
 
     fn close_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern<Ident>) {

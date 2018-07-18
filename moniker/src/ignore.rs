@@ -31,7 +31,7 @@ impl<Ident, T> BoundPattern<Ident> for Ignore<T> {
         PatternSubsts::new(Vec::new())
     }
 
-    fn rename(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
+    fn swaps(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
 
     fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 

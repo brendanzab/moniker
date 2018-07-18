@@ -17,7 +17,7 @@ where
         PatternSubsts::new(Vec::new())
     }
 
-    fn rename(&mut self, _perm: &PatternSubsts<FreeVar<Ident>>) {}
+    fn swaps(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         self.0.close_term(state, pattern);
@@ -27,11 +27,11 @@ where
         self.0.open_term(state, pattern);
     }
 
-    fn on_free(&self, _state: ScopeState, _name: &FreeVar<Ident>) -> Option<BoundVar> {
+    fn on_free(&self, _: ScopeState, _: &FreeVar<Ident>) -> Option<BoundVar> {
         None
     }
 
-    fn on_bound(&self, _state: ScopeState, _name: BoundVar) -> Option<FreeVar<Ident>> {
+    fn on_bound(&self, _: ScopeState, _: BoundVar) -> Option<FreeVar<Ident>> {
         None
     }
 }

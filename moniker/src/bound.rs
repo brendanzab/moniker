@@ -455,30 +455,30 @@ where
 
 /// A mapping of `PatternIndex`s to `T`s
 pub struct PatternSubsts<T> {
-    perm: Vec<T>,
+    permutations: Vec<T>,
 }
 
 impl<T> PatternSubsts<T> {
-    pub fn new(perm: Vec<T>) -> PatternSubsts<T> {
-        PatternSubsts { perm }
+    pub fn new(permutations: Vec<T>) -> PatternSubsts<T> {
+        PatternSubsts { permutations }
     }
 
     pub fn lookup(&self, index: PatternIndex) -> Option<&T> {
-        self.perm.get(index.0 as usize)
+        self.permutations.get(index.0 as usize)
     }
 
     pub fn len(&self) -> usize {
-        self.perm.len()
+        self.permutations.len()
     }
 
     pub fn iter(&self) -> slice::Iter<T> {
-        self.perm.iter()
+        self.permutations.iter()
     }
 }
 
 impl<T> Extend<T> for PatternSubsts<T> {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
-        self.perm.extend(iter)
+        self.permutations.extend(iter)
     }
 }
 
@@ -487,7 +487,7 @@ impl<T> IntoIterator for PatternSubsts<T> {
     type IntoIter = vec::IntoIter<T>;
 
     fn into_iter(self) -> vec::IntoIter<T> {
-        self.perm.into_iter()
+        self.permutations.into_iter()
     }
 }
 
@@ -497,7 +497,7 @@ pub trait BoundPattern<Ident> {
 
     fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>>;
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>);
+    fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>);
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>);
 
@@ -563,9 +563,9 @@ impl<Ident: Clone + PartialEq> BoundPattern<Ident> for FreeVar<Ident> {
         PatternSubsts::new(vec![self.clone()])
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        assert_eq!(perm.len(), 1); // FIXME: assert
-        *self = perm.lookup(PatternIndex(0)).unwrap().clone(); // FIXME: double clone
+    fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
+        assert_eq!(permutations.len(), 1); // FIXME: assert
+        *self = permutations.lookup(PatternIndex(0)).unwrap().clone(); // FIXME: double clone
     }
 
     fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
@@ -606,7 +606,7 @@ macro_rules! impl_bound_pattern_partial_eq {
                 PatternSubsts::new(vec![])
             }
 
-            fn rename(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
+            fn swaps(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
 
             fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
@@ -653,7 +653,7 @@ macro_rules! impl_bound_pattern_ignore {
                 PatternSubsts::new(vec![])
             }
 
-            fn rename(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
+            fn swaps(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
 
             fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
@@ -697,7 +697,7 @@ impl<Ident, T> BoundPattern<Ident> for Span<T> {
         PatternSubsts::new(vec![])
     }
 
-    fn rename(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
+    fn swaps(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
 
     fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
@@ -731,9 +731,9 @@ where
         }
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
+    fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
         if let Some(ref mut inner) = *self {
-            inner.rename(perm);
+            inner.swaps(permutations);
         }
     }
 
@@ -768,14 +768,14 @@ where
     }
 
     fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        let mut perm = self.0.freshen();
-        perm.extend(self.1.freshen());
-        perm
+        let mut permutations = self.0.freshen();
+        permutations.extend(self.1.freshen());
+        permutations
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        self.0.rename(perm);
-        self.1.rename(perm);
+    fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
+        self.0.swaps(permutations);
+        self.1.swaps(permutations);
     }
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
@@ -813,8 +813,8 @@ where
         P::freshen(self)
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        P::rename(self, perm);
+    fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
+        P::swaps(self, permutations);
     }
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
@@ -846,8 +846,8 @@ where
         P::freshen(Rc::make_mut(self))
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        P::rename(Rc::make_mut(self), perm);
+    fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
+        P::swaps(Rc::make_mut(self), permutations);
     }
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
@@ -882,11 +882,11 @@ where
         PatternSubsts::new(self.iter_mut().flat_map(P::freshen).collect())
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        assert_eq!(self.len(), perm.len()); // FIXME: assertion
+    fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
+        assert_eq!(self.len(), permutations.len()); // FIXME: assertion
 
-        for (pattern, perm) in <_>::zip(self.iter_mut(), perm.iter()) {
-            pattern.rename(&PatternSubsts::new(vec![perm.clone()])); // FIXME: clone
+        for (pattern, free_var) in <_>::zip(self.iter_mut(), permutations.iter()) {
+            pattern.swaps(&PatternSubsts::new(vec![free_var.clone()])); // FIXME: clone
         }
     }
 
@@ -943,8 +943,8 @@ where
         <[P]>::freshen(self)
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        <[P]>::rename(self, perm);
+    fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
+        <[P]>::swaps(self, permutations);
     }
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
