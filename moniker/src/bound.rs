@@ -6,6 +6,7 @@ use codespan::{
 use std::collections::HashSet;
 use std::hash::Hash;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::{slice, vec};
 
 use var::{BoundVar, FreeVar, GenId, PatternIndex, ScopeOffset, Var};
@@ -286,6 +287,31 @@ where
 
     fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
         T::visit_mut_vars(Rc::make_mut(self), on_var);
+    }
+}
+
+impl<Ident, T> BoundTerm<Ident> for Arc<T>
+where
+    T: BoundTerm<Ident> + Clone,
+{
+    fn term_eq(&self, other: &Arc<T>) -> bool {
+        T::term_eq(self, other)
+    }
+
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        T::close_term(Arc::make_mut(self), state, pattern);
+    }
+
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        T::open_term(Arc::make_mut(self), state, pattern);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+        T::visit_vars(self, on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+        T::visit_mut_vars(Arc::make_mut(self), on_var);
     }
 }
 
@@ -779,6 +805,39 @@ where
 
     fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         P::open_pattern(Rc::make_mut(self), state, pattern);
+    }
+
+    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
+        P::on_free(self, state, name)
+    }
+
+    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
+        P::on_bound(self, state, name)
+    }
+}
+
+impl<Ident, P> BoundPattern<Ident> for Arc<P>
+where
+    P: BoundPattern<Ident> + Clone,
+{
+    fn pattern_eq(&self, other: &Arc<P>) -> bool {
+        P::pattern_eq(self, other)
+    }
+
+    fn freshen(&mut self, permutations: &mut PatternSubsts<FreeVar<Ident>>) {
+        P::freshen(Arc::make_mut(self), permutations)
+    }
+
+    fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
+        P::swaps(Arc::make_mut(self), permutations);
+    }
+
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        P::close_pattern(Arc::make_mut(self), state, pattern);
+    }
+
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        P::open_pattern(Arc::make_mut(self), state, pattern);
     }
 
     fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
