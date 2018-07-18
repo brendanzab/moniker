@@ -13,9 +13,7 @@ where
         T::term_eq(&self.0, &other.0)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        PatternSubsts::new(Vec::new())
-    }
+    fn freshen(&mut self, _: &mut PatternSubsts<FreeVar<Ident>>) {}
 
     fn swaps(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
 

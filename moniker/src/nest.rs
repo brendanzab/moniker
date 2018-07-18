@@ -62,8 +62,8 @@ where
         <[P]>::pattern_eq(&self.unsafe_patterns, &other.unsafe_patterns)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        <[P]>::freshen(&mut self.unsafe_patterns)
+    fn freshen(&mut self, permutations: &mut PatternSubsts<FreeVar<Ident>>) {
+        <[P]>::freshen(&mut self.unsafe_patterns, permutations)
     }
 
     fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {

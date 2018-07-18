@@ -27,9 +27,7 @@ impl<Ident, T> BoundPattern<Ident> for Ignore<T> {
         true
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        PatternSubsts::new(Vec::new())
-    }
+    fn freshen(&mut self, _: &mut PatternSubsts<FreeVar<Ident>>) {}
 
     fn swaps(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
 

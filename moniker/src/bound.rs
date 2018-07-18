@@ -467,6 +467,10 @@ impl<T> PatternSubsts<T> {
         self.permutations.get(index.0 as usize)
     }
 
+    pub fn push(&mut self, value: T) {
+        self.permutations.push(value);
+    }
+
     pub fn len(&self) -> usize {
         self.permutations.len()
     }
@@ -495,7 +499,7 @@ pub trait BoundPattern<Ident> {
     /// Alpha equivalence in a pattern context
     fn pattern_eq(&self, other: &Self) -> bool;
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>>;
+    fn freshen(&mut self, permutations: &mut PatternSubsts<FreeVar<Ident>>);
 
     fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>);
 
@@ -555,12 +559,15 @@ impl<Ident: Clone + PartialEq> BoundPattern<Ident> for FreeVar<Ident> {
         true
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
+    fn freshen(&mut self, permutations: &mut PatternSubsts<FreeVar<Ident>>) {
         *self = match *self {
             FreeVar::User(ref name) => FreeVar::Gen(GenId::fresh(), Some(name.clone())),
-            FreeVar::Gen(_, _) => return PatternSubsts::new(vec![self.clone()]),
+            FreeVar::Gen(_, _) => {
+                permutations.push(self.clone());
+                return;
+            },
         };
-        PatternSubsts::new(vec![self.clone()])
+        permutations.push(self.clone());
     }
 
     fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
@@ -602,9 +609,7 @@ macro_rules! impl_bound_pattern_partial_eq {
                 self == other
             }
 
-            fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-                PatternSubsts::new(vec![])
-            }
+            fn freshen(&mut self, _: &mut PatternSubsts<FreeVar<Ident>>) {}
 
             fn swaps(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
 
@@ -649,9 +654,7 @@ macro_rules! impl_bound_pattern_ignore {
                 true
             }
 
-            fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-                PatternSubsts::new(vec![])
-            }
+            fn freshen(&mut self, _: &mut PatternSubsts<FreeVar<Ident>>) {}
 
             fn swaps(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
 
@@ -693,9 +696,7 @@ impl<Ident, T> BoundPattern<Ident> for Span<T> {
         true
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        PatternSubsts::new(vec![])
-    }
+    fn freshen(&mut self, _: &mut PatternSubsts<FreeVar<Ident>>) {}
 
     fn swaps(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
 
@@ -724,10 +725,9 @@ where
         }
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        match *self {
-            Some(ref mut inner) => inner.freshen(),
-            None => PatternSubsts::new(vec![]),
+    fn freshen(&mut self, permutations: &mut PatternSubsts<FreeVar<Ident>>) {
+        if let Some(ref mut inner) = *self {
+            inner.freshen(permutations);
         }
     }
 
@@ -767,10 +767,9 @@ where
         P1::pattern_eq(&self.0, &other.0) && P2::pattern_eq(&self.1, &other.1)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        let mut permutations = self.0.freshen();
-        permutations.extend(self.1.freshen());
-        permutations
+    fn freshen(&mut self, permutations: &mut PatternSubsts<FreeVar<Ident>>) {
+        self.0.freshen(permutations);
+        self.1.freshen(permutations);
     }
 
     fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
@@ -809,8 +808,8 @@ where
         P::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        P::freshen(self)
+    fn freshen(&mut self, permutations: &mut PatternSubsts<FreeVar<Ident>>) {
+        P::freshen(self, permutations)
     }
 
     fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
@@ -842,8 +841,8 @@ where
         P::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        P::freshen(Rc::make_mut(self))
+    fn freshen(&mut self, permutations: &mut PatternSubsts<FreeVar<Ident>>) {
+        P::freshen(Rc::make_mut(self), permutations)
     }
 
     fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
@@ -877,9 +876,10 @@ where
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        // FIXME: intermediate allocations
-        PatternSubsts::new(self.iter_mut().flat_map(P::freshen).collect())
+    fn freshen(&mut self, permutations: &mut PatternSubsts<FreeVar<Ident>>) {
+        for elem in self {
+            elem.freshen(permutations);
+        }
     }
 
     fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
@@ -939,8 +939,8 @@ where
         <[P]>::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        <[P]>::freshen(self)
+    fn freshen(&mut self, permutations: &mut PatternSubsts<FreeVar<Ident>>) {
+        <[P]>::freshen(self, permutations)
     }
 
     fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {

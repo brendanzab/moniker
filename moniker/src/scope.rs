@@ -1,4 +1,4 @@
-use bound::{BoundPattern, BoundTerm, ScopeState};
+use bound::{BoundPattern, BoundTerm, PatternSubsts, ScopeState};
 use var::Var;
 
 /// A bound scope
@@ -37,10 +37,11 @@ impl<P, T> Scope<P, T> {
         P: BoundPattern<Ident>,
         T: BoundTerm<Ident>,
     {
+        let mut permutations = PatternSubsts::new(vec![]);
         let mut pattern = self.unsafe_pattern;
         let mut body = self.unsafe_body;
 
-        pattern.freshen();
+        pattern.freshen(&mut permutations);
         body.open_term(ScopeState::new(), &pattern);
 
         (pattern, body)
@@ -62,8 +63,9 @@ impl<P, T> Scope<P, T> {
         let mut other_body = other.unsafe_body;
 
         {
-            let names = self_pattern.freshen();
-            other_pattern.swaps(&names);
+            let mut permutations = PatternSubsts::new(vec![]);
+            self_pattern.freshen(&mut permutations);
+            other_pattern.swaps(&permutations);
             self_body.open_term(ScopeState::new(), &self_pattern);
             other_body.open_term(ScopeState::new(), &other_pattern);
         }
