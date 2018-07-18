@@ -1,5 +1,5 @@
-use bound::{BoundPattern, PatternSubsts, ScopeState};
-use var::{BoundVar, FreeVar};
+use bound::{BoundPattern, Permutations, ScopeState};
+use var::{FreeVar, PVar, PVarIndex, PVarOffset};
 
 /// Nested binding patterns
 ///
@@ -62,11 +62,11 @@ where
         <[P]>::pattern_eq(&self.unsafe_patterns, &other.unsafe_patterns)
     }
 
-    fn freshen(&mut self, permutations: &mut PatternSubsts<FreeVar<Ident>>) {
+    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
         <[P]>::freshen(&mut self.unsafe_patterns, permutations)
     }
 
-    fn swaps(&mut self, permutations: &PatternSubsts<FreeVar<Ident>>) {
+    fn swaps(&mut self, permutations: &Permutations<Ident>) {
         <[P]>::swaps(&mut self.unsafe_patterns, permutations)
     }
 
@@ -84,11 +84,11 @@ where
         }
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
-        <[P]>::on_free(&self.unsafe_patterns, state, name)
+    fn find_pvar_index(&self, free_var: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+        <[P]>::find_pvar_index(&self.unsafe_patterns, free_var)
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
-        <[P]>::on_bound(&self.unsafe_patterns, state, name)
+    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+        <[P]>::find_pvar_at_offset(&self.unsafe_patterns, offset)
     }
 }

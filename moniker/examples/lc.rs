@@ -4,16 +4,16 @@
 #[macro_use]
 extern crate moniker;
 
-use moniker::{FreeVar, Scope, Var};
+use moniker::{PVar, Scope, TVar};
 use std::rc::Rc;
 
 /// Expressions
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Variables
-    Var(Var<String>),
+    Var(TVar<String>),
     /// Lambda expressions
-    Lam(Scope<FreeVar<String>, RcExpr>),
+    Lam(Scope<PVar<String>, RcExpr>),
     /// Function application
     App(RcExpr, RcExpr),
 }
@@ -34,9 +34,12 @@ impl From<Expr> for RcExpr {
 
 impl RcExpr {
     // FIXME: auto-derive this somehow!
-    fn subst(&self, name: &FreeVar<String>, replacement: &RcExpr) -> RcExpr {
+    fn subst<N>(&self, name: &N, replacement: &RcExpr) -> RcExpr
+    where
+        TVar<String>: PartialEq<N>,
+    {
         match *self.inner {
-            Expr::Var(Var::Free(ref n)) if name == n => replacement.clone(),
+            Expr::Var(ref n) if n == name => replacement.clone(),
             Expr::Var(_) => self.clone(),
             Expr::Lam(ref scope) => RcExpr::from(Expr::Lam(Scope {
                 unsafe_pattern: scope.unsafe_pattern.clone(),
@@ -69,13 +72,13 @@ fn test_eval() {
     // expr = (\x -> x) y
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
-            FreeVar::user("x"),
-            RcExpr::from(Expr::Var(Var::user("x"))),
+            PVar::user("x"),
+            RcExpr::from(Expr::Var(TVar::user("x"))),
         ))),
-        RcExpr::from(Expr::Var(Var::user("y"))),
+        RcExpr::from(Expr::Var(TVar::user("y"))),
     ));
 
-    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("y"))));
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(TVar::user("y"))),);
 }
 
 fn main() {}

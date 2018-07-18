@@ -1,5 +1,5 @@
-use bound::{BoundPattern, BoundTerm, PatternSubsts, ScopeState};
-use var::{BoundVar, FreeVar};
+use bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
+use var::{FreeVar, PVar, PVarIndex, PVarOffset};
 
 /// Embed a term in a pattern
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,9 +13,9 @@ where
         T::term_eq(&self.0, &other.0)
     }
 
-    fn freshen(&mut self, _: &mut PatternSubsts<FreeVar<Ident>>) {}
+    fn freshen(&mut self, _: &mut Permutations<Ident>) {}
 
-    fn swaps(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
+    fn swaps(&mut self, _: &Permutations<Ident>) {}
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
         self.0.close_term(state, pattern);
@@ -25,11 +25,11 @@ where
         self.0.open_term(state, pattern);
     }
 
-    fn on_free(&self, _: ScopeState, _: &FreeVar<Ident>) -> Option<BoundVar> {
-        None
+    fn find_pvar_index(&self, _: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+        Err(PVarOffset(0))
     }
 
-    fn on_bound(&self, _: ScopeState, _: BoundVar) -> Option<FreeVar<Ident>> {
-        None
+    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+        Err(offset)
     }
 }

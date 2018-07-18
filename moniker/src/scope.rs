@@ -1,5 +1,7 @@
-use bound::{BoundPattern, BoundTerm, PatternSubsts, ScopeState};
-use var::Var;
+use std::hash::Hash;
+
+use bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
+use var::TVar;
 
 /// A bound scope
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,15 +36,18 @@ impl<P, T> Scope<P, T> {
     /// Unbind a term, returning the freshened pattern and body
     pub fn unbind<Ident>(self) -> (P, T)
     where
+        Ident: Eq + Hash,
         P: BoundPattern<Ident>,
         T: BoundTerm<Ident>,
     {
-        let mut permutations = PatternSubsts::new(vec![]);
         let mut pattern = self.unsafe_pattern;
         let mut body = self.unsafe_body;
 
-        pattern.freshen(&mut permutations);
-        body.open_term(ScopeState::new(), &pattern);
+        {
+            let mut permutations = Permutations::new();
+            pattern.freshen(&mut permutations); // FIXME: `permutations` is unused here!
+            body.open_term(ScopeState::new(), &pattern);
+        }
 
         (pattern, body)
     }
@@ -52,6 +57,7 @@ impl<P, T> Scope<P, T> {
     /// The fresh names in the first pattern with be used for the second pattern
     pub fn unbind2<Ident, P2, T2>(self, other: Scope<P2, T2>) -> (P, T, P2, T2)
     where
+        Ident: Eq + Hash,
         P: BoundPattern<Ident>,
         T: BoundTerm<Ident>,
         P2: BoundPattern<Ident>,
@@ -63,7 +69,7 @@ impl<P, T> Scope<P, T> {
         let mut other_body = other.unsafe_body;
 
         {
-            let mut permutations = PatternSubsts::new(vec![]);
+            let mut permutations = Permutations::new();
             self_pattern.freshen(&mut permutations);
             other_pattern.swaps(&permutations);
             self_body.open_term(ScopeState::new(), &self_pattern);
@@ -94,11 +100,11 @@ where
         self.unsafe_body.open_term(state.incr(), pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&TVar<Ident>)) {
         self.unsafe_body.visit_vars(on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut TVar<Ident>)) {
         self.unsafe_body.visit_mut_vars(on_var);
     }
 }

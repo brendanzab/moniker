@@ -1,5 +1,5 @@
-use bound::{BoundPattern, BoundTerm, PatternSubsts, ScopeState};
-use var::{BoundVar, FreeVar, Var};
+use bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
+use var::{FreeVar, PVar, PVarIndex, PVarOffset, TVar};
 
 /// Data that does not participate in name binding
 ///
@@ -17,9 +17,9 @@ impl<Ident, T> BoundTerm<Ident> for Ignore<T> {
 
     fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
-    fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+    fn visit_vars(&self, _: &mut impl FnMut(&TVar<Ident>)) {}
 
-    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
+    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut TVar<Ident>)) {}
 }
 
 impl<Ident, T> BoundPattern<Ident> for Ignore<T> {
@@ -27,19 +27,19 @@ impl<Ident, T> BoundPattern<Ident> for Ignore<T> {
         true
     }
 
-    fn freshen(&mut self, _: &mut PatternSubsts<FreeVar<Ident>>) {}
+    fn freshen(&mut self, _: &mut Permutations<Ident>) {}
 
-    fn swaps(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
+    fn swaps(&mut self, _: &Permutations<Ident>) {}
 
     fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
     fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
-    fn on_free(&self, _: ScopeState, _: &FreeVar<Ident>) -> Option<BoundVar> {
-        None
+    fn find_pvar_index(&self, _: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+        Err(PVarOffset(0))
     }
 
-    fn on_bound(&self, _: ScopeState, _: BoundVar) -> Option<FreeVar<Ident>> {
-        None
+    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+        Err(offset)
     }
 }

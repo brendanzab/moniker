@@ -9,7 +9,7 @@ extern crate im;
 extern crate moniker;
 
 use im::HashMap;
-use moniker::{BoundTerm, Embed, FreeVar, Rec, Scope, Var};
+use moniker::{BoundTerm, Embed, FreeVar, PVar, Rec, Scope, TVar};
 use std::rc::Rc;
 
 /// Types
@@ -22,7 +22,7 @@ pub enum Type {
     /// Strings
     String,
     /// Type variables
-    Var(Var<String>), // TODO: Separate identifier namespaces? See issue #8
+    Var(TVar<String>), // TODO: Separate identifier namespaces? See issue #8
     /// Function types
     Arrow(RcType, RcType),
     /// Record types
@@ -30,7 +30,7 @@ pub enum Type {
     /// Variant types
     Variant(Vec<(String, RcType)>),
     /// Recursive types
-    Rec(Scope<Rec<(FreeVar<String>, Embed<RcType>)>, ()>),
+    Rec(Scope<Rec<(PVar<String>, Embed<RcType>)>, ()>),
 }
 
 /// Reference counted types
@@ -49,11 +49,13 @@ impl From<Type> for RcType {
 
 impl RcType {
     // FIXME: auto-derive this somehow!
-    fn subst(&self, name: &FreeVar<String>, replacement: &RcType) -> RcType {
+    fn subst<N>(&self, name: &N, replacement: &RcType) -> RcType
+    where
+        TVar<String>: PartialEq<N>,
+    {
         match *self.inner {
-            Type::Int | Type::Float | Type::String => self.clone(),
-            Type::Var(Var::Free(ref n)) if name == n => replacement.clone(),
-            Type::Var(_) => self.clone(),
+            Type::Var(ref n) if n == name => replacement.clone(),
+            Type::Var(_) | Type::Int | Type::Float | Type::String => self.clone(),
             Type::Arrow(ref param, ref body) => RcType::from(Type::Arrow(
                 param.subst(name, replacement),
                 body.subst(name, replacement),
@@ -106,9 +108,9 @@ pub enum Expr {
     /// Literals
     Literal(Literal),
     /// Variables
-    Var(Var<String>), // TODO: Separate identifier namespaces? See issue #8
+    Var(TVar<String>), // TODO: Separate identifier namespaces? See issue #8
     /// Lambda expressions, with an optional type annotation for the parameter
-    Lam(Scope<(FreeVar<String>, Embed<Option<RcType>>), RcExpr>),
+    Lam(Scope<(PVar<String>, Embed<Option<RcType>>), RcExpr>),
     /// Function application
     App(RcExpr, RcExpr),
     /// Record values
@@ -139,14 +141,16 @@ impl From<Expr> for RcExpr {
 
 impl RcExpr {
     // FIXME: auto-derive this somehow!
-    fn subst(&self, name: &FreeVar<String>, replacement: &RcExpr) -> RcExpr {
+    fn subst<N>(&self, name: &N, replacement: &RcExpr) -> RcExpr
+    where
+        TVar<String>: PartialEq<N>,
+    {
         match *self.inner {
             Expr::Ann(ref expr, ref ty) => {
                 RcExpr::from(Expr::Ann(expr.subst(name, replacement), ty.clone()))
             },
-            Expr::Literal(_) => self.clone(),
-            Expr::Var(Var::Free(ref n)) if name == n => replacement.clone(),
-            Expr::Var(_) => self.clone(),
+            Expr::Var(ref n) if n == name => replacement.clone(),
+            Expr::Var(_) | Expr::Literal(_) => self.clone(),
             Expr::Lam(ref scope) => RcExpr::from(Expr::Lam(Scope {
                 unsafe_pattern: scope.unsafe_pattern.clone(),
                 unsafe_body: scope.unsafe_body.subst(name, replacement),
@@ -231,6 +235,10 @@ pub fn check(context: &Context, expr: &RcExpr, expected_ty: &RcType) -> Result<(
     match (&*expr.inner, &*expected_ty.inner) {
         (&Expr::Lam(ref scope), &Type::Arrow(ref param_ty, ref ret_ty)) => {
             if let ((name, Embed(None)), body) = scope.clone().unbind() {
+                // FIXME: Ick!
+                let name = name
+                    .try_into_free_var()
+                    .expect("encountered a bound variable");
                 check(&context.insert(name, param_ty.clone()), &body, ret_ty)?;
                 return Ok(());
             }
@@ -269,13 +277,21 @@ pub fn infer(context: &Context, expr: &RcExpr) -> Result<RcType, String> {
         Expr::Literal(Literal::Int(_)) => Ok(RcType::from(Type::Int)),
         Expr::Literal(Literal::Float(_)) => Ok(RcType::from(Type::Float)),
         Expr::Literal(Literal::String(_)) => Ok(RcType::from(Type::String)),
-        Expr::Var(Var::Free(ref name)) => match context.get(name) {
+        Expr::Var(ref var) => match context.get(
+            // FIXME: Ick!
+            &var.clone()
+                .try_into_free_var()
+                .expect("encountered a bound variable"),
+        ) {
             Some(term) => Ok((*term).clone()),
-            None => Err(format!("`{:?}` not found", name)),
+            None => Err(format!("`{:?}` not found in `{:?}`", var, context)),
         },
-        Expr::Var(Var::Bound(ref name, _)) => panic!("encountered a bound variable: {:?}", name),
         Expr::Lam(ref scope) => match scope.clone().unbind() {
             ((name, Embed(Some(ann))), body) => {
+                // FIXME: Ick!
+                let name = name
+                    .try_into_free_var()
+                    .expect("encountered a bound variable");
                 let body_ty = infer(&context.insert(name, ann.clone()), &body)?;
                 Ok(RcType::from(Type::Arrow(ann, body_ty)))
             },
@@ -334,8 +350,8 @@ pub fn infer(context: &Context, expr: &RcExpr) -> Result<RcType, String> {
 fn test_infer() {
     // expr = (\x : Int -> x)
     let expr = RcExpr::from(Expr::Lam(Scope::new(
-        (FreeVar::user("x"), Embed(Some(RcType::from(Type::Int)))),
-        RcExpr::from(Expr::Var(Var::user("x"))),
+        (PVar::user("x"), Embed(Some(RcType::from(Type::Int)))),
+        RcExpr::from(Expr::Var(TVar::user("x"))),
     )));
 
     assert_term_eq!(
