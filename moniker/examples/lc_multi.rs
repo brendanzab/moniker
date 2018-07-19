@@ -4,16 +4,16 @@
 #[macro_use]
 extern crate moniker;
 
-use moniker::{FreeVar, Scope, Var};
+use moniker::{PVar, Scope, TVar};
 use std::rc::Rc;
 
 /// Expressions
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Variables
-    Var(Var<String>),
+    Var(TVar<String>),
     /// Lambda expressions
-    Lam(Scope<Vec<FreeVar<String>>, RcExpr>),
+    Lam(Scope<Vec<PVar<String>>, RcExpr>),
     /// Function application
     App(RcExpr, Vec<RcExpr>),
 }
@@ -34,13 +34,15 @@ impl From<Expr> for RcExpr {
 
 impl RcExpr {
     // FIXME: auto-derive this somehow!
-    fn substs(&self, mappings: &[(FreeVar<String>, RcExpr)]) -> RcExpr {
+    fn substs<N>(&self, mappings: &[(N, RcExpr)]) -> RcExpr
+    where
+        TVar<String>: PartialEq<N>,
+    {
         match *self.inner {
-            Expr::Var(Var::Free(ref n)) => match mappings.iter().find(|&(n2, _)| n == n2) {
+            Expr::Var(ref n) => match mappings.iter().find(|&(n2, _)| n == n2) {
                 Some((_, ref subst_expr)) => subst_expr.clone(),
                 None => self.clone(),
             },
-            Expr::Var(_) => self.clone(),
             Expr::Lam(ref scope) => RcExpr::from(Expr::Lam(Scope {
                 unsafe_pattern: scope.unsafe_pattern.clone(),
                 unsafe_body: scope.unsafe_body.substs(mappings),
@@ -86,22 +88,42 @@ pub fn eval(expr: &RcExpr) -> Result<RcExpr, EvalError> {
 }
 
 #[test]
-fn test_eval() {
+fn test_eval_const_lhs() {
     // expr = (fn(x, y) -> y)(a, b)
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
-            vec![FreeVar::user("x"), FreeVar::user("y")],
-            RcExpr::from(Expr::Var(Var::user("y"))),
+            vec![PVar::user("x"), PVar::user("y")],
+            RcExpr::from(Expr::Var(TVar::user("y"))),
         ))),
         vec![
-            RcExpr::from(Expr::Var(Var::user("a"))),
-            RcExpr::from(Expr::Var(Var::user("b"))),
+            RcExpr::from(Expr::Var(TVar::user("a"))),
+            RcExpr::from(Expr::Var(TVar::user("b"))),
         ],
     ));
 
     assert_term_eq!(
         eval(&expr).unwrap(),
-        RcExpr::from(Expr::Var(Var::user("b"))),
+        RcExpr::from(Expr::Var(TVar::user("b"))),
+    );
+}
+
+#[test]
+fn test_eval_const_rhs() {
+    // expr = (fn(x, y) -> x)(a, b)
+    let expr = RcExpr::from(Expr::App(
+        RcExpr::from(Expr::Lam(Scope::new(
+            vec![PVar::user("x"), PVar::user("y")],
+            RcExpr::from(Expr::Var(TVar::user("x"))),
+        ))),
+        vec![
+            RcExpr::from(Expr::Var(TVar::user("a"))),
+            RcExpr::from(Expr::Var(TVar::user("b"))),
+        ],
+    ));
+
+    assert_term_eq!(
+        eval(&expr).unwrap(),
+        RcExpr::from(Expr::Var(TVar::user("a"))),
     );
 }
 

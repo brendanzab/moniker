@@ -1,7 +1,10 @@
-use bound::{BoundPattern, PatternSubsts, ScopeState};
-use var::{BoundVar, FreeVar};
+use bound::{BoundPattern, Permutations, ScopeState};
+use var::{FreeVar, PVar, PVarIndex, PVarOffset};
 
-/// Recursive patterns
+/// Recursively bind a pattern in itself
+///
+/// Mutually recursive bindings can be modelled by combining this type with
+/// the pattern implementations for `Vec<P>` and `(P1, P2)`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Rec<P> {
     pub unsafe_pattern: P,
@@ -35,12 +38,12 @@ where
         P::pattern_eq(&self.unsafe_pattern, &other.unsafe_pattern)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        self.unsafe_pattern.freshen()
+    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+        self.unsafe_pattern.freshen(permutations)
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        self.unsafe_pattern.rename(perm)
+    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+        self.unsafe_pattern.swaps(permutations)
     }
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
@@ -51,11 +54,11 @@ where
         self.unsafe_pattern.open_pattern(state, pattern);
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
-        self.unsafe_pattern.on_free(state, name)
+    fn find_pvar_index(&self, free_var: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+        self.unsafe_pattern.find_pvar_index(free_var)
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
-        self.unsafe_pattern.on_bound(state, name)
+    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+        self.unsafe_pattern.find_pvar_at_offset(offset)
     }
 }

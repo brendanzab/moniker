@@ -4,20 +4,20 @@
 #[macro_use]
 extern crate moniker;
 
-use moniker::{BoundTerm, Embed, FreeVar, Rec, Scope, Var};
+use moniker::{BoundTerm, Embed, PVar, Rec, Scope, TVar};
 use std::rc::Rc;
 
 /// Expressions
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Variables
-    Var(Var<String>),
+    Var(TVar<String>),
     /// Lambda expressions
-    Lam(Scope<FreeVar<String>, RcExpr>),
+    Lam(Scope<PVar<String>, RcExpr>),
     /// Function application
     App(RcExpr, RcExpr),
     /// Mutually recursive let bindings
-    LetRec(Scope<Rec<Vec<(FreeVar<String>, Embed<RcExpr>)>>, RcExpr>),
+    LetRec(Scope<Rec<Vec<(PVar<String>, Embed<RcExpr>)>>, RcExpr>),
 }
 
 /// Reference counted expressions
@@ -36,9 +36,12 @@ impl From<Expr> for RcExpr {
 
 impl RcExpr {
     // FIXME: auto-derive this somehow!
-    fn subst(&self, name: &FreeVar<String>, replacement: &RcExpr) -> RcExpr {
+    fn subst<N>(&self, name: &N, replacement: &RcExpr) -> RcExpr
+    where
+        TVar<String>: PartialEq<N>,
+    {
         match *self.inner {
-            Expr::Var(Var::Free(ref n)) if name == n => replacement.clone(),
+            Expr::Var(ref n) if n == name => replacement.clone(),
             Expr::Var(_) => self.clone(),
             Expr::Lam(ref scope) => RcExpr::from(Expr::Lam(Scope {
                 unsafe_pattern: scope.unsafe_pattern.clone(),
@@ -88,7 +91,10 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
             // garbage collect, if possible
             // FIXME: `free_vars` is slow! We probably want this to be faster - see issue #10
             let fvs = body.free_vars();
-            if bindings.iter().any(|&(ref name, _)| fvs.contains(name)) {
+            if bindings.iter().any(|&(ref name, _)| match *name {
+                PVar::Free(ref name) => fvs.contains(name),
+                _ => panic!("encountered a bound variable"),
+            }) {
                 RcExpr::from(Expr::LetRec(Scope::new(Rec::new(&bindings), body)))
             } else {
                 eval(&body)
@@ -102,13 +108,13 @@ fn test_eval() {
     // expr = (\x -> x) y
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
-            FreeVar::user("x"),
-            RcExpr::from(Expr::Var(Var::user("x"))),
+            PVar::user("x"),
+            RcExpr::from(Expr::Var(TVar::user("x"))),
         ))),
-        RcExpr::from(Expr::Var(Var::user("y"))),
+        RcExpr::from(Expr::Var(TVar::user("y"))),
     ));
 
-    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("y"))));
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(TVar::user("y"))),);
 }
 
 #[test]
@@ -122,24 +128,24 @@ fn test_eval_let_rec() {
     let expr = RcExpr::from(Expr::LetRec(Scope::new(
         Rec::new(&vec![
             (
-                FreeVar::user("test"),
+                PVar::user("test"),
                 Embed(RcExpr::from(Expr::App(
-                    RcExpr::from(Expr::Var(Var::user("id"))),
-                    RcExpr::from(Expr::Var(Var::user("x"))),
+                    RcExpr::from(Expr::Var(TVar::user("id"))),
+                    RcExpr::from(Expr::Var(TVar::user("x"))),
                 ))),
             ),
             (
-                FreeVar::user("id"),
+                PVar::user("id"),
                 Embed(RcExpr::from(Expr::Lam(Scope::new(
-                    FreeVar::user("x"),
-                    RcExpr::from(Expr::Var(Var::user("x"))),
+                    PVar::user("x"),
+                    RcExpr::from(Expr::Var(TVar::user("x"))),
                 )))),
             ),
         ]),
-        RcExpr::from(Expr::Var(Var::user("test"))),
+        RcExpr::from(Expr::Var(TVar::user("test"))),
     )));
 
-    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("x"))));
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(TVar::user("x"))));
 }
 
 fn main() {}

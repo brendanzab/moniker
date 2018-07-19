@@ -3,12 +3,12 @@ use codespan::{
     ByteIndex, ByteOffset, ColumnIndex, ColumnNumber, ColumnOffset, LineIndex, LineNumber,
     LineOffset, Span,
 };
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::rc::Rc;
-use std::{slice, vec};
+use std::sync::Arc;
 
-use var::{BoundVar, FreeVar, GenId, PatternIndex, ScopeOffset, Var};
+use var::{FreeVar, PVar, PVarIndex, PVarOffset, ScopeOffset, TVar};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScopeState {
@@ -30,6 +30,7 @@ impl ScopeState {
     }
 }
 
+/// Terms that may contain variables that can be bound by patterns
 pub trait BoundTerm<Ident> {
     /// Alpha equivalence in a term context
     fn term_eq(&self, other: &Self) -> bool;
@@ -38,115 +39,80 @@ pub trait BoundTerm<Ident> {
 
     fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>);
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>));
+    fn visit_vars(&self, on_var: &mut impl FnMut(&TVar<Ident>));
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>));
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut TVar<Ident>));
 
+    /// Returns the set of free variables in this term
     fn free_vars(&self) -> HashSet<FreeVar<Ident>>
     where
         Ident: Eq + Hash + Clone,
     {
         let mut free_vars = HashSet::new();
         self.visit_vars(&mut |var| match *var {
-            Var::Bound(_, _) => {},
-            Var::Free(ref name) => {
-                free_vars.insert(name.clone());
+            TVar::Bound(_, _, _) => {},
+            TVar::Free(ref free_var) => {
+                free_vars.insert(free_var.clone());
             },
         });
         free_vars
     }
 }
 
-/// Asserts that two expressions are alpha equivalent to each other (using
-/// `BoundTerm::term_eq`).
-///
-/// On panic, this macro will print the values of the expressions with their
-/// debug representations.
-///
-/// Like `assert!`, this macro has a second form, where a custom
-/// panic message can be provided.
-#[macro_export]
-macro_rules! assert_term_eq {
-    ($left:expr, $right:expr) => ({
-        match (&$left, &$right) {
-            (left_val, right_val) => {
-                if !::moniker::BoundTerm::term_eq(left_val, right_val) {
-                    panic!(r#"assertion failed: `<_>::term_eq(&left, &right)`
-  left: `{:?}`,
- right: `{:?}`"#, left_val, right_val)
-                }
-            }
-        }
-    });
-    ($left:expr, $right:expr,) => ({
-        assert_term_eq!($left, $right)
-    });
-    ($left:expr, $right:expr, $($arg:tt)+) => ({
-        match (&($left), &($right)) {
-            (left_val, right_val) => {
-                if !::moniker::BoundTerm::term_eq(left_val, right_val) {
-                    panic!(r#"assertion failed: `<_>::term_eq(&left, &right)`
-  left: `{:?}`,
- right: `{:?}`: {}"#, left_val, right_val,
-                           format_args!($($arg)+))
-                }
-            }
-        }
-    });
-}
-
 impl<Ident: PartialEq> BoundTerm<Ident> for FreeVar<Ident> {
     fn term_eq(&self, other: &FreeVar<Ident>) -> bool {
-        match (self, other) {
-            (&FreeVar::User(ref lhs), &FreeVar::User(ref rhs)) => lhs == rhs,
-            (&FreeVar::Gen(ref lhs, _), &FreeVar::Gen(ref rhs, _)) => lhs == rhs,
-            _ => false,
-        }
+        self == other
     }
 
     fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
     fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
-    fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+    fn visit_vars(&self, _: &mut impl FnMut(&TVar<Ident>)) {}
 
-    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
+    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut TVar<Ident>)) {}
 }
 
-impl<Ident: PartialEq + Clone> BoundTerm<Ident> for Var<Ident> {
-    fn term_eq(&self, other: &Var<Ident>) -> bool {
-        match (self, other) {
-            (&Var::Free(ref lhs), &Var::Free(ref rhs)) => FreeVar::term_eq(lhs, rhs),
-            (&Var::Bound(ref lhs, _), &Var::Bound(ref rhs, _)) => lhs == rhs,
-            (_, _) => false,
-        }
+impl<Ident: PartialEq + Clone> BoundTerm<Ident> for TVar<Ident> {
+    fn term_eq(&self, other: &TVar<Ident>) -> bool {
+        self == other
     }
 
     fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        // NOTE: Working around NLL
         *self = match *self {
-            Var::Bound(_, _) => return,
-            Var::Free(ref name) => match pattern.on_free(state, name) {
-                Some(bound) => Var::Bound(bound, name.ident().cloned()),
-                None => return,
+            TVar::Bound(_, _, _) => return,
+            TVar::Free(ref free_var) => match pattern.find_pvar_index(free_var) {
+                Ok(pvar_index) => TVar::Bound(state.depth(), pvar_index, free_var.ident().cloned()),
+                Err(_) => return,
             },
         };
     }
 
     fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        // NOTE: Working around NLL
         *self = match *self {
-            Var::Free(_) => return,
-            Var::Bound(bound, _) => match pattern.on_bound(state, bound) {
-                Some(name) => Var::Free(name),
-                None => return,
+            TVar::Bound(scope, pvar_index, _) if scope == state.depth() => {
+                match pattern.find_pvar_at_offset(pvar_index.0) {
+                    Ok(pvar) => pvar.to_var(state.depth()),
+                    Err(_) => {
+                        // FIXME: better error?
+                        panic!(
+                            "too few variables in pattern: expected at least {}",
+                            pvar_index,
+                        );
+                    },
+                }
             },
+            TVar::Bound(_, _, _) | TVar::Free(_) => return,
         };
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&TVar<Ident>)) {
         on_var(self);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut TVar<Ident>)) {
         on_var(self);
     }
 }
@@ -164,9 +130,9 @@ macro_rules! impl_bound_term_partial_eq {
 
             fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
-            fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+            fn visit_vars(&self, _: &mut impl FnMut(&TVar<Ident>)) {}
 
-            fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
+            fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut TVar<Ident>)) {}
         }
     };
 }
@@ -201,9 +167,9 @@ macro_rules! impl_bound_term_ignore {
 
             fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
-            fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+            fn visit_vars(&self, _: &mut impl FnMut(&TVar<Ident>)) {}
 
-            fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
+            fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut TVar<Ident>)) {}
         }
     };
 }
@@ -235,9 +201,9 @@ impl<Ident, T> BoundTerm<Ident> for Span<T> {
 
     fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
-    fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+    fn visit_vars(&self, _: &mut impl FnMut(&TVar<Ident>)) {}
 
-    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
+    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut TVar<Ident>)) {}
 }
 
 impl<Ident, T> BoundTerm<Ident> for Option<T>
@@ -264,13 +230,13 @@ where
         }
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&TVar<Ident>)) {
         if let Some(ref inner) = *self {
             inner.visit_vars(on_var);
         }
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut TVar<Ident>)) {
         if let Some(ref mut inner) = *self {
             inner.visit_mut_vars(on_var);
         }
@@ -293,11 +259,11 @@ where
         T::open_term(self, state, pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&TVar<Ident>)) {
         T::visit_vars(self, on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut TVar<Ident>)) {
         T::visit_mut_vars(self, on_var);
     }
 }
@@ -318,12 +284,37 @@ where
         T::open_term(Rc::make_mut(self), state, pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&TVar<Ident>)) {
         T::visit_vars(self, on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut TVar<Ident>)) {
         T::visit_mut_vars(Rc::make_mut(self), on_var);
+    }
+}
+
+impl<Ident, T> BoundTerm<Ident> for Arc<T>
+where
+    T: BoundTerm<Ident> + Clone,
+{
+    fn term_eq(&self, other: &Arc<T>) -> bool {
+        T::term_eq(self, other)
+    }
+
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        T::close_term(Arc::make_mut(self), state, pattern);
+    }
+
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        T::open_term(Arc::make_mut(self), state, pattern);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&TVar<Ident>)) {
+        T::visit_vars(self, on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut TVar<Ident>)) {
+        T::visit_mut_vars(Arc::make_mut(self), on_var);
     }
 }
 
@@ -346,12 +337,12 @@ where
         self.1.open_term(state, pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&TVar<Ident>)) {
         self.0.visit_vars(on_var);
         self.1.visit_vars(on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut TVar<Ident>)) {
         self.0.visit_mut_vars(on_var);
         self.1.visit_mut_vars(on_var);
     }
@@ -381,13 +372,13 @@ where
         self.2.open_term(state, pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&TVar<Ident>)) {
         self.0.visit_vars(on_var);
         self.1.visit_vars(on_var);
         self.2.visit_vars(on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut TVar<Ident>)) {
         self.0.visit_mut_vars(on_var);
         self.1.visit_mut_vars(on_var);
         self.2.visit_mut_vars(on_var);
@@ -415,13 +406,13 @@ where
         }
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&TVar<Ident>)) {
         for elem in self {
             elem.visit_vars(on_var);
         }
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut TVar<Ident>)) {
         for elem in self {
             elem.visit_mut_vars(on_var);
         }
@@ -444,151 +435,82 @@ where
         <[T]>::open_term(self, state, pattern)
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&TVar<Ident>)) {
         <[T]>::visit_vars(self, on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut TVar<Ident>)) {
         <[T]>::visit_mut_vars(self, on_var);
     }
 }
 
-/// A mapping of `PatternIndex`s to `T`s
-pub struct PatternSubsts<T> {
-    perm: Vec<T>,
-}
+pub type Permutations<Ident> = HashMap<PVar<Ident>, PVar<Ident>>;
 
-impl<T> PatternSubsts<T> {
-    pub fn new(perm: Vec<T>) -> PatternSubsts<T> {
-        PatternSubsts { perm }
-    }
-
-    pub fn lookup(&self, index: PatternIndex) -> Option<&T> {
-        self.perm.get(index.0 as usize)
-    }
-
-    pub fn len(&self) -> usize {
-        self.perm.len()
-    }
-
-    pub fn iter(&self) -> slice::Iter<T> {
-        self.perm.iter()
-    }
-}
-
-impl<T> Extend<T> for PatternSubsts<T> {
-    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
-        self.perm.extend(iter)
-    }
-}
-
-impl<T> IntoIterator for PatternSubsts<T> {
-    type Item = T;
-    type IntoIter = vec::IntoIter<T>;
-
-    fn into_iter(self) -> vec::IntoIter<T> {
-        self.perm.into_iter()
-    }
-}
-
+/// Patterns that bind variables in terms
 pub trait BoundPattern<Ident> {
     /// Alpha equivalence in a pattern context
     fn pattern_eq(&self, other: &Self) -> bool;
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>>;
+    fn freshen(&mut self, permutations: &mut Permutations<Ident>);
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>);
+    fn swaps(&mut self, permutations: &Permutations<Ident>);
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>);
 
     fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>);
 
-    /// A callback that is used when `unbind`ing `Bind`s to replace free names
-    /// with bound names based on the contents of the pattern
-    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar>;
+    /// Find the index of the pattern that binds the given free variable
+    ///
+    /// If we failed to find a pattern variable corresponding to the free
+    /// variable we return a pattern variable offset describing how many
+    /// pattern variables we passed over.
+    fn find_pvar_index(&self, free_var: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset>;
 
-    /// A callback that is used when `bind`ing `Bind`s to replace bound names
-    /// with free names based on the contents of the pattern
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>>;
+    /// Find the pattern variable at the given offset
+    ///
+    /// If we finished traversing over the pattern without finding a pattern
+    /// we return the offset that still remains.
+    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset>;
 }
 
-/// Asserts that two expressions are alpha equivalent to each other (using
-/// `BoundPattern::pattern_eq`).
-///
-/// On panic, this macro will print the values of the expressions with their
-/// debug representations.
-///
-/// Like `assert!`, this macro has a second form, where a custom
-/// panic message can be provided.
-#[macro_export]
-macro_rules! assert_pattern_eq {
-    ($left:expr, $right:expr) => ({
-        match (&$left, &$right) {
-            (left_val, right_val) => {
-                if !::moniker::BoundPattern::pattern_eq(left_val, right_val) {
-                    panic!(r#"assertion failed: `<_>::pattern_eq(&left, &right)`
-  left: `{:?}`,
- right: `{:?}`"#, left_val, right_val)
-                }
-            }
-        }
-    });
-    ($left:expr, $right:expr,) => ({
-        assert_pattern_eq!($left, $right)
-    });
-    ($left:expr, $right:expr, $($arg:tt)+) => ({
-        match (&($left), &($right)) {
-            (left_val, right_val) => {
-                if !::moniker::BoundPattern::pattern_eq(left_val, right_val) {
-                    panic!(r#"assertion failed: `<_>::pattern_eq(&left, &right)`
-  left: `{:?}`,
- right: `{:?}`: {}"#, left_val, right_val,
-                           format_args!($($arg)+))
-                }
-            }
-        }
-    });
-}
-
-impl<Ident: Clone + PartialEq> BoundPattern<Ident> for FreeVar<Ident> {
-    fn pattern_eq(&self, _other: &FreeVar<Ident>) -> bool {
+impl<Ident> BoundPattern<Ident> for PVar<Ident>
+where
+    Ident: Clone + Eq + Hash,
+{
+    fn pattern_eq(&self, _: &PVar<Ident>) -> bool {
         true
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        *self = match *self {
-            FreeVar::User(ref name) => FreeVar::Gen(GenId::fresh(), Some(name.clone())),
-            FreeVar::Gen(_, _) => return PatternSubsts::new(vec![self.clone()]),
-        };
-        PatternSubsts::new(vec![self.clone()])
+    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+        let fresh = self.clone().fresh();
+        permutations.insert(self.clone(), fresh.clone());
+        *self = fresh;
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        assert_eq!(perm.len(), 1); // FIXME: assert
-        *self = perm.lookup(PatternIndex(0)).unwrap().clone(); // FIXME: double clone
+    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+        *self = permutations
+            .get(self)
+            .cloned()
+            // TODO: better error here?
+            .expect("pattern not found in permutation");
     }
 
     fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
     fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
-        match FreeVar::term_eq(name, self) {
-            true => Some(BoundVar {
-                scope: state.depth(),
-                pattern: PatternIndex(0),
-            }),
-            false => None,
+    fn find_pvar_index(&self, free_var: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+        match *self {
+            PVar::Free(ref n) if n == free_var => Ok(PVarIndex(PVarOffset(0))),
+            PVar::Free(_) | PVar::Bound(_, _) => Err(PVarOffset(1)),
         }
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
-        match name.scope == state.depth() {
-            true => {
-                assert_eq!(name.pattern, PatternIndex(0));
-                Some(self.clone())
-            },
-            false => None,
+    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+        if offset == PVarOffset(0) {
+            Ok(self.clone())
+        } else {
+            Err(offset - PVarOffset(1))
         }
     }
 }
@@ -602,22 +524,20 @@ macro_rules! impl_bound_pattern_partial_eq {
                 self == other
             }
 
-            fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-                PatternSubsts::new(vec![])
-            }
+            fn freshen(&mut self, _: &mut Permutations<Ident>) {}
 
-            fn rename(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
+            fn swaps(&mut self, _: &Permutations<Ident>) {}
 
             fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
             fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
-            fn on_free(&self, _: ScopeState, _: &FreeVar<Ident>) -> Option<BoundVar> {
-                None
+            fn find_pvar_index(&self, _: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+                Err(PVarOffset(0))
             }
 
-            fn on_bound(&self, _: ScopeState, _: BoundVar) -> Option<FreeVar<Ident>> {
-                None
+            fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+                Err(offset)
             }
         }
     };
@@ -649,22 +569,20 @@ macro_rules! impl_bound_pattern_ignore {
                 true
             }
 
-            fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-                PatternSubsts::new(vec![])
-            }
+            fn freshen(&mut self, _: &mut Permutations<Ident>) {}
 
-            fn rename(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
+            fn swaps(&mut self, _: &Permutations<Ident>) {}
 
             fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
             fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
-            fn on_free(&self, _: ScopeState, _: &FreeVar<Ident>) -> Option<BoundVar> {
-                None
+            fn find_pvar_index(&self, _: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+                Err(PVarOffset(0))
             }
 
-            fn on_bound(&self, _: ScopeState, _: BoundVar) -> Option<FreeVar<Ident>> {
-                None
+            fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+                Err(offset)
             }
         }
     };
@@ -693,22 +611,20 @@ impl<Ident, T> BoundPattern<Ident> for Span<T> {
         true
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        PatternSubsts::new(vec![])
-    }
+    fn freshen(&mut self, _: &mut Permutations<Ident>) {}
 
-    fn rename(&mut self, _: &PatternSubsts<FreeVar<Ident>>) {}
+    fn swaps(&mut self, _: &Permutations<Ident>) {}
 
     fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
     fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
 
-    fn on_free(&self, _: ScopeState, _: &FreeVar<Ident>) -> Option<BoundVar> {
-        None
+    fn find_pvar_index(&self, _: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+        Err(PVarOffset(0))
     }
 
-    fn on_bound(&self, _: ScopeState, _: BoundVar) -> Option<FreeVar<Ident>> {
-        None
+    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+        Err(offset)
     }
 }
 
@@ -724,16 +640,15 @@ where
         }
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        match *self {
-            Some(ref mut inner) => inner.freshen(),
-            None => PatternSubsts::new(vec![]),
+    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+        if let Some(ref mut inner) = *self {
+            inner.freshen(permutations);
         }
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
+    fn swaps(&mut self, permutations: &Permutations<Ident>) {
         if let Some(ref mut inner) = *self {
-            inner.rename(perm);
+            inner.swaps(permutations);
         }
     }
 
@@ -749,12 +664,18 @@ where
         }
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
-        self.as_ref().and_then(|inner| inner.on_free(state, name))
+    fn find_pvar_index(&self, free_var: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+        match *self {
+            None => Err(PVarOffset(0)),
+            Some(ref inner) => inner.find_pvar_index(free_var),
+        }
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
-        self.as_ref().and_then(|inner| inner.on_bound(state, name))
+    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+        match *self {
+            None => Err(offset),
+            Some(ref inner) => inner.find_pvar_at_offset(offset),
+        }
     }
 }
 
@@ -767,15 +688,14 @@ where
         P1::pattern_eq(&self.0, &other.0) && P2::pattern_eq(&self.1, &other.1)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        let mut perm = self.0.freshen();
-        perm.extend(self.1.freshen());
-        perm
+    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+        self.0.freshen(permutations);
+        self.1.freshen(permutations);
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        self.0.rename(perm);
-        self.1.rename(perm);
+    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+        self.0.swaps(permutations);
+        self.1.swaps(permutations);
     }
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
@@ -788,16 +708,32 @@ where
         self.1.open_pattern(state, pattern);
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
-        self.0
-            .on_free(state, name)
-            .or_else(|| self.1.on_free(state, name))
+    fn find_pvar_index(&self, free_var: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+        let mut skipped = PVarOffset(0);
+
+        match self.0.find_pvar_index(free_var) {
+            Ok(pvar_index) => return Ok(pvar_index + skipped),
+            Err(next_skipped) => skipped += next_skipped,
+        }
+        match self.1.find_pvar_index(free_var) {
+            Ok(pvar_index) => return Ok(pvar_index + skipped),
+            Err(next_skipped) => skipped += next_skipped,
+        }
+
+        Err(skipped)
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
-        self.0
-            .on_bound(state, name)
-            .or_else(|| self.1.on_bound(state, name))
+    fn find_pvar_at_offset(&self, mut offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+        match self.0.find_pvar_at_offset(offset) {
+            Ok(pvar) => return Ok(pvar),
+            Err(next_offset) => offset = next_offset,
+        }
+        match self.1.find_pvar_at_offset(offset) {
+            Ok(pvar) => return Ok(pvar),
+            Err(next_offset) => offset = next_offset,
+        }
+
+        Err(offset)
     }
 }
 
@@ -809,12 +745,12 @@ where
         P::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        P::freshen(self)
+    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+        P::freshen(self, permutations)
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        P::rename(self, perm);
+    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+        P::swaps(self, permutations)
     }
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
@@ -825,12 +761,12 @@ where
         P::open_pattern(self, state, pattern);
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
-        P::on_free(self, state, name)
+    fn find_pvar_index(&self, free_var: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+        P::find_pvar_index(self, free_var)
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
-        P::on_bound(self, state, name)
+    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+        P::find_pvar_at_offset(self, offset)
     }
 }
 
@@ -842,12 +778,12 @@ where
         P::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        P::freshen(Rc::make_mut(self))
+    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+        P::freshen(Rc::make_mut(self), permutations)
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        P::rename(Rc::make_mut(self), perm);
+    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+        P::swaps(Rc::make_mut(self), permutations)
     }
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
@@ -858,12 +794,45 @@ where
         P::open_pattern(Rc::make_mut(self), state, pattern);
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
-        P::on_free(self, state, name)
+    fn find_pvar_index(&self, free_var: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+        P::find_pvar_index(self, free_var)
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
-        P::on_bound(self, state, name)
+    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+        P::find_pvar_at_offset(self, offset)
+    }
+}
+
+impl<Ident, P> BoundPattern<Ident> for Arc<P>
+where
+    P: BoundPattern<Ident> + Clone,
+{
+    fn pattern_eq(&self, other: &Arc<P>) -> bool {
+        P::pattern_eq(self, other)
+    }
+
+    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+        P::freshen(Arc::make_mut(self), permutations)
+    }
+
+    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+        P::swaps(Arc::make_mut(self), permutations);
+    }
+
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        P::close_pattern(Arc::make_mut(self), state, pattern);
+    }
+
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+        P::open_pattern(Arc::make_mut(self), state, pattern);
+    }
+
+    fn find_pvar_index(&self, free_var: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+        P::find_pvar_index(self, free_var)
+    }
+
+    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+        P::find_pvar_at_offset(self, offset)
     }
 }
 
@@ -877,16 +846,15 @@ where
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        // FIXME: intermediate allocations
-        PatternSubsts::new(self.iter_mut().flat_map(P::freshen).collect())
+    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+        for elem in self {
+            elem.freshen(permutations);
+        }
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        assert_eq!(self.len(), perm.len()); // FIXME: assertion
-
-        for (pattern, perm) in <_>::zip(self.iter_mut(), perm.iter()) {
-            pattern.rename(&PatternSubsts::new(vec![perm.clone()])); // FIXME: clone
+    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+        for elem in self {
+            elem.swaps(permutations);
         }
     }
 
@@ -902,31 +870,25 @@ where
         }
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
-        self.iter()
-            .enumerate()
-            .filter_map(|(i, pattern)| {
-                pattern.on_free(state, name).map(|bound| {
-                    assert_eq!(bound.pattern, PatternIndex(0));
-                    BoundVar {
-                        pattern: PatternIndex(i as u32),
-                        ..bound
-                    }
-                })
-            })
-            .next()
+    fn find_pvar_index(&self, free_var: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+        let mut skipped = PVarOffset(0);
+        for elem in self {
+            match elem.find_pvar_index(free_var) {
+                Ok(pvar_index) => return Ok(pvar_index + skipped),
+                Err(next_skipped) => skipped += next_skipped,
+            }
+        }
+        Err(skipped)
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
-        self.get(name.pattern.0 as usize).and_then(|pattern| {
-            pattern.on_bound(
-                state,
-                BoundVar {
-                    pattern: PatternIndex(0),
-                    ..name
-                },
-            )
-        })
+    fn find_pvar_at_offset(&self, mut offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+        for elem in self {
+            match elem.find_pvar_at_offset(offset) {
+                Ok(pvar) => return Ok(pvar),
+                Err(next_offset) => offset = next_offset,
+            }
+        }
+        Err(offset)
     }
 }
 
@@ -939,12 +901,12 @@ where
         <[P]>::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self) -> PatternSubsts<FreeVar<Ident>> {
-        <[P]>::freshen(self)
+    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+        <[P]>::freshen(self, permutations);
     }
 
-    fn rename(&mut self, perm: &PatternSubsts<FreeVar<Ident>>) {
-        <[P]>::rename(self, perm);
+    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+        <[P]>::swaps(self, permutations)
     }
 
     fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
@@ -955,11 +917,294 @@ where
         <[P]>::open_pattern(self, state, pattern);
     }
 
-    fn on_free(&self, state: ScopeState, name: &FreeVar<Ident>) -> Option<BoundVar> {
-        <[P]>::on_free(self, state, name)
+    fn find_pvar_index(&self, free_var: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
+        <[P]>::find_pvar_index(self, free_var)
     }
 
-    fn on_bound(&self, state: ScopeState, name: BoundVar) -> Option<FreeVar<Ident>> {
-        <[P]>::on_bound(self, state, name)
+    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
+        <[P]>::find_pvar_at_offset(self, offset)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn pvar(ident: &str) -> PVar<&str> {
+        PVar::user(ident)
+    }
+
+    fn free_var(ident: &str) -> FreeVar<&str> {
+        FreeVar::user(ident)
+    }
+
+    mod pvar {
+        use super::*;
+
+        mod find_pvar_index {
+            use super::*;
+
+            #[test]
+            fn test_not_found() {
+                assert_eq!(
+                    pvar("a").find_pvar_index(&free_var("b")),
+                    Err(PVarOffset(1)),
+                );
+            }
+
+            #[test]
+            fn test_found() {
+                assert_eq!(
+                    pvar("a").find_pvar_index(&free_var("a")),
+                    Ok(PVarIndex(PVarOffset(0))),
+                );
+            }
+        }
+
+        mod find_pvar_at_offset {
+            use super::*;
+
+            #[test]
+            fn test_not_found() {
+                assert_eq!(
+                    pvar("a").find_pvar_at_offset(PVarOffset(2)),
+                    Err(PVarOffset(1)),
+                );
+            }
+
+            #[test]
+            fn test_found() {
+                assert_eq!(pvar("a").find_pvar_at_offset(PVarOffset(0)), Ok(pvar("a")),);
+            }
+        }
+    }
+
+    mod unit {
+        use super::*;
+
+        mod find_pvar_index {
+            use super::*;
+
+            #[test]
+            fn test_not_found() {
+                assert_eq!(().find_pvar_index(&free_var("a")), Err(PVarOffset(0)));
+            }
+        }
+
+        mod find_pvar_at_offset {
+            use super::*;
+
+            #[test]
+            fn test_not_found() {
+                assert_eq!(
+                    BoundPattern::<&str>::find_pvar_at_offset(&(), PVarOffset(2)),
+                    Err(PVarOffset(2))
+                );
+            }
+        }
+    }
+
+    mod opt {
+        use super::*;
+
+        mod find_pvar_index {
+            use super::*;
+
+            #[test]
+            fn test_none_not_found() {
+                assert_eq!(
+                    None::<()>.find_pvar_index(&free_var("a")),
+                    Err(PVarOffset(0)),
+                );
+            }
+
+            #[test]
+            fn test_some_not_found() {
+                assert_eq!(
+                    Some(pvar("a")).find_pvar_index(&free_var("b")),
+                    Err(PVarOffset(1)),
+                );
+            }
+
+            #[test]
+            fn test_some_found() {
+                assert_eq!(
+                    Some(pvar("a")).find_pvar_index(&free_var("a")),
+                    Ok(PVarIndex(PVarOffset(0))),
+                );
+            }
+        }
+
+        mod find_pvar_at_offset {
+            use super::*;
+
+            #[test]
+            fn test_none_not_found() {
+                assert_eq!(
+                    BoundPattern::<&str>::find_pvar_at_offset(&None::<()>, PVarOffset(2)),
+                    Err(PVarOffset(2))
+                );
+            }
+
+            #[test]
+            fn test_some_not_found() {
+                assert_eq!(
+                    Some(pvar("a")).find_pvar_at_offset(PVarOffset(2)),
+                    Err(PVarOffset(1))
+                );
+            }
+
+            #[test]
+            fn test_some_found() {
+                assert_eq!(
+                    Some(pvar("a")).find_pvar_at_offset(PVarOffset(0)),
+                    Ok(pvar("a"))
+                );
+            }
+        }
+    }
+
+    mod pair {
+        use super::*;
+
+        mod find_pvar_index {
+            use super::*;
+
+            #[test]
+            fn test_0_found() {
+                assert_eq!(
+                    (pvar("a"), pvar("b")).find_pvar_index(&free_var("a")),
+                    Ok(PVarIndex(PVarOffset(0))),
+                );
+            }
+
+            #[test]
+            fn test_1_found() {
+                assert_eq!(
+                    (pvar("a"), pvar("b")).find_pvar_index(&free_var("b")),
+                    Ok(PVarIndex(PVarOffset(1))),
+                );
+            }
+
+            #[test]
+            fn test_opt_1_found() {
+                assert_eq!(
+                    ((), Some(pvar("b"))).find_pvar_index(&free_var("b")),
+                    Ok(PVarIndex(PVarOffset(0))),
+                );
+            }
+        }
+
+        mod find_pvar_at_offset {
+            use super::*;
+
+            #[test]
+            fn test_not_found() {
+                assert_eq!(
+                    (pvar("a"), pvar("b")).find_pvar_at_offset(PVarOffset(2)),
+                    Err(PVarOffset(0))
+                );
+            }
+
+            #[test]
+            fn test_found() {
+                assert_eq!(
+                    (pvar("a"), pvar("b")).find_pvar_at_offset(PVarOffset(1)),
+                    Ok(pvar("b"))
+                );
+            }
+        }
+    }
+
+    mod vec {
+        use super::*;
+
+        mod find_pvar_index {
+            use super::*;
+
+            #[test]
+            fn test_0_found() {
+                assert_eq!(
+                    vec![pvar("a"), pvar("b"), pvar("c")].find_pvar_index(&free_var("a")),
+                    Ok(PVarIndex(PVarOffset(0))),
+                );
+            }
+
+            #[test]
+            fn test_1_found() {
+                assert_eq!(
+                    vec![pvar("a"), pvar("b"), pvar("c")].find_pvar_index(&free_var("b")),
+                    Ok(PVarIndex(PVarOffset(1))),
+                );
+            }
+
+            #[test]
+            fn test_2_found() {
+                assert_eq!(
+                    vec![pvar("a"), pvar("b"), pvar("c")].find_pvar_index(&free_var("c")),
+                    Ok(PVarIndex(PVarOffset(2))),
+                );
+            }
+
+            #[test]
+            fn test_not_found() {
+                assert_eq!(
+                    vec![pvar("a"), pvar("b"), pvar("c")].find_pvar_index(&free_var("d")),
+                    Err(PVarOffset(3)),
+                );
+            }
+
+            #[test]
+            fn test_opt_1_found() {
+                assert_eq!(
+                    vec![None, Some(pvar("b")), Some(pvar("c"))].find_pvar_index(&free_var("b")),
+                    Ok(PVarIndex(PVarOffset(0))),
+                );
+            }
+
+            #[test]
+            fn test_opt_2_found() {
+                assert_eq!(
+                    vec![None, Some(pvar("b")), Some(pvar("c"))].find_pvar_index(&free_var("c")),
+                    Ok(PVarIndex(PVarOffset(1))),
+                );
+            }
+        }
+
+        mod find_pvar_at_offset {
+            use super::*;
+
+            #[test]
+            fn test_not_found() {
+                assert_eq!(
+                    vec![pvar("a"), pvar("b"), pvar("c")].find_pvar_at_offset(PVarOffset(4)),
+                    Err(PVarOffset(1))
+                );
+            }
+
+            #[test]
+            fn test_found() {
+                assert_eq!(
+                    vec![pvar("a"), pvar("b"), pvar("c")].find_pvar_at_offset(PVarOffset(1)),
+                    Ok(pvar("b"))
+                );
+            }
+
+            #[test]
+            fn test_opt_not_found() {
+                assert_eq!(
+                    vec![Some(pvar("a")), None, Some(pvar("c"))].find_pvar_at_offset(PVarOffset(2)),
+                    Err(PVarOffset(0))
+                );
+            }
+
+            #[test]
+            fn test_opt_found() {
+                assert_eq!(
+                    vec![Some(pvar("a")), None, Some(pvar("c"))].find_pvar_at_offset(PVarOffset(1)),
+                    Ok(pvar("c"))
+                );
+            }
+        }
     }
 }
