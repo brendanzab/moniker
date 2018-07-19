@@ -15,6 +15,9 @@ in Rust.
 
 ## Example
 
+Here is how we would use Moniker to describe a very small functional language,
+with variables, anonymous functions, applications, and let bindings:
+
 ```rust
 #[macro_use]
 extern crate moniker;
@@ -22,18 +25,81 @@ extern crate moniker;
 use moniker::{Embed, PVar, Scope, TVar};
 use std::rc::Rc;
 
+/// Types
+///
+/// Although we do not bind any variables here, we will want to use it later on
+/// in our expression syntax, so we derive `BoundTerm` for it.
+///
+/// ```text
+/// t ::= b             base types
+///     | t -> t        function types
+/// ````
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Type {
+    /// Some base type
     Base,
-    Arrow(Rc<Type>, Rc<Type>),
+    /// Function types
+    Arrow(RcType, RcType),
 }
 
+pub type RcType = Rc<Type>;
+
+/// Patterns
+///
+/// We'll be using this to bind variables in our expressions, so we'll derive
+/// `BoundPattern` for this type.
+///
+/// ```text
+/// p ::= _             wildcard patterns
+///     | x             pattern variables
+///     | p : t         patterns annotated with types
+/// ````
+#[derive(Debug, Clone, BoundPattern)]
+pub enum Pattern {
+    /// Patterns that bind no variables
+    Wildcard,
+    /// Patterns that bind variables
+    Var(PVar<String>),
+    /// Patterns annotated with types
+    ///
+    /// `Type` does not implement the `BoundPattern` trait, but we can use
+    /// `Embed` to embed it patterns.
+    Ann(RcPattern, Embed<Type>),
+}
+
+pub type RcPattern = Rc<Pattern>;
+
+/// Expressions
+///
+/// ```text
+/// e ::= x                             variables
+///     | e : t                         expressions annotated with types
+///     | \p -> e                       anonymous functions
+///     | e₁ e₂                         function application
+///     | let p₁=e₁, ..., pₙ=eₙ in e    mutually recursive let bindings
+/// ````
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
+    /// Variables
     Var(TVar<String>),
-    Lam(Scope<(PVar<String>, Embed<Rc<Type>>), Rc<Expr>>),
-    App(Rc<Expr>, Rc<Expr>),
+    /// Expressions annotated with a type
+    Ann(RcExpr, RcType),
+    /// Anonymous functions (ie. lambda expressions)
+    ///
+    /// We use the `Scope` type to say that variables in the pattern bind
+    /// variables in the body expression
+    Lam(Scope<RcPattern, RcExpr>),
+    /// Function application applications
+    App(RcExpr, RcExpr),
+    /// Mutually recursive let bindings
+    ///
+    /// We're getting more complex here, combining `Scope` with `Rec`, `Vec`,
+    /// and pairs - check out the examples (under `/moniker/examples` directory)
+    /// to see how we use this!
+    Let(Scope<Rec<Vec<(RcPattern, Embed<RcExpr>)>>, RcExpr>),
 }
+
+pub type RcExpr = Rc<Expr>;
 ```
 
 More complete examples, including evaluators and type checkers, can be found in
