@@ -9,7 +9,7 @@ extern crate im;
 extern crate moniker;
 
 use im::HashMap;
-use moniker::{BoundTerm, Embed, FreeVar, PVar, Rec, Scope, TVar};
+use moniker::{Binder, BoundTerm, Embed, FreeVar, Rec, Scope, Var};
 use std::rc::Rc;
 
 /// Types
@@ -22,7 +22,7 @@ pub enum Type {
     /// Strings
     String,
     /// Type variables
-    Var(TVar<String>), // TODO: Separate identifier namespaces? See issue #8
+    Var(Var<String>), // TODO: Separate identifier namespaces? See issue #8
     /// Function types
     Arrow(RcType, RcType),
     /// Record types
@@ -30,7 +30,7 @@ pub enum Type {
     /// Variant types
     Variant(Vec<(String, RcType)>),
     /// Recursive types
-    Rec(Scope<Rec<(PVar<String>, Embed<RcType>)>, ()>),
+    Rec(Scope<Rec<(Binder<String>, Embed<RcType>)>, ()>),
 }
 
 /// Reference counted types
@@ -51,7 +51,7 @@ impl RcType {
     // FIXME: auto-derive this somehow!
     fn subst<N>(&self, name: &N, replacement: &RcType) -> RcType
     where
-        TVar<String>: PartialEq<N>,
+        Var<String>: PartialEq<N>,
     {
         match *self.inner {
             Type::Var(ref n) if n == name => replacement.clone(),
@@ -108,9 +108,9 @@ pub enum Expr {
     /// Literals
     Literal(Literal),
     /// Variables
-    Var(TVar<String>), // TODO: Separate identifier namespaces? See issue #8
+    Var(Var<String>), // TODO: Separate identifier namespaces? See issue #8
     /// Lambda expressions, with an optional type annotation for the parameter
-    Lam(Scope<(PVar<String>, Embed<Option<RcType>>), RcExpr>),
+    Lam(Scope<(Binder<String>, Embed<Option<RcType>>), RcExpr>),
     /// Function application
     App(RcExpr, RcExpr),
     /// Record values
@@ -143,7 +143,7 @@ impl RcExpr {
     // FIXME: auto-derive this somehow!
     fn subst<N>(&self, name: &N, replacement: &RcExpr) -> RcExpr
     where
-        TVar<String>: PartialEq<N>,
+        Var<String>: PartialEq<N>,
     {
         match *self.inner {
             Expr::Ann(ref expr, ref ty) => {
@@ -350,8 +350,8 @@ pub fn infer(context: &Context, expr: &RcExpr) -> Result<RcType, String> {
 fn test_infer() {
     // expr = (\x : Int -> x)
     let expr = RcExpr::from(Expr::Lam(Scope::new(
-        (PVar::user("x"), Embed(Some(RcType::from(Type::Int)))),
-        RcExpr::from(Expr::Var(TVar::user("x"))),
+        (Binder::user("x"), Embed(Some(RcType::from(Type::Int)))),
+        RcExpr::from(Expr::Var(Var::user("x"))),
     )));
 
     assert_term_eq!(

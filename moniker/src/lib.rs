@@ -11,7 +11,7 @@
 //! extern crate moniker;
 //!
 //! use std::rc::Rc;
-//! use moniker::{Embed, Nest, PVar, Scope, TVar};
+//! use moniker::{Embed, Nest, Binder, Scope, Var};
 //!
 //! # #[cfg(feature = "moniker-derive")]
 //! #[derive(Debug, Clone, BoundTerm)]
@@ -23,9 +23,9 @@
 //! # #[cfg(feature = "moniker-derive")]
 //! #[derive(Debug, Clone, BoundTerm)]
 //! pub enum Expr {
-//!     Var(TVar<String>),
-//!     Lam(Scope<(PVar<String>, Embed<Rc<Type>>), Rc<Expr>>),
-//!     Let(Scope<Nest<(PVar<String>, Embed<(Rc<Type>, Rc<Expr>)>)>, Rc<Expr>>),
+//!     Var(Var<String>),
+//!     Lam(Scope<(Binder<String>, Embed<Rc<Type>>), Rc<Expr>>),
+//!     Let(Scope<Nest<(Binder<String>, Embed<(Rc<Type>, Rc<Expr>)>)>, Rc<Expr>>),
 //!     App(Rc<Expr>, Rc<Expr>),
 //! }
 //! # fn main() {}
@@ -41,22 +41,22 @@
 //!
 //! Terms are data types that implement the [`BoundTerm`] trait.
 //!
-//! - [`TVar<Ident>`]: A variable that is either free or bound
+//! - [`Var<Ident>`]: A variable that is either free or bound
 //! - [`Scope<P: BoundPattern<Ident>, T: BoundTerm<Ident>>`]: bind the term `T` using the pattern `P`
 //!
 //! ## Patterns
 //!
 //! Patterns are data types that implement the [`BoundPattern`] trait.
 //!
-//! - [`PVar<Ident>`]: Captures a free variables within a term, but is ignored for alpha equality
+//! - [`Binder<Ident>`]: Captures a free variables within a term, but is ignored for alpha equality
 //! - [`Ignore<T>`]: Ignores `T` when comparing for alpha equality
 //! - [`Embed<T: BoundTerm<Ident>>`]: Embed a term `T` in a pattern
 //! - [`Nest<P: BoundPattern<Ident>>`]: Multiple nested binding patterns
 //! - [`Rec<P: BoundPattern<Ident>>`]: Recursively bind a pattern in itself
 //!
-//! [`TVar<Ident>`]: enum.TVar.html
+//! [`Var<Ident>`]: enum.Var.html
 //! [`Scope<P: BoundPattern<Ident>, T: BoundTerm<Ident>>`]: struct.Scope.html
-//! [`PVar<Ident>`]: enum.PVar.html
+//! [`Binder<Ident>`]: enum.Binder.html
 //! [`Ignore<T>`]: struct.Ignore.html
 //! [`Embed<T: BoundTerm<Ident>>`]: struct.Embed.html
 //! [`Nest<P: BoundPattern<Ident>>`]: struct.Nest.html
@@ -95,4 +95,4 @@ pub use self::ignore::Ignore;
 pub use self::nest::Nest;
 pub use self::rec::Rec;
 pub use self::scope::Scope;
-pub use self::var::{FreeVar, GenId, PVar, PVarIndex, PVarOffset, ScopeOffset, TVar};
+pub use self::var::{Binder, BinderIndex, BinderOffset, FreeVar, GenId, ScopeOffset, Var};

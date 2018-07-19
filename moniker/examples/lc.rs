@@ -4,16 +4,16 @@
 #[macro_use]
 extern crate moniker;
 
-use moniker::{PVar, Scope, TVar};
+use moniker::{Binder, Scope, Var};
 use std::rc::Rc;
 
 /// Expressions
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Variables
-    Var(TVar<String>),
+    Var(Var<String>),
     /// Lambda expressions
-    Lam(Scope<PVar<String>, RcExpr>),
+    Lam(Scope<Binder<String>, RcExpr>),
     /// Function application
     App(RcExpr, RcExpr),
 }
@@ -36,7 +36,7 @@ impl RcExpr {
     // FIXME: auto-derive this somehow!
     fn subst<N>(&self, name: &N, replacement: &RcExpr) -> RcExpr
     where
-        TVar<String>: PartialEq<N>,
+        Var<String>: PartialEq<N>,
     {
         match *self.inner {
             Expr::Var(ref n) if n == name => replacement.clone(),
@@ -72,13 +72,13 @@ fn test_eval() {
     // expr = (\x -> x) y
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
-            PVar::user("x"),
-            RcExpr::from(Expr::Var(TVar::user("x"))),
+            Binder::user("x"),
+            RcExpr::from(Expr::Var(Var::user("x"))),
         ))),
-        RcExpr::from(Expr::Var(TVar::user("y"))),
+        RcExpr::from(Expr::Var(Var::user("y"))),
     ));
 
-    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(TVar::user("y"))),);
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("y"))),);
 }
 
 fn main() {}

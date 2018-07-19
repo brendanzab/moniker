@@ -1,5 +1,5 @@
 use bound::{BoundPattern, Permutations, ScopeState};
-use var::{FreeVar, PVar, PVarIndex, PVarOffset};
+use var::{Binder, BinderIndex, BinderOffset, FreeVar};
 
 /// Recursively bind a pattern in itself
 ///
@@ -54,11 +54,11 @@ where
         self.unsafe_pattern.open_pattern(state, pattern);
     }
 
-    fn find_pvar_index(&self, free_var: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
-        self.unsafe_pattern.find_pvar_index(free_var)
+    fn find_binder_index(&self, free_var: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+        self.unsafe_pattern.find_binder_index(free_var)
     }
 
-    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
-        self.unsafe_pattern.find_pvar_at_offset(offset)
+    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
+        self.unsafe_pattern.find_binder_at_offset(offset)
     }
 }

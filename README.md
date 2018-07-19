@@ -22,7 +22,7 @@ with variables, anonymous functions, applications, and let bindings:
 #[macro_use]
 extern crate moniker;
 
-use moniker::{Embed, PVar, Scope, TVar};
+use moniker::{Embed, Binder, Scope, Var};
 use std::rc::Rc;
 
 /// Types
@@ -59,12 +59,12 @@ pub enum Pattern {
     /// Patterns that bind no variables
     Wildcard,
     /// Patterns that bind variables
-    Var(PVar<String>),
+    Binder(Binder<String>),
     /// Patterns annotated with types
     ///
     /// `Type` does not implement the `BoundPattern` trait, but we can use
     /// `Embed` to embed it patterns.
-    Ann(RcPattern, Embed<Type>),
+    Ann(RcPattern, Embed<RcType>),
 }
 
 pub type RcPattern = Rc<Pattern>;
@@ -81,7 +81,7 @@ pub type RcPattern = Rc<Pattern>;
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Variables
-    Var(TVar<String>),
+    Var(Var<String>),
     /// Expressions annotated with types
     Ann(RcExpr, RcType),
     /// Anonymous functions (ie. lambda expressions)

@@ -4,16 +4,16 @@
 #[macro_use]
 extern crate moniker;
 
-use moniker::{PVar, Scope, TVar};
+use moniker::{Binder, Scope, Var};
 use std::rc::Rc;
 
 /// Expressions
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Variables
-    Var(TVar<String>),
+    Var(Var<String>),
     /// Lambda expressions
-    Lam(Scope<Vec<PVar<String>>, RcExpr>),
+    Lam(Scope<Vec<Binder<String>>, RcExpr>),
     /// Function application
     App(RcExpr, Vec<RcExpr>),
 }
@@ -36,7 +36,7 @@ impl RcExpr {
     // FIXME: auto-derive this somehow!
     fn substs<N>(&self, mappings: &[(N, RcExpr)]) -> RcExpr
     where
-        TVar<String>: PartialEq<N>,
+        Var<String>: PartialEq<N>,
     {
         match *self.inner {
             Expr::Var(ref n) => match mappings.iter().find(|&(n2, _)| n == n2) {
@@ -92,18 +92,18 @@ fn test_eval_const_lhs() {
     // expr = (fn(x, y) -> y)(a, b)
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
-            vec![PVar::user("x"), PVar::user("y")],
-            RcExpr::from(Expr::Var(TVar::user("y"))),
+            vec![Binder::user("x"), Binder::user("y")],
+            RcExpr::from(Expr::Var(Var::user("y"))),
         ))),
         vec![
-            RcExpr::from(Expr::Var(TVar::user("a"))),
-            RcExpr::from(Expr::Var(TVar::user("b"))),
+            RcExpr::from(Expr::Var(Var::user("a"))),
+            RcExpr::from(Expr::Var(Var::user("b"))),
         ],
     ));
 
     assert_term_eq!(
         eval(&expr).unwrap(),
-        RcExpr::from(Expr::Var(TVar::user("b"))),
+        RcExpr::from(Expr::Var(Var::user("b"))),
     );
 }
 
@@ -112,18 +112,18 @@ fn test_eval_const_rhs() {
     // expr = (fn(x, y) -> x)(a, b)
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
-            vec![PVar::user("x"), PVar::user("y")],
-            RcExpr::from(Expr::Var(TVar::user("x"))),
+            vec![Binder::user("x"), Binder::user("y")],
+            RcExpr::from(Expr::Var(Var::user("x"))),
         ))),
         vec![
-            RcExpr::from(Expr::Var(TVar::user("a"))),
-            RcExpr::from(Expr::Var(TVar::user("b"))),
+            RcExpr::from(Expr::Var(Var::user("a"))),
+            RcExpr::from(Expr::Var(Var::user("b"))),
         ],
     ));
 
     assert_term_eq!(
         eval(&expr).unwrap(),
-        RcExpr::from(Expr::Var(TVar::user("a"))),
+        RcExpr::from(Expr::Var(Var::user("a"))),
     );
 }
 
