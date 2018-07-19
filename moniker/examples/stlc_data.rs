@@ -14,7 +14,7 @@ extern crate im;
 extern crate moniker;
 
 use im::HashMap;
-use moniker::{BoundTerm, Embed, FreeVar, PVar, Scope, TVar};
+use moniker::{Binder, BoundTerm, Embed, FreeVar, Scope, Var};
 use std::rc::Rc;
 
 /// Types
@@ -59,12 +59,18 @@ pub enum Literal {
     String(String),
 }
 
+/// Patterns
 #[derive(Debug, Clone, BoundPattern)]
 pub enum Pattern {
+    /// Patterns annotated with types
     Ann(RcPattern, Embed<RcType>),
+    /// Literal patterns
     Literal(Literal),
-    Var(PVar<String>),
+    /// Patterns that bind variables
+    Binder(Binder<String>),
+    /// Record patterns
     Record(Vec<(String, RcPattern)>),
+    /// Tag pattern
     Tag(String, RcPattern),
 }
 
@@ -90,7 +96,7 @@ pub enum Expr {
     /// Literals
     Literal(Literal),
     /// Variables
-    Var(TVar<String>),
+    Var(Var<String>),
     /// Lambda expressions
     Lam(Scope<RcPattern, RcExpr>),
     /// Function application
@@ -123,7 +129,7 @@ impl RcExpr {
     // FIXME: auto-derive this somehow!
     fn substs<N>(&self, mappings: &[(N, RcExpr)]) -> RcExpr
     where
-        TVar<String>: PartialEq<N>,
+        Var<String>: PartialEq<N>,
     {
         match *self.inner {
             Expr::Ann(ref expr, ref ty) => {
@@ -229,10 +235,10 @@ pub fn match_expr(pattern: &RcPattern, expr: &RcExpr) -> Option<Vec<(FreeVar<Str
         {
             Some(vec![])
         },
-        (&Pattern::Var(PVar::Free(ref free_var)), _) => {
+        (&Pattern::Binder(Binder::Free(ref free_var)), _) => {
             Some(vec![(free_var.clone(), expr.clone())])
         },
-        (&Pattern::Var(PVar::Bound(_, _)), _) => None, // oopsie
+        (&Pattern::Binder(Binder::Bound(_, _)), _) => None, // oopsie
         (&Pattern::Record(ref pattern_fields), &Expr::Record(ref expr_fields))
             if pattern_fields.len() == expr_fields.len() =>
         {
@@ -373,7 +379,7 @@ pub fn check_pattern(
     expected_ty: &RcType,
 ) -> Result<Context, String> {
     match (&*pattern.inner, &*expected_ty.inner) {
-        (&Pattern::Var(ref var), _) => {
+        (&Pattern::Binder(ref var), _) => {
             // FIXME: Ick!
             let var = var
                 .clone()
@@ -419,7 +425,7 @@ pub fn infer_pattern(context: &Context, expr: &RcPattern) -> Result<(RcType, Con
         Pattern::Literal(Literal::Int(_)) => Ok((RcType::from(Type::Int), Context::new())),
         Pattern::Literal(Literal::Float(_)) => Ok((RcType::from(Type::Float), Context::new())),
         Pattern::Literal(Literal::String(_)) => Ok((RcType::from(Type::String), Context::new())),
-        Pattern::Var(_) => Err("type annotations needed".to_string()),
+        Pattern::Binder(_) => Err("type annotations needed".to_string()),
         Pattern::Record(ref fields) => {
             let mut telescope = Context::new();
 
@@ -443,10 +449,10 @@ fn test_infer_expr() {
     // expr = (\x : Int -> x)
     let expr = RcExpr::from(Expr::Lam(Scope::new(
         RcPattern::from(Pattern::Ann(
-            RcPattern::from(Pattern::Var(PVar::user("x"))),
+            RcPattern::from(Pattern::Binder(Binder::user("x"))),
             Embed(RcType::from(Type::Int)),
         )),
-        RcExpr::from(Expr::Var(TVar::user("x"))),
+        RcExpr::from(Expr::Var(Var::user("x"))),
     )));
 
     assert_term_eq!(
@@ -464,8 +470,8 @@ fn test_infer_app_expr() {
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Ann(
             RcExpr::from(Expr::Lam(Scope::new(
-                RcPattern::from(Pattern::Var(PVar::user("x"))),
-                RcExpr::from(Expr::Var(TVar::user("x"))),
+                RcPattern::from(Pattern::Binder(Binder::user("x"))),
+                RcExpr::from(Expr::Var(Var::user("x"))),
             ))),
             RcType::from(Type::Arrow(
                 RcType::from(Type::Int),
@@ -489,19 +495,19 @@ fn test_infer_expr_record1() {
             (
                 String::from("x"),
                 RcPattern::from(Pattern::Ann(
-                    RcPattern::from(Pattern::Var(PVar::user("a"))),
+                    RcPattern::from(Pattern::Binder(Binder::user("a"))),
                     Embed(RcType::from(Type::Int)),
                 )),
             ),
             (
                 String::from("y"),
                 RcPattern::from(Pattern::Ann(
-                    RcPattern::from(Pattern::Var(PVar::user("b"))),
+                    RcPattern::from(Pattern::Binder(Binder::user("b"))),
                     Embed(RcType::from(Type::String)),
                 )),
             ),
         ])),
-        RcExpr::from(Expr::Var(TVar::user("b"))),
+        RcExpr::from(Expr::Var(Var::user("b"))),
     )));
 
     assert_term_eq!(
@@ -524,29 +530,29 @@ fn test_infer_expr_record2() {
             (
                 String::from("x"),
                 RcPattern::from(Pattern::Ann(
-                    RcPattern::from(Pattern::Var(PVar::user("a"))),
+                    RcPattern::from(Pattern::Binder(Binder::user("a"))),
                     Embed(RcType::from(Type::Int)),
                 )),
             ),
             (
                 String::from("y"),
                 RcPattern::from(Pattern::Ann(
-                    RcPattern::from(Pattern::Var(PVar::user("b"))),
+                    RcPattern::from(Pattern::Binder(Binder::user("b"))),
                     Embed(RcType::from(Type::String)),
                 )),
             ),
             (
                 String::from("z"),
                 RcPattern::from(Pattern::Ann(
-                    RcPattern::from(Pattern::Var(PVar::user("c"))),
+                    RcPattern::from(Pattern::Binder(Binder::user("c"))),
                     Embed(RcType::from(Type::Float)),
                 )),
             ),
         ])),
         RcExpr::from(Expr::Record(vec![
-            (String::from("x"), RcExpr::from(Expr::Var(TVar::user("a")))),
-            (String::from("y"), RcExpr::from(Expr::Var(TVar::user("b")))),
-            (String::from("z"), RcExpr::from(Expr::Var(TVar::user("c")))),
+            (String::from("x"), RcExpr::from(Expr::Var(Var::user("a")))),
+            (String::from("y"), RcExpr::from(Expr::Var(Var::user("b")))),
+            (String::from("z"), RcExpr::from(Expr::Var(Var::user("c")))),
         ])),
     )));
 

@@ -4,20 +4,20 @@
 #[macro_use]
 extern crate moniker;
 
-use moniker::{Embed, Nest, PVar, Scope, TVar};
+use moniker::{Binder, Embed, Nest, Scope, Var};
 use std::rc::Rc;
 
 /// Expressions
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Variables
-    Var(TVar<String>),
+    Var(Var<String>),
     /// Lambda expressions
-    Lam(Scope<PVar<String>, RcExpr>),
+    Lam(Scope<Binder<String>, RcExpr>),
     /// Function application
     App(RcExpr, RcExpr),
     /// Nested let bindings
-    Let(Scope<Nest<(PVar<String>, Embed<RcExpr>)>, RcExpr>),
+    Let(Scope<Nest<(Binder<String>, Embed<RcExpr>)>, RcExpr>),
 }
 
 /// Reference counted expressions
@@ -38,7 +38,7 @@ impl RcExpr {
     // FIXME: auto-derive this somehow!
     fn substs<N>(&self, mappings: &[(N, RcExpr)]) -> RcExpr
     where
-        TVar<String>: PartialEq<N>,
+        Var<String>: PartialEq<N>,
     {
         match *self.inner {
             Expr::Var(ref n) => match mappings.iter().find(|&(n2, _)| n == n2) {
@@ -99,13 +99,13 @@ fn test_eval() {
     // expr = (\x -> x) y
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
-            PVar::user("x"),
-            RcExpr::from(Expr::Var(TVar::user("x"))),
+            Binder::user("x"),
+            RcExpr::from(Expr::Var(Var::user("x"))),
         ))),
-        RcExpr::from(Expr::Var(TVar::user("y"))),
+        RcExpr::from(Expr::Var(Var::user("y"))),
     ));
 
-    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(TVar::user("y"))),);
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("y"))),);
 }
 
 #[test]
@@ -118,28 +118,28 @@ fn test_eval_let() {
     let expr = RcExpr::from(Expr::Let(Scope::new(
         Nest::new(vec![
             (
-                PVar::user("id"),
+                Binder::user("id"),
                 Embed(RcExpr::from(Expr::Lam(Scope::new(
-                    PVar::user("x"),
-                    RcExpr::from(Expr::Var(TVar::user("x"))),
+                    Binder::user("x"),
+                    RcExpr::from(Expr::Var(Var::user("x"))),
                 )))),
             ),
             (
-                PVar::user("foo"),
-                Embed(RcExpr::from(Expr::Var(TVar::user("y")))),
+                Binder::user("foo"),
+                Embed(RcExpr::from(Expr::Var(Var::user("y")))),
             ),
             (
-                PVar::user("bar"),
+                Binder::user("bar"),
                 Embed(RcExpr::from(Expr::App(
-                    RcExpr::from(Expr::Var(TVar::user("id"))),
-                    RcExpr::from(Expr::Var(TVar::user("foo"))),
+                    RcExpr::from(Expr::Var(Var::user("id"))),
+                    RcExpr::from(Expr::Var(Var::user("foo"))),
                 ))),
             ),
         ]),
-        RcExpr::from(Expr::Var(TVar::user("bar"))),
+        RcExpr::from(Expr::Var(Var::user("bar"))),
     )));
 
-    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(TVar::user("y"))),);
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("y"))),);
 }
 
 fn main() {}

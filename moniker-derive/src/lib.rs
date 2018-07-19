@@ -93,11 +93,11 @@ fn bound_term_derive(mut s: Structure) -> proc_macro2::TokenStream {
                 match *self { #open_term_body }
             }
 
-            fn visit_vars(&self, __on_var: &mut impl FnMut(&moniker::TVar<String>)) {
+            fn visit_vars(&self, __on_var: &mut impl FnMut(&moniker::Var<String>)) {
                 match *self { #visit_vars_body }
             }
 
-            fn visit_mut_vars(&mut self, __on_var: &mut impl FnMut(&mut moniker::TVar<String>)) {
+            fn visit_mut_vars(&mut self, __on_var: &mut impl FnMut(&mut moniker::Var<String>)) {
                 match *self { #visit_mut_vars_body }
             }
         }
@@ -164,18 +164,18 @@ fn bound_pattern_derive(mut s: Structure) -> proc_macro2::TokenStream {
     });
 
     s.bind_with(|_| BindStyle::Ref);
-    let find_pvar_index_body = s.each(|bi| {
+    let find_binder_index_body = s.each(|bi| {
         quote! {
-            match #bi.find_pvar_index(__free_var) {
-                Ok(__pvar_index) => return Ok(__pvar_index + __skipped),
+            match #bi.find_binder_index(__free_var) {
+                Ok(__binder_index) => return Ok(__binder_index + __skipped),
                 Err(__next_skipped) => __skipped += __next_skipped,
             };
         }
     });
-    let find_pvar_at_offset_body = s.each(|bi| {
+    let find_binder_at_offset_body = s.each(|bi| {
         quote! {
-            match #bi.find_pvar_at_offset(__offset) {
-                Ok(__pvar) => return Ok(__pvar),
+            match #bi.find_binder_at_offset(__offset) {
+                Ok(__binder) => return Ok(__binder),
                 Err(__next_offset) => __offset = __next_offset,
             };
         }
@@ -213,20 +213,20 @@ fn bound_pattern_derive(mut s: Structure) -> proc_macro2::TokenStream {
                 match *self { #open_pattern_body }
             }
 
-            fn find_pvar_index(
+            fn find_binder_index(
                 &self,
                 __free_var: &moniker::FreeVar<String>,
-            ) -> Result<moniker::PVarIndex, moniker::PVarOffset> {
-                let mut __skipped = moniker::PVarOffset(0);
-                match *self { #find_pvar_index_body }
+            ) -> Result<moniker::BinderIndex, moniker::BinderOffset> {
+                let mut __skipped = moniker::BinderOffset(0);
+                match *self { #find_binder_index_body }
                 Err(__skipped)
             }
 
-            fn find_pvar_at_offset(
+            fn find_binder_at_offset(
                 &self,
-                mut __offset: moniker::PVarOffset,
-            ) -> Result<moniker::PVar<String>, moniker::PVarOffset> {
-                match *self { #find_pvar_at_offset_body }
+                mut __offset: moniker::BinderOffset,
+            ) -> Result<moniker::Binder<String>, moniker::BinderOffset> {
+                match *self { #find_binder_at_offset_body }
                 Err(__offset)
             }
         }

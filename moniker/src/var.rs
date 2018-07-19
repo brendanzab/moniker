@@ -138,72 +138,72 @@ impl fmt::Display for ScopeOffset {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct PVarOffset(pub u32);
+pub struct BinderOffset(pub u32);
 
-impl PVarOffset {
+impl BinderOffset {
     pub fn to_usize(self) -> usize {
         self.0 as usize
     }
 }
 
-impl ops::Add for PVarOffset {
-    type Output = PVarOffset;
+impl ops::Add for BinderOffset {
+    type Output = BinderOffset;
 
-    fn add(self, other: PVarOffset) -> PVarOffset {
-        PVarOffset(self.0 + other.0)
+    fn add(self, other: BinderOffset) -> BinderOffset {
+        BinderOffset(self.0 + other.0)
     }
 }
 
-impl ops::AddAssign for PVarOffset {
-    fn add_assign(&mut self, other: PVarOffset) {
+impl ops::AddAssign for BinderOffset {
+    fn add_assign(&mut self, other: BinderOffset) {
         self.0 += other.0;
     }
 }
 
-impl ops::Sub for PVarOffset {
-    type Output = PVarOffset;
+impl ops::Sub for BinderOffset {
+    type Output = BinderOffset;
 
-    fn sub(self, other: PVarOffset) -> PVarOffset {
-        PVarOffset(self.0 - other.0)
+    fn sub(self, other: BinderOffset) -> BinderOffset {
+        BinderOffset(self.0 - other.0)
     }
 }
 
-impl ops::SubAssign for PVarOffset {
-    fn sub_assign(&mut self, other: PVarOffset) {
+impl ops::SubAssign for BinderOffset {
+    fn sub_assign(&mut self, other: BinderOffset) {
         self.0 -= other.0;
     }
 }
 
-impl fmt::Display for PVarOffset {
+impl fmt::Display for BinderOffset {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(&self.0, f)
     }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct PVarIndex(pub PVarOffset);
+pub struct BinderIndex(pub BinderOffset);
 
-impl PVarIndex {
+impl BinderIndex {
     pub fn to_usize(self) -> usize {
         self.0.to_usize()
     }
 }
 
-impl ops::Add<PVarOffset> for PVarIndex {
-    type Output = PVarIndex;
+impl ops::Add<BinderOffset> for BinderIndex {
+    type Output = BinderIndex;
 
-    fn add(self, other: PVarOffset) -> PVarIndex {
-        PVarIndex(self.0 + other)
+    fn add(self, other: BinderOffset) -> BinderIndex {
+        BinderIndex(self.0 + other)
     }
 }
 
-impl ops::AddAssign<PVarOffset> for PVarIndex {
-    fn add_assign(&mut self, other: PVarOffset) {
+impl ops::AddAssign<BinderOffset> for BinderIndex {
+    fn add_assign(&mut self, other: BinderOffset) {
         self.0 += other;
     }
 }
 
-impl fmt::Display for PVarIndex {
+impl fmt::Display for BinderIndex {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Display::fmt(&self.0, f)
     }
@@ -211,54 +211,54 @@ impl fmt::Display for PVarIndex {
 
 /// A variable that can either be free or bound
 #[derive(Debug, Clone)]
-pub enum TVar<Ident> {
+pub enum Var<Ident> {
     /// A free variable
     Free(FreeVar<Ident>),
     /// A variable that is bound by a lambda or pi binder
-    Bound(ScopeOffset, PVarIndex, Option<Ident>),
+    Bound(ScopeOffset, BinderIndex, Option<Ident>),
 }
 
-impl<Ident> TVar<Ident> {
+impl<Ident> Var<Ident> {
     /// Create a variable from a human-readable string
-    pub fn user<T: Into<Ident>>(ident: T) -> TVar<Ident> {
-        TVar::Free(FreeVar::user(ident))
+    pub fn user<T: Into<Ident>>(ident: T) -> Var<Ident> {
+        Var::Free(FreeVar::user(ident))
     }
 
     pub fn try_into_free_var(self) -> Result<FreeVar<Ident>, ()> {
         match self {
-            TVar::Free(name) => Ok(name),
-            TVar::Bound(_, _, _) => Err(()),
+            Var::Free(name) => Ok(name),
+            Var::Bound(_, _, _) => Err(()),
         }
     }
 }
 
-impl<Ident> PartialEq for TVar<Ident>
+impl<Ident> PartialEq for Var<Ident>
 where
     Ident: PartialEq,
 {
-    fn eq(&self, other: &TVar<Ident>) -> bool {
+    fn eq(&self, other: &Var<Ident>) -> bool {
         match (self, other) {
-            (&TVar::Free(ref lhs), &TVar::Free(ref rhs)) => lhs == rhs,
+            (&Var::Free(ref lhs), &Var::Free(ref rhs)) => lhs == rhs,
             (
-                &TVar::Bound(scope_offset_lhs, pvar_index_lhs, _),
-                &TVar::Bound(scope_offset_rhs, pvar_index_rhs, _),
-            ) => scope_offset_lhs == scope_offset_rhs && pvar_index_lhs == pvar_index_rhs,
+                &Var::Bound(scope_offset_lhs, binder_index_lhs, _),
+                &Var::Bound(scope_offset_rhs, binder_index_rhs, _),
+            ) => scope_offset_lhs == scope_offset_rhs && binder_index_lhs == binder_index_rhs,
             _ => false,
         }
     }
 }
 
-impl<Ident> Eq for TVar<Ident> where Ident: Eq {}
+impl<Ident> Eq for Var<Ident> where Ident: Eq {}
 
-impl<Ident> Hash for TVar<Ident>
+impl<Ident> Hash for Var<Ident>
 where
     Ident: Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         mem::discriminant(self).hash(state);
         match *self {
-            TVar::Free(ref name) => name.hash(state),
-            TVar::Bound(scope, pattern, _) => {
+            Var::Free(ref name) => name.hash(state),
+            Var::Bound(scope, pattern, _) => {
                 scope.hash(state);
                 pattern.hash(state);
             },
@@ -266,137 +266,137 @@ where
     }
 }
 
-impl<Ident: fmt::Display> fmt::Display for TVar<Ident> {
+impl<Ident: fmt::Display> fmt::Display for Var<Ident> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            TVar::Bound(scope_offset, pvar_index, None) => {
-                write!(f, "@{}.{}", scope_offset, pvar_index)
+            Var::Bound(scope_offset, binder_index, None) => {
+                write!(f, "@{}.{}", scope_offset, binder_index)
             },
-            TVar::Bound(scope_offset, pvar_index, Some(ref hint)) => {
-                write!(f, "{}@{}.{}", hint, scope_offset, pvar_index)
+            Var::Bound(scope_offset, binder_index, Some(ref hint)) => {
+                write!(f, "{}@{}.{}", hint, scope_offset, binder_index)
             },
-            TVar::Free(ref free) => write!(f, "{}", free),
+            Var::Free(ref free) => write!(f, "{}", free),
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum PVar<Ident> {
+pub enum Binder<Ident> {
     Free(FreeVar<Ident>),
-    Bound(PVarIndex, Option<Ident>),
+    Bound(BinderIndex, Option<Ident>),
 }
 
-impl<Ident> PVar<Ident> {
+impl<Ident> Binder<Ident> {
     /// Create a variable from a human-readable string
-    pub fn user<T: Into<Ident>>(ident: T) -> PVar<Ident> {
-        PVar::Free(FreeVar::user(ident))
+    pub fn user<T: Into<Ident>>(ident: T) -> Binder<Ident> {
+        Binder::Free(FreeVar::user(ident))
     }
 
-    pub fn fresh(self) -> PVar<Ident> {
+    pub fn fresh(self) -> Binder<Ident> {
         match self {
-            PVar::Free(free_var) => PVar::Free(free_var.fresh()),
-            PVar::Bound(_, _) => self,
+            Binder::Free(free_var) => Binder::Free(free_var.fresh()),
+            Binder::Bound(_, _) => self,
         }
     }
 
-    pub fn to_var(self, scope: ScopeOffset) -> TVar<Ident> {
+    pub fn to_var(self, scope: ScopeOffset) -> Var<Ident> {
         match self {
-            PVar::Free(name) => TVar::Free(name),
-            PVar::Bound(pattern, name) => TVar::Bound(scope, pattern, name),
+            Binder::Free(name) => Var::Free(name),
+            Binder::Bound(pattern, name) => Var::Bound(scope, pattern, name),
         }
     }
 
     pub fn try_into_free_var(self) -> Result<FreeVar<Ident>, ()> {
         match self {
-            PVar::Free(name) => Ok(name),
-            PVar::Bound(_, _) => Err(()),
+            Binder::Free(name) => Ok(name),
+            Binder::Bound(_, _) => Err(()),
         }
     }
 }
 
-impl<Ident> PartialEq for PVar<Ident>
+impl<Ident> PartialEq for Binder<Ident>
 where
     Ident: PartialEq,
 {
-    fn eq(&self, other: &PVar<Ident>) -> bool {
+    fn eq(&self, other: &Binder<Ident>) -> bool {
         match (self, other) {
-            (&PVar::Free(ref lhs), &PVar::Free(ref rhs)) => lhs == rhs,
-            (&PVar::Bound(pvar_index_lhs, _), &PVar::Bound(pvar_index_rhs, _)) => {
-                pvar_index_lhs == pvar_index_rhs
+            (&Binder::Free(ref lhs), &Binder::Free(ref rhs)) => lhs == rhs,
+            (&Binder::Bound(binder_index_lhs, _), &Binder::Bound(binder_index_rhs, _)) => {
+                binder_index_lhs == binder_index_rhs
             },
             _ => false,
         }
     }
 }
 
-impl<Ident> Eq for PVar<Ident> where Ident: Eq {}
+impl<Ident> Eq for Binder<Ident> where Ident: Eq {}
 
-impl<Ident> Hash for PVar<Ident>
+impl<Ident> Hash for Binder<Ident>
 where
     Ident: Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         mem::discriminant(self).hash(state);
         match *self {
-            PVar::Free(ref name) => name.hash(state),
-            PVar::Bound(pattern, _) => pattern.hash(state),
+            Binder::Free(ref name) => name.hash(state),
+            Binder::Bound(pattern, _) => pattern.hash(state),
         }
     }
 }
 
-impl<Ident: fmt::Display> fmt::Display for PVar<Ident> {
+impl<Ident: fmt::Display> fmt::Display for Binder<Ident> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            PVar::Bound(pvar_index, None) => write!(f, "@{}", pvar_index),
-            PVar::Bound(pvar_index, Some(ref hint)) => write!(f, "{}@{}", hint, pvar_index),
-            PVar::Free(ref free) => write!(f, "{}", free),
+            Binder::Bound(binder_index, None) => write!(f, "@{}", binder_index),
+            Binder::Bound(binder_index, Some(ref hint)) => write!(f, "{}@{}", hint, binder_index),
+            Binder::Free(ref free) => write!(f, "{}", free),
         }
     }
 }
 
-impl<Ident> PartialEq<PVar<Ident>> for TVar<Ident>
+impl<Ident> PartialEq<Binder<Ident>> for Var<Ident>
 where
     Ident: PartialEq,
 {
-    fn eq(&self, other: &PVar<Ident>) -> bool {
+    fn eq(&self, other: &Binder<Ident>) -> bool {
         match (self, other) {
-            (&TVar::Free(ref lhs), &PVar::Free(ref rhs)) => lhs == rhs,
+            (&Var::Free(ref lhs), &Binder::Free(ref rhs)) => lhs == rhs,
             _ => false,
         }
     }
 }
 
-impl<Ident> PartialEq<FreeVar<Ident>> for TVar<Ident>
+impl<Ident> PartialEq<FreeVar<Ident>> for Var<Ident>
 where
     Ident: PartialEq,
 {
     fn eq(&self, other: &FreeVar<Ident>) -> bool {
         match *self {
-            TVar::Free(ref lhs) => lhs == other,
+            Var::Free(ref lhs) => lhs == other,
             _ => false,
         }
     }
 }
 
-impl<Ident> PartialEq<TVar<Ident>> for PVar<Ident>
+impl<Ident> PartialEq<Var<Ident>> for Binder<Ident>
 where
     Ident: PartialEq,
 {
-    fn eq(&self, other: &TVar<Ident>) -> bool {
+    fn eq(&self, other: &Var<Ident>) -> bool {
         match (self, other) {
-            (&PVar::Free(ref lhs), &TVar::Free(ref rhs)) => lhs == rhs,
+            (&Binder::Free(ref lhs), &Var::Free(ref rhs)) => lhs == rhs,
             _ => false,
         }
     }
 }
 
-impl<Ident> PartialEq<FreeVar<Ident>> for PVar<Ident>
+impl<Ident> PartialEq<FreeVar<Ident>> for Binder<Ident>
 where
     Ident: PartialEq,
 {
     fn eq(&self, other: &FreeVar<Ident>) -> bool {
         match *self {
-            PVar::Free(ref lhs) => lhs == other,
+            Binder::Free(ref lhs) => lhs == other,
             _ => false,
         }
     }

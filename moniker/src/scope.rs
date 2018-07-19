@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
-use var::TVar;
+use var::Var;
 
 /// A bound scope
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -100,11 +100,11 @@ where
         self.unsafe_body.open_term(state.incr(), pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&TVar<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
         self.unsafe_body.visit_vars(on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut TVar<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
         self.unsafe_body.visit_mut_vars(on_var);
     }
 }

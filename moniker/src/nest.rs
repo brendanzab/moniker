@@ -1,5 +1,5 @@
 use bound::{BoundPattern, Permutations, ScopeState};
-use var::{FreeVar, PVar, PVarIndex, PVarOffset};
+use var::{Binder, BinderIndex, BinderOffset, FreeVar};
 
 /// Nested binding patterns
 ///
@@ -84,11 +84,11 @@ where
         }
     }
 
-    fn find_pvar_index(&self, free_var: &FreeVar<Ident>) -> Result<PVarIndex, PVarOffset> {
-        <[P]>::find_pvar_index(&self.unsafe_patterns, free_var)
+    fn find_binder_index(&self, free_var: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+        <[P]>::find_binder_index(&self.unsafe_patterns, free_var)
     }
 
-    fn find_pvar_at_offset(&self, offset: PVarOffset) -> Result<PVar<Ident>, PVarOffset> {
-        <[P]>::find_pvar_at_offset(&self.unsafe_patterns, offset)
+    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
+        <[P]>::find_binder_at_offset(&self.unsafe_patterns, offset)
     }
 }

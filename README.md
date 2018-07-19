@@ -22,7 +22,7 @@ with variables, anonymous functions, applications, and let bindings:
 #[macro_use]
 extern crate moniker;
 
-use moniker::{Embed, PVar, Scope, TVar};
+use moniker::{Embed, Binder, Scope, Var};
 use std::rc::Rc;
 
 /// Types
@@ -59,12 +59,12 @@ pub enum Pattern {
     /// Patterns that bind no variables
     Wildcard,
     /// Patterns that bind variables
-    Var(PVar<String>),
+    Binder(Binder<String>),
     /// Patterns annotated with types
     ///
     /// `Type` does not implement the `BoundPattern` trait, but we can use
     /// `Embed` to embed it patterns.
-    Ann(RcPattern, Embed<Type>),
+    Ann(RcPattern, Embed<RcType>),
 }
 
 pub type RcPattern = Rc<Pattern>;
@@ -81,21 +81,21 @@ pub type RcPattern = Rc<Pattern>;
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Variables
-    Var(TVar<String>),
-    /// Expressions annotated with a type
+    Var(Var<String>),
+    /// Expressions annotated with types
     Ann(RcExpr, RcType),
     /// Anonymous functions (ie. lambda expressions)
     ///
     /// We use the `Scope` type to say that variables in the pattern bind
     /// variables in the body expression
     Lam(Scope<RcPattern, RcExpr>),
-    /// Function application applications
+    /// Function applications
     App(RcExpr, RcExpr),
     /// Mutually recursive let bindings
     ///
     /// We're getting more complex here, combining `Scope` with `Rec`, `Vec`,
-    /// and pairs - check out the examples (under `/moniker/examples` directory)
-    /// to see how we use this!
+    /// and pairs - check out the examples (under the `/moniker/examples`
+    /// directory) to see how we use this in an evaluator or type checker.
     Let(Scope<Rec<Vec<(RcPattern, Embed<RcExpr>)>>, RcExpr>),
 }
 

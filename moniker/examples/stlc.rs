@@ -9,7 +9,7 @@ extern crate im;
 extern crate moniker;
 
 use im::HashMap;
-use moniker::{BoundTerm, Embed, FreeVar, PVar, Scope, TVar};
+use moniker::{Binder, BoundTerm, Embed, FreeVar, Scope, Var};
 use std::rc::Rc;
 
 /// Types
@@ -58,9 +58,9 @@ pub enum Expr {
     /// Literals
     Literal(Literal),
     /// Variables
-    Var(TVar<String>),
+    Var(Var<String>),
     /// Lambda expressions, with an optional type annotation for the parameter
-    Lam(Scope<(PVar<String>, Embed<Option<RcType>>), RcExpr>),
+    Lam(Scope<(Binder<String>, Embed<Option<RcType>>), RcExpr>),
     /// Function application
     App(RcExpr, RcExpr),
 }
@@ -83,7 +83,7 @@ impl RcExpr {
     // FIXME: auto-derive this somehow!
     fn subst<N>(&self, name: &N, replacement: &RcExpr) -> RcExpr
     where
-        TVar<String>: PartialEq<N>,
+        Var<String>: PartialEq<N>,
     {
         match *self.inner {
             Expr::Ann(ref expr, ref ty) => {
@@ -202,8 +202,8 @@ pub fn infer(context: &Context, expr: &RcExpr) -> Result<RcType, String> {
 fn test_infer() {
     // expr = (\x : Int -> x)
     let expr = RcExpr::from(Expr::Lam(Scope::new(
-        (PVar::user("x"), Embed(Some(RcType::from(Type::Int)))),
-        RcExpr::from(Expr::Var(TVar::user("x"))),
+        (Binder::user("x"), Embed(Some(RcType::from(Type::Int)))),
+        RcExpr::from(Expr::Var(Var::user("x"))),
     )));
 
     assert_term_eq!(
