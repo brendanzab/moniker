@@ -82,20 +82,20 @@ pub type RcPattern = Rc<Pattern>;
 pub enum Expr {
     /// Variables
     Var(TVar<String>),
-    /// Expressions annotated with a type
+    /// Expressions annotated with types
     Ann(RcExpr, RcType),
     /// Anonymous functions (ie. lambda expressions)
     ///
     /// We use the `Scope` type to say that variables in the pattern bind
     /// variables in the body expression
     Lam(Scope<RcPattern, RcExpr>),
-    /// Function application applications
+    /// Function applications
     App(RcExpr, RcExpr),
     /// Mutually recursive let bindings
     ///
     /// We're getting more complex here, combining `Scope` with `Rec`, `Vec`,
-    /// and pairs - check out the examples (under `/moniker/examples` directory)
-    /// to see how we use this!
+    /// and pairs - check out the examples (under the `/moniker/examples`
+    /// directory) to see how we use this in an evaluator or type checker.
     Let(Scope<Rec<Vec<(RcPattern, Embed<RcExpr>)>>, RcExpr>),
 }
 
