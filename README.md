@@ -292,3 +292,18 @@ Other auto-binding libraries exist for a number of different languages:
 [dblib]: https://github.com/coq-contribs/dblib
 [metalib]: https://github.com/plclub/metalib
 [ln]: http://www.chargueraud.org/softs/ln/
+
+## Contributing
+
+We really want to encourage new contributors to help out! Please come chat with
+us [on our Gitter channel][gitter-lobby] - if you have any questions about the
+project, or just want to say hi!
+
+## Acknowledgments
+
+[![YesLogic Logo][yeslogic-logo]][yeslogic]
+
+This work was done in part with the generous support of [YesLogic][yeslogic].
+
+[yeslogic]: http://yeslogic.com/
+[yeslogic-logo]: assets/yeslogic-logo.png
