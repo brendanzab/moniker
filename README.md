@@ -213,7 +213,7 @@ Other auto-binding libraries exist for a number of different languages:
 - [LibLN][ln]: Locally nameless representation with cofinite quantification
 
 [unbound]: https://github.com/sweirich/replib
-[unbound-generics]: ://github.com/lambdageek/unbound-generics
+[unbound-generics]: https://github.com/lambdageek/unbound-generics
 [alphaCaml]: http://pauillac.inria.fr/~fpottier/alphaCaml/alphacaml.html.en
 [alphaLib]: https://gitlab.inria.fr/fpottier/alphaLib
 [dblib]: https://github.com/coq-contribs/dblib
