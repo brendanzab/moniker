@@ -168,40 +168,54 @@ name binding and scope handling toolkit.
 
 ## References
 
-Here are some interesting references that were helpful in understanding the
-locally nameless representation that is used by this crate:
+Here is a list of interesting references and prior art that was helpful when
+building Moniker. Note that it isn't necessary to read and understand these to
+use the library, but they _might_ be useful if you would like to contribute!
+
+### Papers
+
+- [The Locally Nameless Representation](https://www.chargueraud.org/research/2009/ln/main.pdf)
+- [Binders Unbound](http://www.seas.upenn.edu/~sweirich/papers/icfp11.pdf)
+- [An overview of Cαml](http://pauillac.inria.fr/~fpottier/publis/fpottier-alphacaml.pdf)
+- [Visitors Unchained](http://gallium.inria.fr/~fpottier/publis/fpottier-visitors-unchained.pdf)
+- [Engineering Formal Metatheory](http://www.chargueraud.org/research/2007/binders/binders_popl_08.pdf)
+
+### Blog Posts
 
 - [How I learned to stop worrying and love de Bruijn indices](http://disciple-devel.blogspot.com.au/2011/08/how-i-learned-to-stop-worrying-and-love.html)
-- [The Locally Nameless Representation](https://www.chargueraud.org/research/2009/ln/main.pdf)
-- [Locally nameless representation with cofinite quantification](http://www.chargueraud.org/softs/ln/)
-- [A Locally-nameless Backend for Ott](http://www.di.ens.fr/~zappa/projects/ln_ott/)
+- [Announcing DBLib](http://gallium.inria.fr/blog/announcing-dblib/)
+- [Bound](https://www.schoolofhaskell.com/user/edwardk/bound)
 
-## Inspiration
+### Other Libraries
 
-The API was mainly inspired by the Unbound and Unbound-Generics libraries for
-Haskell, with some differences. The main change that we make is to have two
-separate traits (`BoundTerm` and `BoundPattern`) in place of Unbound's single
-`Alpha` type class. We've found that this better captures the semantics of the
-library, and greatly cuts down on the potential for accidental misuse.
+The API was mainly inspired by the [Unbound][unbound] and
+[Unbound-Generics][unbound-generics] libraries for Haskell, with some
+differences. The main change that we make is to have two separate traits
+(`BoundTerm` and `BoundPattern`) in place of Unbound's single `Alpha` type
+class. We've found that this better captures the semantics of the library, and
+greatly cuts down on the potential for accidental misuse.
 
 Other auto-binding libraries exist for a number of different languages:
 
-- DBLib: Facilities for working with de Bruijn indices in Coq
-    - [Blog Post](http://gallium.inria.fr/blog/announcing-dblib/)
-    - [Github](https://github.com/coq-contribs/dblib)
-- Unbound: Specify the binding structure of your data type with an
+- [Unbound][unbound]: Specify the binding structure of your data type with an
   expressive set of type combinators, and Unbound handles the rest!
   Automatically derives alpha-equivalence, free variable calculation,
   capture-avoiding substitution, and more.
-    - [Github](https://github.com/sweirich/replib)
-    - [Hackage](https://hackage.haskell.org/package/unbound)
-- Unbound-Generics: an independent re-implementation of Unbound but using
-  GHC.Generics instead of RepLib.
-    - [Github](http://github.com/lambdageek/unbound-generics)
-    - [Hackage](https://hackage.haskell.org/package/unbound-generics)
-- Bound: Bruijn indices for Haskell
-    - [Blog Post](https://www.schoolofhaskell.com/user/edwardk/bound)
-    - [Github](https://github.com/ekmett/bound/)
-    - [Hackage](https://hackage.haskell.org/package/bound)
-- The Penn Locally Nameless Metatheory Library
-    - [Github](https://github.com/plclub/metalib)
+- [Unbound-Generics][unbound-generics]: an independent re-implementation of
+  Unbound but using GHC.Generics instead of RepLib.
+- [Cαml][alphaCaml]: a tool that turns a so-called "binding specification" into
+  an OCaml compilation unit.
+- [alphaLib][alphaLib]: An OCaml library that helps deal with binding constructs
+  in abstract syntax trees.
+- [DBLib][dblib]: Facilities for working with de Bruijn indices in Coq
+- [Bound](https://github.com/ekmett/bound/): DeBruijn indices for Haskell
+- [Metalib][metalib]: The Penn Locally Nameless Metatheory Library
+- [LibLN][ln]: Locally nameless representation with cofinite quantification
+
+[unbound]: https://github.com/sweirich/replib
+[unbound-generics]: ://github.com/lambdageek/unbound-generics
+[alphaCaml]: http://pauillac.inria.fr/~fpottier/alphaCaml/alphacaml.html.en
+[alphaLib]: https://gitlab.inria.fr/fpottier/alphaLib
+[dblib]: https://github.com/coq-contribs/dblib
+[metalib]: https://github.com/plclub/metalib
+[ln]: http://www.chargueraud.org/softs/ln/
