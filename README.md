@@ -156,6 +156,7 @@ name binding and scope handling toolkit.
         - [x] `BoundPattern`
         - [ ] `Subst`
     - [ ] Allow derives to use identifier types other than `String`
+    - [ ] Implement namespaced variables and binders
     - [ ] Performance optimizations
         - [ ] Cache max-depth of terms
         - [ ] Cache free variables of terms
