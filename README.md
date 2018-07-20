@@ -14,6 +14,125 @@ Moniker aims to alleviate this error-prone boilerplate by providing a set of
 generic types and traits for describing how variables are bound, that can then
 be used to automatically derive the corresponding name-handling code.
 
+## Motivation
+
+It's interesting to note that the idea of a 'scope' comes up quite often in
+programming:
+
+- anonymous functions
+- case match arms
+- let bindings
+- recursive functions and data types
+- type parameters
+- type definitions
+- ...and more!
+
+Scopes introduce 'binders', that may then refer to 'variables' in a body. For
+example, let's take a Rust implementation of the identity function:
+
+```rust
+fn ident<T>(value : T) -> T {
+    value
+}
+
+ident(23)
+```
+
+Here we have three 'binders', and four 'variable' usages:
+
+```rust
+// binder
+//   |
+//   | binder      var   var
+//   |   |          |     |
+//   |   | binder   |     |
+//   |   |   |      |     |
+//   v   v   v      v     v
+fn ident<T>(value : T) -> T {
+    value
+//    ^
+//    |
+//   var
+}
+// var
+// |
+// v
+ident(23)
+```
+
+Here's how it would look if we drew arrows from the binders to the
+corresponding variables:
+
+```rust
+//   .--------------------------.
+//   |   .----------*-----.     |
+//   |   |          |     |     |
+//   |   |          v     v     |
+fn ident<T>(value : T) -> T {// |
+//            |                 |
+//    .-------'                 |
+//    |                         |
+//    v                         |
+    value //                    |
+} //                            |
+// .----------------------------'
+// |
+// v
+ident(23)
+```
+
+Here's a more complex example:
+
+```rust
+type Count = u32;
+
+fn foo<T>((count, data): (Count, T)) -> T {
+    match count {
+        0 => data,
+        count => foo((count - 1, data)),
+    }
+}
+```
+
+And here is a graph of the binders and variables at play:
+
+```rust
+//            ?
+//            |
+//            v
+type Count = u32;
+//     |
+//     '--------------------.
+//  .-----------------------|------------------.
+//  |  .--------------------|----*------.      |
+//  |  |                    |    |      |      |
+//  |  |                    v    v      v      |
+fn foo<T>((count, data): (Count, T)) -> T { // |
+//          |       |                          |
+//          |       |                          |
+//          |       *--------------.           |
+//          v       |              |           |
+    match count { //|              |           |
+//             .----'              |           |
+//             |                   |           |
+//             v                   |           |
+        0 => data, //              |           |
+//         .------------.          |           |
+//         |            |          |           |
+//         |            v          v           |
+        count => foo((count - 1, data)), //    |
+//                ^                            |
+//                |                            |
+//                '----------------------------'
+    }
+}
+```
+
+Keeping track of the relationships between these variables can be a pain, and
+can become especially error-prone when then going on to implement evaluators and
+type checkers. Moniker aims to support all of these binding structures, with
+minimal pain!
+
 ## Example
 
 Here is how we would use Moniker to describe a very small functional language,
