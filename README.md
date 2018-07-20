@@ -27,8 +27,11 @@ programming:
 - type definitions
 - ...and more!
 
-Scopes introduce 'binders', that may then refer to 'variables' in a body. For
-example, let's take a Rust implementation of the identity function:
+'Pattern's introduce 'binders', that may then refer to 'variables' referred to
+in a 'term'. We refer to the combination of a pattern and the term it binds as a
+'scope'.
+
+For example, let's take a Rust implementation of the identity function:
 
 ```rust
 fn ident<T>(value : T) -> T {
