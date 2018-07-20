@@ -8,11 +8,9 @@
 [gitter-badge]: https://badges.gitter.im/moniker-rs/moniker.svg
 [gitter-lobby]: https://gitter.im/moniker-rs/Lobby
 
-Keeping track of bound variables across nested scopes is actually a surprisingly
-hard and error-prone thing to implement when building new programming languages.
-Moniker aims to alleviate this error-prone boilerplate by providing a set of
-generic types and traits for describing how variables are bound, that can then
-be used to automatically derive the corresponding name-handling code.
+Moniker aims to alleviate the error-prone boilerplate required to keep track of
+bound variables across nested scopes, making it easier to implement new
+programming languages and domain-specific languages in Rust.
 
 ## Motivation
 
@@ -134,7 +132,10 @@ fn foo<T>((count, data): (Count, T)) -> T { // |
 Keeping track of the relationships between these variables can be a pain, and
 can become especially error-prone when then going on to implement evaluators and
 type checkers. Moniker aims to support all of these binding structures, with
-minimal pain!
+minimal pain! We do this by providing a set of generic types and traits for
+describing how variables are bound, that can then be used to automatically
+derive the corresponding name-handling code.
+
 
 ## Example
 
