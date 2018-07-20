@@ -275,6 +275,8 @@ Other auto-binding libraries exist for a number of different languages:
   an OCaml compilation unit.
 - [alphaLib][alphaLib]: An OCaml library that helps deal with binding constructs
   in abstract syntax trees.
+- [abbot][abbot]: Generation of abstract binding trees for SML
+- [rabbot][rabbot]: A port of SML's Abbot to Rust
 - [DBLib][dblib]: Facilities for working with de Bruijn indices in Coq
 - [Bound](https://github.com/ekmett/bound/): DeBruijn indices for Haskell
 - [Metalib][metalib]: The Penn Locally Nameless Metatheory Library
@@ -284,6 +286,8 @@ Other auto-binding libraries exist for a number of different languages:
 [unbound-generics]: https://github.com/lambdageek/unbound-generics
 [alphaCaml]: http://pauillac.inria.fr/~fpottier/alphaCaml/alphacaml.html.en
 [alphaLib]: https://gitlab.inria.fr/fpottier/alphaLib
+[abbot]: https://github.com/robsimmons/abbot
+[rabbot]: https://github.com/willcrichton/rabbot
 [dblib]: https://github.com/coq-contribs/dblib
 [metalib]: https://github.com/plclub/metalib
 [ln]: http://www.chargueraud.org/softs/ln/
