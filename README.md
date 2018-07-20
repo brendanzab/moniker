@@ -8,10 +8,12 @@
 [gitter-badge]: https://badges.gitter.im/moniker-rs/moniker.svg
 [gitter-lobby]: https://gitter.im/moniker-rs/Lobby
 
-This crate automatically derives variable binding and alpha equivalence for
-abstract syntax trees. This is really handy for eliminating error-prone
-boilerplate code for name binding, and make it easier to implement new languages
-in Rust.
+Keeping track of bound variables across nested scopes is actually a surprisingly
+hard and error-prone thing to implement when building a new programming
+languages or domain-specific language. Moniker aims to alleviate this
+error-prone boilerplate by providing a set of generic types and traits that can
+be used to describe how variables are bound, and then derive the corresponding
+name-handling code automatically.
 
 ## Example
 
@@ -74,7 +76,7 @@ pub type RcPattern = Rc<Pattern>;
 /// ```text
 /// e ::= x                             variables
 ///     | e : t                         expressions annotated with types
-///     | \p -> e                       anonymous functions
+///     | \p => e                       anonymous functions
 ///     | e₁ e₂                         function application
 ///     | let p₁=e₁, ..., pₙ=eₙ in e    mutually recursive let bindings
 /// ````
@@ -102,8 +104,68 @@ pub enum Expr {
 pub type RcExpr = Rc<Expr>;
 ```
 
+We can now construct lambda expressions by doing the following:
+
+```rust
+// \f : (Base -> Base) => \x : Base => f x
+Rc::new(Expr::Lam(Scope::new(
+    Rc::new(Pattern::Ann(
+        Rc::new(Pattern::Binder(Binder::user("f"))),
+        Rc::new(Type::Arrow(
+            Rc::new(Type::Base),
+            Rc::new(Type::Base),
+        )),
+    )),
+    Rc::new(Expr::Lam(Scope::new(
+        Rc::new(Pattern::Ann(
+            Rc::new(Pattern::Binder(Binder::user("x"))),
+            Rc::new(Type::Base),
+        )),
+        Rc::new(Expr::App(
+            Rc::new(Expr::Var(Var::user("f"))),
+            Rc::new(Expr::Var(Var::user("x"))),
+        )),
+    )))
+)))
+```
+
 More complete examples, including evaluators and type checkers, can be found in
 the [`moniker/examples`](/moniker/examples) directory.
+
+## Usage examples
+
+Moniker is currently used on the following Rust language projects:
+
+- [Pikelet](https://github.com/pikelet-lang/pikelet): A dependently typed
+  systems programming language
+
+## Roadmap
+
+Moniker is currently good enough to use for initial language prototypes, but
+there is more work that we'd like to do to make it a more fully-featured
+name binding and scope handling toolkit.
+
+- [ ] Initial implementation using a locally nameless representation
+    - [x] Implement basic type combinators
+        - [x] `Embed`
+        - [x] `Ignore`
+        - [x] `Nest`
+        - [x] `Rec`
+        - [x] `Scope`
+    - [ ] Automatically derive traits
+        - [x] `BoundTerm`
+        - [x] `BoundPattern`
+        - [ ] `Subst`
+    - [ ] Allow derives to use identifier types other than `String`
+    - [ ] Performance optimizations
+        - [ ] Cache max-depth of terms
+        - [ ] Cache free variables of terms
+        - [ ] Perform multiple-opening/closing
+        - [ ] Use visitors
+- [ ] Explore implementing other name-binding schemes
+    - [ ] Named with unique indices
+    - [ ] Scope Graphs
+    - [ ] ...?
 
 ## References
 
