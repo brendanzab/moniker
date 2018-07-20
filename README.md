@@ -9,11 +9,10 @@
 [gitter-lobby]: https://gitter.im/moniker-rs/Lobby
 
 Keeping track of bound variables across nested scopes is actually a surprisingly
-hard and error-prone thing to implement when building a new programming
-languages or domain-specific language. Moniker aims to alleviate this
-error-prone boilerplate by providing a set of generic types and traits that can
-be used to describe how variables are bound, and then derive the corresponding
-name-handling code automatically.
+hard and error-prone thing to implement when building new programming languages.
+Moniker aims to alleviate this error-prone boilerplate by providing a set of
+generic types and traits for describing how variables are bound, that can then
+be used to automatically derive the corresponding name-handling code.
 
 ## Example
 
