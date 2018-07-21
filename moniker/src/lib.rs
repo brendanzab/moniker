@@ -41,26 +41,26 @@
 //!
 //! Terms are data types that implement the [`BoundTerm`] trait.
 //!
-//! - [`Var<Ident>`]: A variable that is either free or bound
-//! - [`Scope<P: BoundPattern<Ident>, T: BoundTerm<Ident>>`]: bind the term `T` using the pattern `P`
+//! - [`Var<N>`]: A variable that is either free or bound
+//! - [`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: bind the term `T` using the pattern `P`
 //!
 //! ## Patterns
 //!
 //! Patterns are data types that implement the [`BoundPattern`] trait.
 //!
-//! - [`Binder<Ident>`]: Captures a free variables within a term, but is ignored for alpha equality
+//! - [`Binder<N>`]: Captures a free variables within a term, but is ignored for alpha equality
 //! - [`Ignore<T>`]: Ignores `T` when comparing for alpha equality
-//! - [`Embed<T: BoundTerm<Ident>>`]: Embed a term `T` in a pattern
-//! - [`Nest<P: BoundPattern<Ident>>`]: Multiple nested binding patterns
-//! - [`Rec<P: BoundPattern<Ident>>`]: Recursively bind a pattern in itself
+//! - [`Embed<T: BoundTerm<N>>`]: Embed a term `T` in a pattern
+//! - [`Nest<P: BoundPattern<N>>`]: Multiple nested binding patterns
+//! - [`Rec<P: BoundPattern<N>>`]: Recursively bind a pattern in itself
 //!
-//! [`Var<Ident>`]: enum.Var.html
-//! [`Scope<P: BoundPattern<Ident>, T: BoundTerm<Ident>>`]: struct.Scope.html
-//! [`Binder<Ident>`]: enum.Binder.html
+//! [`Var<N>`]: enum.Var.html
+//! [`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: struct.Scope.html
+//! [`Binder<N>`]: enum.Binder.html
 //! [`Ignore<T>`]: struct.Ignore.html
-//! [`Embed<T: BoundTerm<Ident>>`]: struct.Embed.html
-//! [`Nest<P: BoundPattern<Ident>>`]: struct.Nest.html
-//! [`Rec<P: BoundPattern<Ident>>`]: struct.Rec.html
+//! [`Embed<T: BoundTerm<N>>`]: struct.Embed.html
+//! [`Nest<P: BoundPattern<N>>`]: struct.Nest.html
+//! [`Rec<P: BoundPattern<N>>`]: struct.Rec.html
 //! [`BoundTerm`]: trait.BoundTerm.html
 //! [`BoundPattern`]: trait.BoundPattern.html
 
