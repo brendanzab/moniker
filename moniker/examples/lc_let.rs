@@ -41,8 +41,8 @@ impl RcExpr {
         Var<String>: PartialEq<N>,
     {
         match *self.inner {
-            Expr::Var(ref n) => match mappings.iter().find(|&(n2, _)| n == n2) {
-                Some((_, ref subst_expr)) => subst_expr.clone(),
+            Expr::Var(ref var) => match mappings.iter().find(|&(name, _)| var == name) {
+                Some((_, ref replacement)) => replacement.clone(),
                 None => self.clone(),
             },
             Expr::Lam(ref scope) => RcExpr::from(Expr::Lam(Scope {
@@ -75,8 +75,8 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
         Expr::Var(_) | Expr::Lam(_) => expr.clone(),
         Expr::App(ref fun, ref arg) => match *eval(fun).inner {
             Expr::Lam(ref scope) => {
-                let (name, body) = scope.clone().unbind();
-                eval(&body.substs(&[(name, eval(arg))]))
+                let (binder, body) = scope.clone().unbind();
+                eval(&body.substs(&[(binder, eval(arg))]))
             },
             _ => expr.clone(),
         },
@@ -84,9 +84,9 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
             let (bindings, body) = scope.clone().unbind();
             let mut mappings = Vec::with_capacity(bindings.unsafe_patterns.len());
 
-            for (name, Embed(value)) in bindings.unnest() {
+            for (binder, Embed(value)) in bindings.unnest() {
                 let value = eval(&value.substs(&mappings));
-                mappings.push((name, value));
+                mappings.push((binder, value));
             }
 
             eval(&body.substs(&mappings))

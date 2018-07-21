@@ -39,7 +39,7 @@ impl RcExpr {
         Var<String>: PartialEq<N>,
     {
         match *self.inner {
-            Expr::Var(ref n) if n == name => replacement.clone(),
+            Expr::Var(ref var) if var == name => replacement.clone(),
             Expr::Var(_) => self.clone(),
             Expr::Lam(ref scope) => RcExpr::from(Expr::Lam(Scope {
                 unsafe_pattern: scope.unsafe_pattern.clone(),
@@ -59,8 +59,8 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
         Expr::Var(_) | Expr::Lam(_) => expr.clone(),
         Expr::App(ref fun, ref arg) => match *eval(fun).inner {
             Expr::Lam(ref scope) => {
-                let (name, body) = scope.clone().unbind();
-                eval(&body.subst(&name, &eval(arg)))
+                let (binder, body) = scope.clone().unbind();
+                eval(&body.subst(&binder, &eval(arg)))
             },
             _ => expr.clone(),
         },

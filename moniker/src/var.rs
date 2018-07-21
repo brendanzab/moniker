@@ -226,7 +226,7 @@ impl<N> Var<N> {
 
     pub fn try_into_free_var(self) -> Result<FreeVar<N>, ()> {
         match self {
-            Var::Free(name) => Ok(name),
+            Var::Free(free_var) => Ok(free_var),
             Var::Bound(_, _, _) => Err(()),
         }
     }
@@ -257,7 +257,7 @@ where
     fn hash<H: Hasher>(&self, state: &mut H) {
         mem::discriminant(self).hash(state);
         match *self {
-            Var::Free(ref name) => name.hash(state),
+            Var::Free(ref free_var) => free_var.hash(state),
             Var::Bound(scope, pattern, _) => {
                 scope.hash(state);
                 pattern.hash(state);
@@ -275,7 +275,7 @@ impl<N: fmt::Display> fmt::Display for Var<N> {
             Var::Bound(scope_offset, binder_index, Some(ref hint)) => {
                 write!(f, "{}@{}.{}", hint, scope_offset, binder_index)
             },
-            Var::Free(ref free) => write!(f, "{}", free),
+            Var::Free(ref free_var) => write!(f, "{}", free_var),
         }
     }
 }
@@ -301,14 +301,14 @@ impl<N> Binder<N> {
 
     pub fn to_var(self, scope: ScopeOffset) -> Var<N> {
         match self {
-            Binder::Free(name) => Var::Free(name),
+            Binder::Free(free_var) => Var::Free(free_var),
             Binder::Bound(pattern, name) => Var::Bound(scope, pattern, name),
         }
     }
 
     pub fn try_into_free_var(self) -> Result<FreeVar<N>, ()> {
         match self {
-            Binder::Free(name) => Ok(name),
+            Binder::Free(free_var) => Ok(free_var),
             Binder::Bound(_, _) => Err(()),
         }
     }
@@ -338,7 +338,7 @@ where
     fn hash<H: Hasher>(&self, state: &mut H) {
         mem::discriminant(self).hash(state);
         match *self {
-            Binder::Free(ref name) => name.hash(state),
+            Binder::Free(ref free_var) => free_var.hash(state),
             Binder::Bound(pattern, _) => pattern.hash(state),
         }
     }
@@ -349,7 +349,7 @@ impl<N: fmt::Display> fmt::Display for Binder<N> {
         match *self {
             Binder::Bound(binder_index, None) => write!(f, "@{}", binder_index),
             Binder::Bound(binder_index, Some(ref hint)) => write!(f, "{}@{}", hint, binder_index),
-            Binder::Free(ref free) => write!(f, "{}", free),
+            Binder::Free(ref free_var) => write!(f, "{}", free_var),
         }
     }
 }

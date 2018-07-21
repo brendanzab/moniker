@@ -89,7 +89,7 @@ impl RcExpr {
             Expr::Ann(ref expr, ref ty) => {
                 RcExpr::from(Expr::Ann(expr.subst(name, replacement), ty.clone()))
             },
-            Expr::Var(ref n) if n == name => replacement.clone(),
+            Expr::Var(ref var) if var == name => replacement.clone(),
             Expr::Var(_) | Expr::Literal(_) => self.clone(),
             Expr::Lam(ref scope) => RcExpr::from(Expr::Lam(Scope {
                 unsafe_pattern: scope.unsafe_pattern.clone(),
@@ -110,8 +110,8 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
         Expr::Literal(_) | Expr::Var(_) | Expr::Lam(_) => expr.clone(),
         Expr::App(ref fun, ref arg) => match *eval(fun).inner {
             Expr::Lam(ref scope) => {
-                let ((name, _), body) = scope.clone().unbind();
-                eval(&body.subst(&name, &eval(arg)))
+                let ((binder, _), body) = scope.clone().unbind();
+                eval(&body.subst(&binder, &eval(arg)))
             },
             _ => expr.clone(),
         },
@@ -125,12 +125,12 @@ type Context = HashMap<FreeVar<String>, RcType>;
 pub fn check(context: &Context, expr: &RcExpr, expected_ty: &RcType) -> Result<(), String> {
     match (&*expr.inner, &*expected_ty.inner) {
         (&Expr::Lam(ref scope), &Type::Arrow(ref param_ty, ref ret_ty)) => {
-            if let ((name, Embed(None)), body) = scope.clone().unbind() {
+            if let ((binder, Embed(None)), body) = scope.clone().unbind() {
                 // FIXME: Ick!
-                let name = name
+                let free_var = binder
                     .try_into_free_var()
                     .expect("encountered a bound variable");
-                check(&context.insert(name, param_ty.clone()), &body, ret_ty)?;
+                check(&context.insert(free_var, param_ty.clone()), &body, ret_ty)?;
                 return Ok(());
             }
         },
@@ -169,17 +169,18 @@ pub fn infer(context: &Context, expr: &RcExpr) -> Result<RcType, String> {
             None => Err(format!("`{:?}` not found in `{:?}`", var, context)),
         },
         Expr::Lam(ref scope) => match scope.clone().unbind() {
-            ((name, Embed(Some(ann))), body) => {
+            ((binder, Embed(Some(ann))), body) => {
                 // FIXME: Ick!
-                let name = name
+                let free_var = binder
                     .try_into_free_var()
                     .expect("encountered a bound variable");
-                let body_ty = infer(&context.insert(name, ann.clone()), &body)?;
+                let body_ty = infer(&context.insert(free_var, ann.clone()), &body)?;
                 Ok(RcType::from(Type::Arrow(ann, body_ty)))
             },
-            ((name, Embed(None)), _) => {
-                Err(format!("type annotation needed for argument `{:?}`", name))
-            },
+            ((binder, Embed(None)), _) => Err(format!(
+                "type annotation needed for parameter `{:?}`",
+                binder
+            )),
         },
         Expr::App(ref fun, ref arg) => match *infer(context, fun)?.inner {
             Type::Arrow(ref param_ty, ref ret_ty) => {

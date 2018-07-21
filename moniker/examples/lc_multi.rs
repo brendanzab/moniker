@@ -39,8 +39,8 @@ impl RcExpr {
         Var<String>: PartialEq<N>,
     {
         match *self.inner {
-            Expr::Var(ref n) => match mappings.iter().find(|&(n2, _)| n == n2) {
-                Some((_, ref subst_expr)) => subst_expr.clone(),
+            Expr::Var(ref var) => match mappings.iter().find(|&(name, _)| var == name) {
+                Some((_, ref replacement)) => replacement.clone(),
                 None => self.clone(),
             },
             Expr::Lam(ref scope) => RcExpr::from(Expr::Lam(Scope {
@@ -66,16 +66,16 @@ pub fn eval(expr: &RcExpr) -> Result<RcExpr, EvalError> {
         Expr::Var(_) | Expr::Lam(_) => Ok(expr.clone()),
         Expr::App(ref fun, ref args) => match *eval(fun)?.inner {
             Expr::Lam(ref scope) => {
-                let (params, body) = scope.clone().unbind();
+                let (binders, body) = scope.clone().unbind();
 
-                if params.len() != args.len() {
+                if binders.len() != args.len() {
                     Err(EvalError::ArgumentCountMismatch {
-                        expected: params.len(),
+                        expected: binders.len(),
                         given: args.len(),
                     })
                 } else {
                     let mappings = <_>::zip(
-                        params.into_iter(),
+                        binders.into_iter(),
                         args.iter().map(|arg| eval(arg).unwrap()),
                     ).collect::<Vec<_>>();
 
