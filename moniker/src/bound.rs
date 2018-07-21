@@ -96,7 +96,7 @@ impl<N: PartialEq + Clone> BoundTerm<N> for Var<N> {
         *self = match *self {
             Var::Bound(scope, binder_index, _) if scope == state.depth() => {
                 match pattern.find_binder_at_offset(binder_index.0) {
-                    Ok(binder) => binder.to_var(state.depth()),
+                    Ok(Binder(binder)) => Var::Free(binder),
                     Err(_) => {
                         // FIXME: better error?
                         panic!(
@@ -502,9 +502,10 @@ where
     fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
     fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-        match *self {
-            Binder::Free(ref n) if n == free_var => Ok(BinderIndex(BinderOffset(0))),
-            Binder::Free(_) | Binder::Bound(_, _) => Err(BinderOffset(1)),
+        if self == free_var {
+            Ok(BinderIndex(BinderOffset(0)))
+        } else {
+            Err(BinderOffset(1))
         }
     }
 

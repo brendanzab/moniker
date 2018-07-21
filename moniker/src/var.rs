@@ -223,13 +223,6 @@ impl<N> Var<N> {
     pub fn user<T: Into<N>>(ident: T) -> Var<N> {
         Var::Free(FreeVar::user(ident))
     }
-
-    pub fn try_into_free_var(self) -> Result<FreeVar<N>, ()> {
-        match self {
-            Var::Free(free_var) => Ok(free_var),
-            Var::Bound(_, _, _) => Err(()),
-        }
-    }
 }
 
 impl<N> PartialEq for Var<N>
@@ -280,77 +273,23 @@ impl<N: fmt::Display> fmt::Display for Var<N> {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum Binder<N> {
-    Free(FreeVar<N>),
-    Bound(BinderIndex, Option<N>),
-}
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Binder<N>(pub FreeVar<N>);
 
 impl<N> Binder<N> {
     /// Create a variable from a human-readable string
     pub fn user<T: Into<N>>(ident: T) -> Binder<N> {
-        Binder::Free(FreeVar::user(ident))
+        Binder(FreeVar::user(ident))
     }
 
     pub fn fresh(self) -> Binder<N> {
-        match self {
-            Binder::Free(free_var) => Binder::Free(free_var.fresh()),
-            Binder::Bound(_, _) => self,
-        }
-    }
-
-    pub fn to_var(self, scope: ScopeOffset) -> Var<N> {
-        match self {
-            Binder::Free(free_var) => Var::Free(free_var),
-            Binder::Bound(pattern, name) => Var::Bound(scope, pattern, name),
-        }
-    }
-
-    pub fn try_into_free_var(self) -> Result<FreeVar<N>, ()> {
-        match self {
-            Binder::Free(free_var) => Ok(free_var),
-            Binder::Bound(_, _) => Err(()),
-        }
-    }
-}
-
-impl<N> PartialEq for Binder<N>
-where
-    N: PartialEq,
-{
-    fn eq(&self, other: &Binder<N>) -> bool {
-        match (self, other) {
-            (&Binder::Free(ref lhs), &Binder::Free(ref rhs)) => lhs == rhs,
-            (&Binder::Bound(binder_index_lhs, _), &Binder::Bound(binder_index_rhs, _)) => {
-                binder_index_lhs == binder_index_rhs
-            },
-            _ => false,
-        }
-    }
-}
-
-impl<N> Eq for Binder<N> where N: Eq {}
-
-impl<N> Hash for Binder<N>
-where
-    N: Hash,
-{
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        mem::discriminant(self).hash(state);
-        match *self {
-            Binder::Free(ref free_var) => free_var.hash(state),
-            Binder::Bound(pattern, _) => pattern.hash(state),
-        }
+        Binder(self.0.fresh())
     }
 }
 
 impl<N: fmt::Display> fmt::Display for Binder<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Binder::Bound(binder_index, None) => write!(f, "@{}", binder_index),
-            Binder::Bound(binder_index, Some(ref hint)) => write!(f, "{}@{}", hint, binder_index),
-            Binder::Free(ref free_var) => write!(f, "{}", free_var),
-        }
+        write!(f, "{}", self.0)
     }
 }
 
@@ -359,8 +298,8 @@ where
     N: PartialEq,
 {
     fn eq(&self, other: &Binder<N>) -> bool {
-        match (self, other) {
-            (&Var::Free(ref lhs), &Binder::Free(ref rhs)) => lhs == rhs,
+        match self {
+            Var::Free(ref lhs) => other == lhs,
             _ => false,
         }
     }
@@ -383,8 +322,8 @@ where
     N: PartialEq,
 {
     fn eq(&self, other: &Var<N>) -> bool {
-        match (self, other) {
-            (&Binder::Free(ref lhs), &Var::Free(ref rhs)) => lhs == rhs,
+        match other {
+            Var::Free(ref rhs) => self == rhs,
             _ => false,
         }
     }
@@ -395,9 +334,6 @@ where
     N: PartialEq,
 {
     fn eq(&self, other: &FreeVar<N>) -> bool {
-        match *self {
-            Binder::Free(ref lhs) => lhs == other,
-            _ => false,
-        }
+        self.0 == *other
     }
 }

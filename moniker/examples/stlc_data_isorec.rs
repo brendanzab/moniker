@@ -234,11 +234,7 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
 pub fn check(context: &Context, expr: &RcExpr, expected_ty: &RcType) -> Result<(), String> {
     match (&*expr.inner, &*expected_ty.inner) {
         (&Expr::Lam(ref scope), &Type::Arrow(ref param_ty, ref ret_ty)) => {
-            if let ((binder, Embed(None)), body) = scope.clone().unbind() {
-                // FIXME: Ick!
-                let free_var = binder
-                    .try_into_free_var()
-                    .expect("encountered a bound variable");
+            if let ((Binder(free_var), Embed(None)), body) = scope.clone().unbind() {
                 check(&context.insert(free_var, param_ty.clone()), &body, ret_ty)?;
                 return Ok(());
             }
@@ -277,21 +273,13 @@ pub fn infer(context: &Context, expr: &RcExpr) -> Result<RcType, String> {
         Expr::Literal(Literal::Int(_)) => Ok(RcType::from(Type::Int)),
         Expr::Literal(Literal::Float(_)) => Ok(RcType::from(Type::Float)),
         Expr::Literal(Literal::String(_)) => Ok(RcType::from(Type::String)),
-        Expr::Var(ref var) => match context.get(
-            // FIXME: Ick!
-            &var.clone()
-                .try_into_free_var()
-                .expect("encountered a bound variable"),
-        ) {
+        Expr::Var(Var::Free(ref free_var)) => match context.get(free_var) {
             Some(term) => Ok((*term).clone()),
-            None => Err(format!("`{:?}` not found in `{:?}`", var, context)),
+            None => Err(format!("`{:?}` not found in `{:?}`", free_var, context)),
         },
+        Expr::Var(Var::Bound(_, _, _)) => panic!("encountered a bound variable"),
         Expr::Lam(ref scope) => match scope.clone().unbind() {
-            ((binder, Embed(Some(ann))), body) => {
-                // FIXME: Ick!
-                let free_var = binder
-                    .try_into_free_var()
-                    .expect("encountered a bound variable");
+            ((Binder(free_var), Embed(Some(ann))), body) => {
                 let body_ty = infer(&context.insert(free_var, ann.clone()), &body)?;
                 Ok(RcType::from(Type::Arrow(ann, body_ty)))
             },
