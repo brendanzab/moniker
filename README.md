@@ -1,12 +1,18 @@
 # Moniker
 
 [![Build Status][travis-badge]][travis-url]
+[![Crates.io][crate-badge]][crate-url]
+[![Docs.rs][docs-badge]][docs-url]
 [![Gitter][gitter-badge]][gitter-lobby]
 
 [travis-badge]: https://travis-ci.org/brendanzab/moniker.svg?branch=master
 [travis-url]: https://travis-ci.org/brendanzab/moniker
-[gitter-badge]: https://badges.gitter.im/moniker-rs/moniker.svg
-[gitter-lobby]: https://gitter.im/moniker-rs/Lobby
+[crate-url]: https://crates.io/crates/moniker
+[crate-badge]: https://img.shields.io/crates/v/moniker.svg
+[docs-url]: https://docs.rs/moniker
+[docs-badge]: https://docs.rs/moniker/badge.svg
+[gitter-badge]: https://badges.gitter.im/brendanzab/moniker.svg
+[gitter-lobby]: https://gitter.im/brendanzab/moniker
 
 Moniker aims to alleviate the error-prone boilerplate required to keep track of
 bound variables across nested scopes, making it easier to implement new
