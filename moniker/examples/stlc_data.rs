@@ -135,8 +135,8 @@ impl RcExpr {
             Expr::Ann(ref expr, ref ty) => {
                 RcExpr::from(Expr::Ann(expr.substs(mappings), ty.clone()))
             },
-            Expr::Var(ref n) => match mappings.iter().find(|&(n2, _)| n == n2) {
-                Some((_, ref subst_expr)) => subst_expr.clone(),
+            Expr::Var(ref var) => match mappings.iter().find(|&(name, _)| var == name) {
+                Some((_, ref replacement)) => replacement.clone(),
                 None => self.clone(),
             },
             Expr::Literal(_) => self.clone(),
@@ -379,13 +379,13 @@ pub fn check_pattern(
     expected_ty: &RcType,
 ) -> Result<Context, String> {
     match (&*pattern.inner, &*expected_ty.inner) {
-        (&Pattern::Binder(ref var), _) => {
+        (&Pattern::Binder(ref binder), _) => {
             // FIXME: Ick!
-            let var = var
+            let free_var = binder
                 .clone()
                 .try_into_free_var()
                 .expect("encountered a bound variable");
-            return Ok(Context::new().insert(var.clone(), expected_ty.clone()));
+            return Ok(Context::new().insert(free_var.clone(), expected_ty.clone()));
         },
         (&Pattern::Tag(ref label, ref pattern), &Type::Variant(ref variants)) => {
             return match variants.iter().find(|&(l, _)| l == label) {

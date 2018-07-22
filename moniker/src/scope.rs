@@ -20,10 +20,10 @@ pub struct Scope<P, T> {
 
 impl<P, T> Scope<P, T> {
     /// Create a new scope by binding a term with the given pattern
-    pub fn new<Ident>(pattern: P, mut body: T) -> Scope<P, T>
+    pub fn new<N>(pattern: P, mut body: T) -> Scope<P, T>
     where
-        P: BoundPattern<Ident>,
-        T: BoundTerm<Ident>,
+        P: BoundPattern<N>,
+        T: BoundTerm<N>,
     {
         body.close_term(ScopeState::new(), &pattern);
 
@@ -34,11 +34,11 @@ impl<P, T> Scope<P, T> {
     }
 
     /// Unbind a term, returning the freshened pattern and body
-    pub fn unbind<Ident>(self) -> (P, T)
+    pub fn unbind<N>(self) -> (P, T)
     where
-        Ident: Eq + Hash,
-        P: BoundPattern<Ident>,
-        T: BoundTerm<Ident>,
+        N: Eq + Hash,
+        P: BoundPattern<N>,
+        T: BoundTerm<N>,
     {
         let mut pattern = self.unsafe_pattern;
         let mut body = self.unsafe_body;
@@ -55,13 +55,13 @@ impl<P, T> Scope<P, T> {
     /// Simultaneously unbind two terms
     ///
     /// The fresh names in the first pattern with be used for the second pattern
-    pub fn unbind2<Ident, P2, T2>(self, other: Scope<P2, T2>) -> (P, T, P2, T2)
+    pub fn unbind2<N, P2, T2>(self, other: Scope<P2, T2>) -> (P, T, P2, T2)
     where
-        Ident: Eq + Hash,
-        P: BoundPattern<Ident>,
-        T: BoundTerm<Ident>,
-        P2: BoundPattern<Ident>,
-        T2: BoundTerm<Ident>,
+        N: Eq + Hash,
+        P: BoundPattern<N>,
+        T: BoundTerm<N>,
+        P2: BoundPattern<N>,
+        T2: BoundTerm<N>,
     {
         let mut self_pattern = self.unsafe_pattern;
         let mut self_body = self.unsafe_body;
@@ -80,31 +80,31 @@ impl<P, T> Scope<P, T> {
     }
 }
 
-impl<Ident, P, T> BoundTerm<Ident> for Scope<P, T>
+impl<N, P, T> BoundTerm<N> for Scope<P, T>
 where
-    P: BoundPattern<Ident>,
-    T: BoundTerm<Ident>,
+    P: BoundPattern<N>,
+    T: BoundTerm<N>,
 {
     fn term_eq(&self, other: &Scope<P, T>) -> bool {
         P::pattern_eq(&self.unsafe_pattern, &other.unsafe_pattern)
             && T::term_eq(&self.unsafe_body, &other.unsafe_body)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         self.unsafe_pattern.close_pattern(state, pattern);
         self.unsafe_body.close_term(state.incr(), pattern);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         self.unsafe_pattern.open_pattern(state, pattern);
         self.unsafe_body.open_term(state.incr(), pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
         self.unsafe_body.visit_vars(on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
         self.unsafe_body.visit_mut_vars(on_var);
     }
 }

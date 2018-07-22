@@ -31,22 +31,22 @@ impl ScopeState {
 }
 
 /// Terms that may contain variables that can be bound by patterns
-pub trait BoundTerm<Ident> {
+pub trait BoundTerm<N> {
     /// Alpha equivalence in a term context
     fn term_eq(&self, other: &Self) -> bool;
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>);
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>);
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>);
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>);
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>));
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>));
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>));
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>));
 
     /// Returns the set of free variables in this term
-    fn free_vars(&self) -> HashSet<FreeVar<Ident>>
+    fn free_vars(&self) -> HashSet<FreeVar<N>>
     where
-        Ident: Eq + Hash + Clone,
+        N: Eq + Hash + Clone,
     {
         let mut free_vars = HashSet::new();
         self.visit_vars(&mut |var| match *var {
@@ -59,26 +59,26 @@ pub trait BoundTerm<Ident> {
     }
 }
 
-impl<Ident: PartialEq> BoundTerm<Ident> for FreeVar<Ident> {
-    fn term_eq(&self, other: &FreeVar<Ident>) -> bool {
+impl<N: PartialEq> BoundTerm<N> for FreeVar<N> {
+    fn term_eq(&self, other: &FreeVar<N>) -> bool {
         self == other
     }
 
-    fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+    fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-    fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+    fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-    fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+    fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
 
-    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
+    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<N>)) {}
 }
 
-impl<Ident: PartialEq + Clone> BoundTerm<Ident> for Var<Ident> {
-    fn term_eq(&self, other: &Var<Ident>) -> bool {
+impl<N: PartialEq + Clone> BoundTerm<N> for Var<N> {
+    fn term_eq(&self, other: &Var<N>) -> bool {
         self == other
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         // NOTE: Working around NLL
         *self = match *self {
             Var::Bound(_, _, _) => return,
@@ -91,7 +91,7 @@ impl<Ident: PartialEq + Clone> BoundTerm<Ident> for Var<Ident> {
         };
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         // NOTE: Working around NLL
         *self = match *self {
             Var::Bound(scope, binder_index, _) if scope == state.depth() => {
@@ -110,11 +110,11 @@ impl<Ident: PartialEq + Clone> BoundTerm<Ident> for Var<Ident> {
         };
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
         on_var(self);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
         on_var(self);
     }
 }
@@ -123,18 +123,18 @@ impl<Ident: PartialEq + Clone> BoundTerm<Ident> for Var<Ident> {
 
 macro_rules! impl_bound_term_partial_eq {
     ($T:ty) => {
-        impl<Ident> BoundTerm<Ident> for $T {
+        impl<N> BoundTerm<N> for $T {
             fn term_eq(&self, other: &$T) -> bool {
                 self == other
             }
 
-            fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+            fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-            fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+            fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-            fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+            fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
 
-            fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
+            fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<N>)) {}
         }
     };
 }
@@ -160,18 +160,18 @@ impl_bound_term_partial_eq!(f64);
 #[cfg(feature = "codespan")]
 macro_rules! impl_bound_term_ignore {
     ($T:ty) => {
-        impl<Ident> BoundTerm<Ident> for $T {
+        impl<N> BoundTerm<N> for $T {
             fn term_eq(&self, _: &$T) -> bool {
                 true
             }
 
-            fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+            fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-            fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+            fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-            fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+            fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
 
-            fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
+            fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<N>)) {}
         }
     };
 }
@@ -194,23 +194,23 @@ impl_bound_term_ignore!(LineNumber);
 impl_bound_term_ignore!(LineOffset);
 
 #[cfg(feature = "codespan")]
-impl<Ident, T> BoundTerm<Ident> for Span<T> {
+impl<N, T> BoundTerm<N> for Span<T> {
     fn term_eq(&self, _: &Span<T>) -> bool {
         true
     }
 
-    fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+    fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-    fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+    fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-    fn visit_vars(&self, _: &mut impl FnMut(&Var<Ident>)) {}
+    fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
 
-    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<Ident>)) {}
+    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<N>)) {}
 }
 
-impl<Ident, T> BoundTerm<Ident> for Option<T>
+impl<N, T> BoundTerm<N> for Option<T>
 where
-    T: BoundTerm<Ident>,
+    T: BoundTerm<N>,
 {
     fn term_eq(&self, other: &Option<T>) -> bool {
         match (self, other) {
@@ -220,276 +220,276 @@ where
         }
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         if let Some(ref mut inner) = *self {
             inner.close_term(state, pattern);
         }
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         if let Some(ref mut inner) = *self {
             inner.open_term(state, pattern);
         }
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
         if let Some(ref inner) = *self {
             inner.visit_vars(on_var);
         }
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
         if let Some(ref mut inner) = *self {
             inner.visit_mut_vars(on_var);
         }
     }
 }
 
-impl<Ident, T> BoundTerm<Ident> for Box<T>
+impl<N, T> BoundTerm<N> for Box<T>
 where
-    T: BoundTerm<Ident>,
+    T: BoundTerm<N>,
 {
     fn term_eq(&self, other: &Box<T>) -> bool {
         T::term_eq(self, other)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         T::close_term(self, state, pattern);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         T::open_term(self, state, pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
         T::visit_vars(self, on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
         T::visit_mut_vars(self, on_var);
     }
 }
 
-impl<Ident, T> BoundTerm<Ident> for Rc<T>
+impl<N, T> BoundTerm<N> for Rc<T>
 where
-    T: BoundTerm<Ident> + Clone,
+    T: BoundTerm<N> + Clone,
 {
     fn term_eq(&self, other: &Rc<T>) -> bool {
         T::term_eq(self, other)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         T::close_term(Rc::make_mut(self), state, pattern);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         T::open_term(Rc::make_mut(self), state, pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
         T::visit_vars(self, on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
         T::visit_mut_vars(Rc::make_mut(self), on_var);
     }
 }
 
-impl<Ident, T> BoundTerm<Ident> for Arc<T>
+impl<N, T> BoundTerm<N> for Arc<T>
 where
-    T: BoundTerm<Ident> + Clone,
+    T: BoundTerm<N> + Clone,
 {
     fn term_eq(&self, other: &Arc<T>) -> bool {
         T::term_eq(self, other)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         T::close_term(Arc::make_mut(self), state, pattern);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         T::open_term(Arc::make_mut(self), state, pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
         T::visit_vars(self, on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
         T::visit_mut_vars(Arc::make_mut(self), on_var);
     }
 }
 
-impl<Ident, T, U> BoundTerm<Ident> for (T, U)
+impl<N, T1, T2> BoundTerm<N> for (T1, T2)
 where
-    T: BoundTerm<Ident>,
-    U: BoundTerm<Ident>,
+    T1: BoundTerm<N>,
+    T2: BoundTerm<N>,
 {
-    fn term_eq(&self, other: &(T, U)) -> bool {
-        T::term_eq(&self.0, &other.0) && U::term_eq(&self.1, &other.1)
+    fn term_eq(&self, other: &(T1, T2)) -> bool {
+        T1::term_eq(&self.0, &other.0) && T2::term_eq(&self.1, &other.1)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         self.0.close_term(state, pattern);
         self.1.close_term(state, pattern);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         self.0.open_term(state, pattern);
         self.1.open_term(state, pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
         self.0.visit_vars(on_var);
         self.1.visit_vars(on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
         self.0.visit_mut_vars(on_var);
         self.1.visit_mut_vars(on_var);
     }
 }
 
-impl<Ident, T, U, V> BoundTerm<Ident> for (T, U, V)
+impl<N, T1, T2, T3> BoundTerm<N> for (T1, T2, T3)
 where
-    T: BoundTerm<Ident>,
-    U: BoundTerm<Ident>,
-    V: BoundTerm<Ident>,
+    T1: BoundTerm<N>,
+    T2: BoundTerm<N>,
+    T3: BoundTerm<N>,
 {
-    fn term_eq(&self, other: &(T, U, V)) -> bool {
-        T::term_eq(&self.0, &other.0)
-            && U::term_eq(&self.1, &other.1)
-            && V::term_eq(&self.2, &other.2)
+    fn term_eq(&self, other: &(T1, T2, T3)) -> bool {
+        T1::term_eq(&self.0, &other.0)
+            && T2::term_eq(&self.1, &other.1)
+            && T3::term_eq(&self.2, &other.2)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         self.0.close_term(state, pattern);
         self.1.close_term(state, pattern);
         self.2.close_term(state, pattern);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         self.0.open_term(state, pattern);
         self.1.open_term(state, pattern);
         self.2.open_term(state, pattern);
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
         self.0.visit_vars(on_var);
         self.1.visit_vars(on_var);
         self.2.visit_vars(on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
         self.0.visit_mut_vars(on_var);
         self.1.visit_mut_vars(on_var);
         self.2.visit_mut_vars(on_var);
     }
 }
 
-impl<Ident, T> BoundTerm<Ident> for [T]
+impl<N, T> BoundTerm<N> for [T]
 where
-    T: BoundTerm<Ident> + Clone,
+    T: BoundTerm<N> + Clone,
 {
     fn term_eq(&self, other: &[T]) -> bool {
         self.len() == other.len()
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| T::term_eq(lhs, rhs))
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         for elem in self {
             elem.close_term(state, pattern);
         }
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         for elem in self {
             elem.open_term(state, pattern);
         }
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
         for elem in self {
             elem.visit_vars(on_var);
         }
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
         for elem in self {
             elem.visit_mut_vars(on_var);
         }
     }
 }
 
-impl<Ident, T> BoundTerm<Ident> for Vec<T>
+impl<N, T> BoundTerm<N> for Vec<T>
 where
-    T: BoundTerm<Ident> + Clone,
+    T: BoundTerm<N> + Clone,
 {
     fn term_eq(&self, other: &Vec<T>) -> bool {
         <[T]>::term_eq(self, other)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         <[T]>::close_term(self, state, pattern)
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         <[T]>::open_term(self, state, pattern)
     }
 
-    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<Ident>)) {
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
         <[T]>::visit_vars(self, on_var);
     }
 
-    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<Ident>)) {
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
         <[T]>::visit_mut_vars(self, on_var);
     }
 }
 
-pub type Permutations<Ident> = HashMap<Binder<Ident>, Binder<Ident>>;
+pub type Permutations<N> = HashMap<Binder<N>, Binder<N>>;
 
 /// Patterns that bind variables in terms
-pub trait BoundPattern<Ident> {
+pub trait BoundPattern<N> {
     /// Alpha equivalence in a pattern context
     fn pattern_eq(&self, other: &Self) -> bool;
 
-    fn freshen(&mut self, permutations: &mut Permutations<Ident>);
+    fn freshen(&mut self, permutations: &mut Permutations<N>);
 
-    fn swaps(&mut self, permutations: &Permutations<Ident>);
+    fn swaps(&mut self, permutations: &Permutations<N>);
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>);
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>);
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>);
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>);
 
     /// Find the index of the pattern that binds the given free variable
     ///
     /// If we failed to find a pattern variable corresponding to the free
     /// variable we return a pattern variable offset describing how many
     /// pattern variables we passed over.
-    fn find_binder_index(&self, free_var: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset>;
+    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset>;
 
     /// Find the pattern variable at the given offset
     ///
     /// If we finished traversing over the pattern without finding a pattern
     /// we return the offset that still remains.
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset>;
+    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset>;
 }
 
-impl<Ident> BoundPattern<Ident> for Binder<Ident>
+impl<N> BoundPattern<N> for Binder<N>
 where
-    Ident: Clone + Eq + Hash,
+    N: Clone + Eq + Hash,
 {
-    fn pattern_eq(&self, _: &Binder<Ident>) -> bool {
+    fn pattern_eq(&self, _: &Binder<N>) -> bool {
         true
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+    fn freshen(&mut self, permutations: &mut Permutations<N>) {
         let fresh = self.clone().fresh();
         permutations.insert(self.clone(), fresh.clone());
         *self = fresh;
     }
 
-    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+    fn swaps(&mut self, permutations: &Permutations<N>) {
         *self = permutations
             .get(self)
             .cloned()
@@ -497,18 +497,18 @@ where
             .expect("pattern not found in permutation");
     }
 
-    fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+    fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-    fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+    fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-    fn find_binder_index(&self, free_var: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
         match *self {
             Binder::Free(ref n) if n == free_var => Ok(BinderIndex(BinderOffset(0))),
             Binder::Free(_) | Binder::Bound(_, _) => Err(BinderOffset(1)),
         }
     }
 
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
+    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
         if offset == BinderOffset(0) {
             Ok(self.clone())
         } else {
@@ -521,27 +521,27 @@ where
 
 macro_rules! impl_bound_pattern_partial_eq {
     ($T:ty) => {
-        impl<Ident> BoundPattern<Ident> for $T {
+        impl<N> BoundPattern<N> for $T {
             fn pattern_eq(&self, other: &$T) -> bool {
                 self == other
             }
 
-            fn freshen(&mut self, _: &mut Permutations<Ident>) {}
+            fn freshen(&mut self, _: &mut Permutations<N>) {}
 
-            fn swaps(&mut self, _: &Permutations<Ident>) {}
+            fn swaps(&mut self, _: &Permutations<N>) {}
 
-            fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+            fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-            fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+            fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-            fn find_binder_index(&self, _: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+            fn find_binder_index(&self, _: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
                 Err(BinderOffset(0))
             }
 
             fn find_binder_at_offset(
                 &self,
                 offset: BinderOffset,
-            ) -> Result<Binder<Ident>, BinderOffset> {
+            ) -> Result<Binder<N>, BinderOffset> {
                 Err(offset)
             }
         }
@@ -569,27 +569,27 @@ impl_bound_pattern_partial_eq!(f64);
 #[cfg(feature = "codespan")]
 macro_rules! impl_bound_pattern_ignore {
     ($T:ty) => {
-        impl<Ident> BoundPattern<Ident> for $T {
+        impl<N> BoundPattern<N> for $T {
             fn pattern_eq(&self, _: &$T) -> bool {
                 true
             }
 
-            fn freshen(&mut self, _: &mut Permutations<Ident>) {}
+            fn freshen(&mut self, _: &mut Permutations<N>) {}
 
-            fn swaps(&mut self, _: &Permutations<Ident>) {}
+            fn swaps(&mut self, _: &Permutations<N>) {}
 
-            fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+            fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-            fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+            fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-            fn find_binder_index(&self, _: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+            fn find_binder_index(&self, _: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
                 Err(BinderOffset(0))
             }
 
             fn find_binder_at_offset(
                 &self,
                 offset: BinderOffset,
-            ) -> Result<Binder<Ident>, BinderOffset> {
+            ) -> Result<Binder<N>, BinderOffset> {
                 Err(offset)
             }
         }
@@ -614,31 +614,31 @@ impl_bound_pattern_ignore!(LineNumber);
 impl_bound_pattern_ignore!(LineOffset);
 
 #[cfg(feature = "codespan")]
-impl<Ident, T> BoundPattern<Ident> for Span<T> {
+impl<N, T> BoundPattern<N> for Span<T> {
     fn pattern_eq(&self, _: &Span<T>) -> bool {
         true
     }
 
-    fn freshen(&mut self, _: &mut Permutations<Ident>) {}
+    fn freshen(&mut self, _: &mut Permutations<N>) {}
 
-    fn swaps(&mut self, _: &Permutations<Ident>) {}
+    fn swaps(&mut self, _: &Permutations<N>) {}
 
-    fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+    fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-    fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<Ident>) {}
+    fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
 
-    fn find_binder_index(&self, _: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+    fn find_binder_index(&self, _: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
         Err(BinderOffset(0))
     }
 
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
+    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
         Err(offset)
     }
 }
 
-impl<Ident, P> BoundPattern<Ident> for Option<P>
+impl<N, P> BoundPattern<N> for Option<P>
 where
-    P: BoundPattern<Ident>,
+    P: BoundPattern<N>,
 {
     fn pattern_eq(&self, other: &Option<P>) -> bool {
         match (self, other) {
@@ -648,38 +648,38 @@ where
         }
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+    fn freshen(&mut self, permutations: &mut Permutations<N>) {
         if let Some(ref mut inner) = *self {
             inner.freshen(permutations);
         }
     }
 
-    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+    fn swaps(&mut self, permutations: &Permutations<N>) {
         if let Some(ref mut inner) = *self {
             inner.swaps(permutations);
         }
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         if let Some(ref mut inner) = *self {
             inner.close_pattern(state, pattern);
         }
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         if let Some(ref mut inner) = *self {
             inner.open_pattern(state, pattern);
         }
     }
 
-    fn find_binder_index(&self, free_var: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
         match *self {
             None => Err(BinderOffset(0)),
             Some(ref inner) => inner.find_binder_index(free_var),
         }
     }
 
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
+    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
         match *self {
             None => Err(offset),
             Some(ref inner) => inner.find_binder_at_offset(offset),
@@ -687,36 +687,36 @@ where
     }
 }
 
-impl<Ident, P1, P2> BoundPattern<Ident> for (P1, P2)
+impl<N, P1, P2> BoundPattern<N> for (P1, P2)
 where
-    P1: BoundPattern<Ident>,
-    P2: BoundPattern<Ident>,
+    P1: BoundPattern<N>,
+    P2: BoundPattern<N>,
 {
     fn pattern_eq(&self, other: &(P1, P2)) -> bool {
         P1::pattern_eq(&self.0, &other.0) && P2::pattern_eq(&self.1, &other.1)
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+    fn freshen(&mut self, permutations: &mut Permutations<N>) {
         self.0.freshen(permutations);
         self.1.freshen(permutations);
     }
 
-    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+    fn swaps(&mut self, permutations: &Permutations<N>) {
         self.0.swaps(permutations);
         self.1.swaps(permutations);
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         self.0.close_pattern(state, pattern);
         self.1.close_pattern(state, pattern);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         self.0.open_pattern(state, pattern);
         self.1.open_pattern(state, pattern);
     }
 
-    fn find_binder_index(&self, free_var: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
         let mut skipped = BinderOffset(0);
 
         match self.0.find_binder_index(free_var) {
@@ -731,10 +731,7 @@ where
         Err(skipped)
     }
 
-    fn find_binder_at_offset(
-        &self,
-        mut offset: BinderOffset,
-    ) -> Result<Binder<Ident>, BinderOffset> {
+    fn find_binder_at_offset(&self, mut offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
         match self.0.find_binder_at_offset(offset) {
             Ok(binder) => return Ok(binder),
             Err(next_offset) => offset = next_offset,
@@ -748,140 +745,140 @@ where
     }
 }
 
-impl<Ident, P> BoundPattern<Ident> for Box<P>
+impl<N, P> BoundPattern<N> for Box<P>
 where
-    P: BoundPattern<Ident>,
+    P: BoundPattern<N>,
 {
     fn pattern_eq(&self, other: &Box<P>) -> bool {
         P::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+    fn freshen(&mut self, permutations: &mut Permutations<N>) {
         P::freshen(self, permutations)
     }
 
-    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+    fn swaps(&mut self, permutations: &Permutations<N>) {
         P::swaps(self, permutations)
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         P::close_pattern(self, state, pattern);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         P::open_pattern(self, state, pattern);
     }
 
-    fn find_binder_index(&self, free_var: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
         P::find_binder_index(self, free_var)
     }
 
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
+    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
         P::find_binder_at_offset(self, offset)
     }
 }
 
-impl<Ident, P> BoundPattern<Ident> for Rc<P>
+impl<N, P> BoundPattern<N> for Rc<P>
 where
-    P: BoundPattern<Ident> + Clone,
+    P: BoundPattern<N> + Clone,
 {
     fn pattern_eq(&self, other: &Rc<P>) -> bool {
         P::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+    fn freshen(&mut self, permutations: &mut Permutations<N>) {
         P::freshen(Rc::make_mut(self), permutations)
     }
 
-    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+    fn swaps(&mut self, permutations: &Permutations<N>) {
         P::swaps(Rc::make_mut(self), permutations)
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         P::close_pattern(Rc::make_mut(self), state, pattern);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         P::open_pattern(Rc::make_mut(self), state, pattern);
     }
 
-    fn find_binder_index(&self, free_var: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
         P::find_binder_index(self, free_var)
     }
 
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
+    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
         P::find_binder_at_offset(self, offset)
     }
 }
 
-impl<Ident, P> BoundPattern<Ident> for Arc<P>
+impl<N, P> BoundPattern<N> for Arc<P>
 where
-    P: BoundPattern<Ident> + Clone,
+    P: BoundPattern<N> + Clone,
 {
     fn pattern_eq(&self, other: &Arc<P>) -> bool {
         P::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+    fn freshen(&mut self, permutations: &mut Permutations<N>) {
         P::freshen(Arc::make_mut(self), permutations)
     }
 
-    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+    fn swaps(&mut self, permutations: &Permutations<N>) {
         P::swaps(Arc::make_mut(self), permutations);
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         P::close_pattern(Arc::make_mut(self), state, pattern);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         P::open_pattern(Arc::make_mut(self), state, pattern);
     }
 
-    fn find_binder_index(&self, free_var: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
         P::find_binder_index(self, free_var)
     }
 
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
+    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
         P::find_binder_at_offset(self, offset)
     }
 }
 
-impl<Ident, P> BoundPattern<Ident> for [P]
+impl<N, P> BoundPattern<N> for [P]
 where
-    Ident: Clone,
-    P: BoundPattern<Ident>,
+    N: Clone,
+    P: BoundPattern<N>,
 {
     fn pattern_eq(&self, other: &[P]) -> bool {
         self.len() == other.len()
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+    fn freshen(&mut self, permutations: &mut Permutations<N>) {
         for elem in self {
             elem.freshen(permutations);
         }
     }
 
-    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+    fn swaps(&mut self, permutations: &Permutations<N>) {
         for elem in self {
             elem.swaps(permutations);
         }
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         for elem in self {
             elem.close_pattern(state, pattern);
         }
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         for elem in self {
             elem.open_pattern(state, pattern);
         }
     }
 
-    fn find_binder_index(&self, free_var: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
         let mut skipped = BinderOffset(0);
         for elem in self {
             match elem.find_binder_index(free_var) {
@@ -892,10 +889,7 @@ where
         Err(skipped)
     }
 
-    fn find_binder_at_offset(
-        &self,
-        mut offset: BinderOffset,
-    ) -> Result<Binder<Ident>, BinderOffset> {
+    fn find_binder_at_offset(&self, mut offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
         for elem in self {
             match elem.find_binder_at_offset(offset) {
                 Ok(binder) => return Ok(binder),
@@ -906,36 +900,36 @@ where
     }
 }
 
-impl<Ident, P> BoundPattern<Ident> for Vec<P>
+impl<N, P> BoundPattern<N> for Vec<P>
 where
-    Ident: Clone,
-    P: BoundPattern<Ident>,
+    N: Clone,
+    P: BoundPattern<N>,
 {
     fn pattern_eq(&self, other: &Vec<P>) -> bool {
         <[P]>::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+    fn freshen(&mut self, permutations: &mut Permutations<N>) {
         <[P]>::freshen(self, permutations);
     }
 
-    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+    fn swaps(&mut self, permutations: &Permutations<N>) {
         <[P]>::swaps(self, permutations)
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         <[P]>::close_pattern(self, state, pattern);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
         <[P]>::open_pattern(self, state, pattern);
     }
 
-    fn find_binder_index(&self, free_var: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
         <[P]>::find_binder_index(self, free_var)
     }
 
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
+    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
         <[P]>::find_binder_at_offset(self, offset)
     }
 }

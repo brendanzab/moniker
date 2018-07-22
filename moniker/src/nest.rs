@@ -11,9 +11,9 @@ pub struct Nest<P> {
 
 impl<P> Nest<P> {
     /// Nest a term with the given patterns
-    pub fn new<Ident>(patterns: Vec<P>) -> Nest<P>
+    pub fn new<N>(patterns: Vec<P>) -> Nest<P>
     where
-        P: BoundPattern<Ident>,
+        P: BoundPattern<N>,
     {
         // FIXME: Avoid allocating new vector
         let mut rebound_patterns = Vec::<P>::with_capacity(patterns.len());
@@ -33,9 +33,9 @@ impl<P> Nest<P> {
     }
 
     /// Unnest a term, returning the freshened patterns
-    pub fn unnest<Ident>(self) -> Vec<P>
+    pub fn unnest<N>(self) -> Vec<P>
     where
-        P: BoundPattern<Ident>,
+        P: BoundPattern<N>,
     {
         // FIXME: Avoid allocating new vector
         let mut unrebound_patterns = Vec::<P>::with_capacity(self.unsafe_patterns.len());
@@ -53,42 +53,42 @@ impl<P> Nest<P> {
     }
 }
 
-impl<Ident, P> BoundPattern<Ident> for Nest<P>
+impl<N, P> BoundPattern<N> for Nest<P>
 where
-    Ident: Clone,
-    P: BoundPattern<Ident>,
+    N: Clone,
+    P: BoundPattern<N>,
 {
     fn pattern_eq(&self, other: &Nest<P>) -> bool {
         <[P]>::pattern_eq(&self.unsafe_patterns, &other.unsafe_patterns)
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<Ident>) {
+    fn freshen(&mut self, permutations: &mut Permutations<N>) {
         <[P]>::freshen(&mut self.unsafe_patterns, permutations)
     }
 
-    fn swaps(&mut self, permutations: &Permutations<Ident>) {
+    fn swaps(&mut self, permutations: &Permutations<N>) {
         <[P]>::swaps(&mut self.unsafe_patterns, permutations)
     }
 
-    fn close_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn close_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern<N>) {
         for elem in &mut self.unsafe_patterns {
             elem.close_pattern(state, pattern);
             state = state.incr();
         }
     }
 
-    fn open_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern<Ident>) {
+    fn open_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern<N>) {
         for elem in &mut self.unsafe_patterns {
             elem.close_pattern(state, pattern);
             state = state.incr();
         }
     }
 
-    fn find_binder_index(&self, free_var: &FreeVar<Ident>) -> Result<BinderIndex, BinderOffset> {
+    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
         <[P]>::find_binder_index(&self.unsafe_patterns, free_var)
     }
 
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<Ident>, BinderOffset> {
+    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
         <[P]>::find_binder_at_offset(&self.unsafe_patterns, offset)
     }
 }

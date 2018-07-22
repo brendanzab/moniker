@@ -41,7 +41,7 @@ impl RcExpr {
         Var<String>: PartialEq<N>,
     {
         match *self.inner {
-            Expr::Var(ref n) if n == name => replacement.clone(),
+            Expr::Var(ref var) if var == name => replacement.clone(),
             Expr::Var(_) => self.clone(),
             Expr::Lam(ref scope) => RcExpr::from(Expr::Lam(Scope {
                 unsafe_pattern: scope.unsafe_pattern.clone(),
@@ -74,8 +74,8 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
         Expr::Var(_) | Expr::Lam(_) => expr.clone(),
         Expr::App(ref fun, ref arg) => match *eval(fun).inner {
             Expr::Lam(ref scope) => {
-                let (name, body) = scope.clone().unbind();
-                eval(&body.subst(&name, &eval(arg)))
+                let (binder, body) = scope.clone().unbind();
+                eval(&body.subst(&binder, &eval(arg)))
             },
             _ => expr.clone(),
         },
@@ -84,15 +84,15 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
             let bindings = bindings.unrec();
 
             // substitute the variable definitions all (once) throughout the body
-            for &(ref name, Embed(ref binding)) in &bindings {
-                body = body.subst(name, binding);
+            for &(ref binder, Embed(ref binding)) in &bindings {
+                body = body.subst(binder, binding);
             }
 
             // garbage collect, if possible
             // FIXME: `free_vars` is slow! We probably want this to be faster - see issue #10
             let fvs = body.free_vars();
-            if bindings.iter().any(|&(ref name, _)| match *name {
-                Binder::Free(ref name) => fvs.contains(name),
+            if bindings.iter().any(|&(ref binder, _)| match *binder {
+                Binder::Free(ref binder) => fvs.contains(binder),
                 _ => panic!("encountered a bound variable"),
             }) {
                 RcExpr::from(Expr::LetRec(Scope::new(Rec::new(&bindings), body)))
