@@ -33,9 +33,9 @@
 //!
 //! [stlc]: https://en.wikipedia.org/wiki/Simply_typed_lambda_calculus
 //!
-//! # Useful traits and data types
+//! # Overview of traits and data types
 //!
-//! Data types are separated into patterns and terms:
+//! We separate data types into terms and patterns:
 //!
 //! ## Terms
 //!

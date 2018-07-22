@@ -29,7 +29,7 @@ programming:
 
 | Description          | Rust Example                                 |
 | -------------------- | -------------------------------------------- |
-| case match arms      | ``match expr { x => /* `x` bound here*/ }``  |
+| case match arms      | ``match expr { x => /* `x` bound here */ }`` |
 | let bindings         | ``let x = ...; /* `x` bound here */``        |
 | recursive functions  | ``fn foo() { /* `foo` bound here */ }``      |
 | functions parameters | ``fn foo(x: T) { /* `x` bound here */ }``    |
@@ -87,44 +87,6 @@ Keeping track of the relationships between these variables can be a pain, and
 can become especially error-prone when implementing evaluators and type
 checkers. Moniker aims to support all of these binding structures, with
 minimal pain!
-
-## Useful traits and data types
-
-Data types are separated into patterns and terms:
-
-### Terms
-
-Terms are data types that implement the [`BoundTerm`] trait.
-
-- [`Var<N>`]: A variable that is either free or bound
-- [`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: bind the term `T` using the pattern `P`
-
-Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
-are also provided for convenience.
-
-[`BoundTerm`]: https://docs.rs/moniker/trait.BoundTerm.html
-[`Var<N>`]: https://docs.rs/moniker/enum.Var.html
-[`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: https://docs.rs/moniker/struct.Scope.html
-
-### Patterns
-
-Patterns are data types that implement the [`BoundPattern`] trait.
-
-- [`Binder<N>`]: Captures a free variables within a term, but is ignored for alpha equality
-- [`Ignore<T>`]: Ignores `T` when comparing for alpha equality
-- [`Embed<T: BoundTerm<N>>`]: Embed a term `T` in a pattern
-- [`Nest<P: BoundPattern<N>>`]: Multiple nested binding patterns
-- [`Rec<P: BoundPattern<N>>`]: Recursively bind a pattern in itself
-
-Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
-are also provided for convenience.
-
-[`BoundPattern`]: https://docs.rs/moniker/trait.BoundPattern.html
-[`Binder<N>`]: https://docs.rs/moniker/enum.Binder.html
-[`Ignore<T>`]: https://docs.rs/moniker/struct.Ignore.html
-[`Embed<T: BoundTerm<N>>`]: https://docs.rs/moniker/struct.Embed.html
-[`Nest<P: BoundPattern<N>>`]: https://docs.rs/moniker/struct.Nest.html
-[`Rec<P: BoundPattern<N>>`]: https://docs.rs/moniker/struct.Rec.html
 
 ## Example
 
@@ -207,6 +169,44 @@ Moniker is currently used in the following Rust projects:
 
 - [Pikelet](https://github.com/pikelet-lang/pikelet): A dependently typed
   systems programming language
+
+## Overview of traits and data types
+
+We separate data types into terms and patterns:
+
+### Terms
+
+Terms are data types that implement the [`BoundTerm`] trait.
+
+- [`Var<N>`]: A variable that is either free or bound
+- [`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: bind the term `T` using the pattern `P`
+
+Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
+are also provided for convenience.
+
+[`BoundTerm`]: https://docs.rs/moniker/trait.BoundTerm.html
+[`Var<N>`]: https://docs.rs/moniker/enum.Var.html
+[`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: https://docs.rs/moniker/struct.Scope.html
+
+### Patterns
+
+Patterns are data types that implement the [`BoundPattern`] trait.
+
+- [`Binder<N>`]: Captures a free variables within a term, but is ignored for alpha equality
+- [`Ignore<T>`]: Ignores `T` when comparing for alpha equality
+- [`Embed<T: BoundTerm<N>>`]: Embed a term `T` in a pattern
+- [`Nest<P: BoundPattern<N>>`]: Multiple nested binding patterns
+- [`Rec<P: BoundPattern<N>>`]: Recursively bind a pattern in itself
+
+Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
+are also provided for convenience.
+
+[`BoundPattern`]: https://docs.rs/moniker/trait.BoundPattern.html
+[`Binder<N>`]: https://docs.rs/moniker/enum.Binder.html
+[`Ignore<T>`]: https://docs.rs/moniker/struct.Ignore.html
+[`Embed<T: BoundTerm<N>>`]: https://docs.rs/moniker/struct.Embed.html
+[`Nest<P: BoundPattern<N>>`]: https://docs.rs/moniker/struct.Nest.html
+[`Rec<P: BoundPattern<N>>`]: https://docs.rs/moniker/struct.Rec.html
 
 ## Roadmap
 
