@@ -33,7 +33,7 @@ moniker-derive = { path = "../moniker-derive", version = "0.1.0", optional = tru
 codespan = { version = "0.1.2", optional = true }
 
 [dev-dependencies]
-im = "10.2"
+im = "11.0.0"
 
 [[example]]
 name = "lc"

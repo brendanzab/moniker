@@ -141,7 +141,7 @@ pub fn check(context: &Context, expr: &RcExpr, expected_ty: &RcType) -> Result<(
     match (&*expr.inner, &*expected_ty.inner) {
         (&Expr::Lam(ref scope), &Type::Arrow(ref param_ty, ref ret_ty)) => {
             if let ((Binder(free_var), Embed(None)), body) = scope.clone().unbind() {
-                check(&context.insert(free_var, param_ty.clone()), &body, ret_ty)?;
+                check(&context.update(free_var, param_ty.clone()), &body, ret_ty)?;
                 return Ok(());
             }
         },
@@ -177,7 +177,7 @@ pub fn infer(context: &Context, expr: &RcExpr) -> Result<RcType, String> {
         Expr::Var(Var::Bound(_, _, _)) => panic!("encountered a bound variable"),
         Expr::Lam(ref scope) => match scope.clone().unbind() {
             ((Binder(free_var), Embed(Some(ann))), body) => {
-                let body_ty = infer(&context.insert(free_var, ann.clone()), &body)?;
+                let body_ty = infer(&context.update(free_var, ann.clone()), &body)?;
                 Ok(RcType::from(Type::Arrow(ann, body_ty)))
             },
             ((binder, Embed(None)), _) => Err(format!(
