@@ -91,10 +91,7 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
             // garbage collect, if possible
             // FIXME: `free_vars` is slow! We probably want this to be faster - see issue #10
             let fvs = body.free_vars();
-            if bindings.iter().any(|&(ref binder, _)| match *binder {
-                Binder::Free(ref binder) => fvs.contains(binder),
-                _ => panic!("encountered a bound variable"),
-            }) {
+            if bindings.iter().any(|&(Binder(ref fv), _)| fvs.contains(fv)) {
                 RcExpr::from(Expr::LetRec(Scope::new(Rec::new(&bindings), body)))
             } else {
                 eval(&body)

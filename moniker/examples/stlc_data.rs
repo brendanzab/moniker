@@ -235,10 +235,7 @@ pub fn match_expr(pattern: &RcPattern, expr: &RcExpr) -> Option<Vec<(FreeVar<Str
         {
             Some(vec![])
         },
-        (&Pattern::Binder(Binder::Free(ref free_var)), _) => {
-            Some(vec![(free_var.clone(), expr.clone())])
-        },
-        (&Pattern::Binder(Binder::Bound(_, _)), _) => None, // oopsie
+        (&Pattern::Binder(Binder(ref free_var)), _) => Some(vec![(free_var.clone(), expr.clone())]),
         (&Pattern::Record(ref pattern_fields), &Expr::Record(ref expr_fields))
             if pattern_fields.len() == expr_fields.len() =>
         {
@@ -317,15 +314,11 @@ pub fn infer_expr(context: &Context, expr: &RcExpr) -> Result<RcType, String> {
         Expr::Literal(Literal::Int(_)) => Ok(RcType::from(Type::Int)),
         Expr::Literal(Literal::Float(_)) => Ok(RcType::from(Type::Float)),
         Expr::Literal(Literal::String(_)) => Ok(RcType::from(Type::String)),
-        Expr::Var(ref var) => match context.get(
-            // FIXME: Ick!
-            &var.clone()
-                .try_into_free_var()
-                .expect("encountered a bound variable"),
-        ) {
+        Expr::Var(Var::Free(ref free_var)) => match context.get(free_var) {
             Some(term) => Ok((*term).clone()),
-            None => Err(format!("`{:?}` not found in `{:?}`", var, context)),
+            None => Err(format!("`{:?}` not found in `{:?}`", free_var, context)),
         },
+        Expr::Var(Var::Bound(_, _, _)) => panic!("encountered a bound variable"),
         Expr::Lam(ref scope) => {
             let (pattern, body) = scope.clone().unbind();
             let (ann, bindings) = infer_pattern(context, &pattern)?;
@@ -379,12 +372,7 @@ pub fn check_pattern(
     expected_ty: &RcType,
 ) -> Result<Context, String> {
     match (&*pattern.inner, &*expected_ty.inner) {
-        (&Pattern::Binder(ref binder), _) => {
-            // FIXME: Ick!
-            let free_var = binder
-                .clone()
-                .try_into_free_var()
-                .expect("encountered a bound variable");
+        (&Pattern::Binder(Binder(ref free_var)), _) => {
             return Ok(Context::new().insert(free_var.clone(), expected_ty.clone()));
         },
         (&Pattern::Tag(ref label, ref pattern), &Type::Variant(ref variants)) => {
