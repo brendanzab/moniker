@@ -8,6 +8,12 @@ use moniker::{Binder, Scope, Var};
 use std::rc::Rc;
 
 /// Expressions
+///
+/// ```text
+/// e ::= x                     variables
+///     | \(x₁, ..., xₙ) => e   anonymous functions
+///     | e (e₁, ..., eₙ)       function application
+/// ````
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Variables
@@ -89,7 +95,7 @@ pub fn eval(expr: &RcExpr) -> Result<RcExpr, EvalError> {
 
 #[test]
 fn test_eval_const_lhs() {
-    // expr = (fn(x, y) -> y)(a, b)
+    // expr = (\(x, y) => y)(a, b)
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
             vec![Binder::user("x"), Binder::user("y")],
@@ -109,7 +115,7 @@ fn test_eval_const_lhs() {
 
 #[test]
 fn test_eval_const_rhs() {
-    // expr = (fn(x, y) -> x)(a, b)
+    // expr = (\(x, y) => x)(a, b)
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
             vec![Binder::user("x"), Binder::user("y")],

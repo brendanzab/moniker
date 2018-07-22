@@ -13,6 +13,13 @@ use moniker::{Binder, BoundTerm, Embed, FreeVar, Scope, Var};
 use std::rc::Rc;
 
 /// Types
+///
+/// ```text
+/// t ::= Int                   integer types
+///     | Float                 floating point types
+///     | String                string types
+///     | t -> t                function types
+/// ```
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Type {
     /// Integers
@@ -51,6 +58,14 @@ pub enum Literal {
 }
 
 /// Expressions
+///
+/// ```text
+/// e ::= x             variables
+///     | e : t         expressions annotated with types
+///     | \x => e       anonymous functions
+///     | \x : t => e   anonymous functions (with type annotation)
+///     | e₁ e₂         function application
+/// ```
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Annotated expressions

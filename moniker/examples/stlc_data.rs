@@ -18,6 +18,15 @@ use moniker::{Binder, BoundTerm, Embed, FreeVar, Scope, Var};
 use std::rc::Rc;
 
 /// Types
+///
+/// ```text
+/// t ::= Int                   integer types
+///     | Float                 floating point types
+///     | String                string types
+///     | t -> t                function types
+///     | {l₁:t₁, ..., lₙ:tₙ}   record types
+///     | <l₁:t₁, ..., lₙ:tₙ>   variant types
+/// ```
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Type {
     /// Integers
@@ -60,8 +69,18 @@ pub enum Literal {
 }
 
 /// Patterns
+///
+/// ```text
+/// p ::= _                     wildcard patterns
+///     | x                     pattern variables
+///     | p : t                 patterns annotated with types
+///     | {l₁=p₁, ..., lₙ=pₙ}   record patterns
+///     | <l=p>                 tag patterns
+/// ```
 #[derive(Debug, Clone, BoundPattern)]
 pub enum Pattern {
+    /// Wildcard patterns
+    Wildcard,
     /// Patterns annotated with types
     Ann(RcPattern, Embed<RcType>),
     /// Literal patterns
@@ -89,6 +108,18 @@ impl From<Pattern> for RcPattern {
 }
 
 /// Expressions
+///
+/// ```text
+/// e ::= x                                 variables
+///     | e : t                             expressions annotated with types
+///     | \p => e                           anonymous functions
+///     | e₁ e₂                             function application
+///     | let p₁=e₁, ..., pₙ=eₙ in e        mutually recursive let bindings
+///     | {l₁=e₁, ..., lₙ=eₙ}               record expressions
+///     | e.l                               record projections
+///     | <l=e>                             tag expressions
+///     | case e of p₁=>e₁, ..., pₙ=>eₙ     case expressions
+/// ```
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Annotated expressions
@@ -406,6 +437,7 @@ pub fn check_pattern(
 /// context with additional bindings that the pattern introduces.
 pub fn infer_pattern(context: &Context, expr: &RcPattern) -> Result<(RcType, Context), String> {
     match *expr.inner {
+        Pattern::Wildcard => Err("type annotations needed".to_string()),
         Pattern::Ann(ref pattern, Embed(ref ty)) => {
             let telescope = check_pattern(context, pattern, ty)?;
             Ok((ty.clone(), telescope))
