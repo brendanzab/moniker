@@ -8,6 +8,12 @@ use moniker::{Binder, Scope, Var};
 use std::rc::Rc;
 
 /// Expressions
+///
+/// ```text
+/// e ::= x          variables
+///     | \x => e    anonymous functions
+///     | e₁ e₂      function application
+/// ````
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Variables

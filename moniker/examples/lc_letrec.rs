@@ -8,6 +8,13 @@ use moniker::{Binder, BoundTerm, Embed, Rec, Scope, Var};
 use std::rc::Rc;
 
 /// Expressions
+///
+/// ```text
+/// e ::= x                                 variables
+///     | \x => e                           anonymous functions
+///     | e₁ e₂                             function application
+///     | let rec x₁=e₁, ..., xₙ=eₙ in e    mutually recursive let bindings
+/// ````
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Variables

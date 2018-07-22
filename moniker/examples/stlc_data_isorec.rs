@@ -13,6 +13,16 @@ use moniker::{Binder, BoundTerm, Embed, FreeVar, Rec, Scope, Var};
 use std::rc::Rc;
 
 /// Types
+///
+/// ```text
+/// t ::= Int                   integer types
+///     | Float                 floating point types
+///     | String                string types
+///     | t -> t                function types
+///     | {l₁:t₁, ..., lₙ:tₙ}   record types
+///     | <l₁:t₁, ..., lₙ:tₙ>   variant types
+///     | rec x => t            recursive type
+/// ```
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Type {
     /// Integers
@@ -101,6 +111,20 @@ pub enum Literal {
 }
 
 /// Expressions
+///
+/// ```text
+/// e ::= x                                         variables
+///     | e : t                                     expressions annotated with types
+///     | \x [: t] => e                             anonymous functions
+///     | e₁ e₂                                     function application
+///     | let x₁[:t₁]=e₁, ..., xₙ[:tₙ]=eₙ in e      mutually recursive let bindings
+///     | {l₁=e₁, ..., lₙ=eₙ}                       record expressions
+///     | e.l                                       record projections
+///     | <l=e>                                     tag expressions
+///     | case e of p₁=>e₁, ..., pₙ=>eₙ             case expressions
+///     | fold t => e                               fold expressions
+///     | unfold t => e                             unfold expressions
+/// ```
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Annotated expressions

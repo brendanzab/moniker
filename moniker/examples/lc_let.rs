@@ -8,6 +8,13 @@ use moniker::{Binder, Embed, Nest, Scope, Var};
 use std::rc::Rc;
 
 /// Expressions
+///
+/// ```text
+/// e ::= x                             variables
+///     | \x => e                       anonymous functions
+///     | e₁ e₂                         function application
+///     | let* x₁=e₁, ..., xₙ=eₙ in e   nested let bindings
+/// ````
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
     /// Variables
