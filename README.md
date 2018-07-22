@@ -161,7 +161,6 @@ use std::rc::Rc;
 /// e ::= x                             variables
 ///     | \x => e                       anonymous functions
 ///     | e₁ e₂                         function application
-///     | let x₁=e₁, ..., xₙ=eₙ in e    mutually recursive let bindings
 /// ````
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
@@ -174,13 +173,6 @@ pub enum Expr {
     Lam(Scope<Binder<String>, RcExpr>),
     /// Function applications
     App(RcExpr, RcExpr),
-    /// Mutually recursive let bindings
-    ///
-    /// We're getting more complex here, combining `Scope` with `Rec`, `Vec`,
-    /// `Embed` and pairs - check out the examples (under the
-    /// `/moniker/examples` directory) to see how we use this in an evaluator or
-    /// type checker.
-    Let(Scope<Rec<Vec<(Binder<String>, Embed<RcExpr>)>>, RcExpr>),
 }
 
 pub type RcExpr = Rc<Expr>;
@@ -202,12 +194,32 @@ Rc::new(Expr::Lam(Scope::new(
 )))
 ```
 
-More complete examples, including evaluators and type checkers, can be found in
-the [`moniker/examples`](/moniker/examples) directory.
+### More Complete Examples
 
-## Usage examples
+More complete examples, including evaluators and type checkers, can be found
+under the [`moniker/examples`](/moniker/examples) directory.
 
-Moniker is currently used on the following Rust language projects:
+| Example Name          | Description                 |
+| --------------------- | --------------------------- |
+| [`lc`]                | untyped lambda calculus |
+| [`lc_let`]            | untyped lambda calculus with nested let bindings |
+| [`lc_letrec`]         | untyped lambda calculus with mutually recursive bindings |
+| [`lc_multi`]          | untyped lambda calculus with multi-binders |
+| [`stlc`]              | simply typed lambda calculus with literals |
+| [`stlc_data`]         | simply typed lambda calculus with records, variants, literals, and pattern matching |
+| [`stlc_data_isorec`]  | simply typed lambda calculus with records, variants, literals, pattern matching, and iso-recursive types |
+
+[`lc`]: /moniker/examples/lc.rs
+[`lc_let`]: /moniker/examples/lc_let.rs
+[`lc_letrec`]: /moniker/examples/lc_letrec.rs
+[`lc_multi`]: /moniker/examples/lc_multi.rs
+[`stlc`]: /moniker/examples/stlc.rs
+[`stlc_data`]: /moniker/examples/stlc_data.rs
+[`stlc_data_isorec`]: /moniker/examples/stlc_data_isorec.rs
+
+### Projects using Moniker
+
+Moniker is currently used in the following Rust projects:
 
 - [Pikelet](https://github.com/pikelet-lang/pikelet): A dependently typed
   systems programming language

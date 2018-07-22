@@ -1,5 +1,5 @@
 //! An example of using the `moniker` library to implement the simply typed
-//! lambda calculus
+//! lambda calculus with literals
 //!
 //! We use [bidirectional type checking](http://www.davidchristiansen.dk/tutorials/bidirectional.pdf)
 //! to get some level of type inference.

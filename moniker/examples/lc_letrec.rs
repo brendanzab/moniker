@@ -1,5 +1,5 @@
 //! An example of using the `moniker` library to implement the untyped lambda
-//! calculus with `letrec` bindings.
+//! calculus with mutually recursive bindings.
 
 #[macro_use]
 extern crate moniker;
@@ -10,10 +10,10 @@ use std::rc::Rc;
 /// Expressions
 ///
 /// ```text
-/// e ::= x                                 variables
-///     | \x => e                           anonymous functions
-///     | e₁ e₂                             function application
-///     | let rec x₁=e₁, ..., xₙ=eₙ in e    mutually recursive let bindings
+/// e ::= x                             variables
+///     | \x => e                       anonymous functions
+///     | e₁ e₂                         function application
+///     | let x₁=e₁, ..., xₙ=eₙ in e    mutually recursive let bindings
 /// ````
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {

@@ -1,5 +1,5 @@
 //! An example of using the `moniker` library to implement the untyped lambda
-//! calculus with multibinders
+//! calculus with multi-binders (like you would find in Rust, Python, JS, etc.)
 
 #[macro_use]
 extern crate moniker;
