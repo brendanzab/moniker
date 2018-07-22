@@ -14,94 +14,43 @@
 [gitter-badge]: https://badges.gitter.im/brendanzab/moniker.svg
 [gitter-lobby]: https://gitter.im/brendanzab/moniker
 
-Moniker aims to alleviate the error-prone boilerplate required to keep track of
-bound variables across nested scopes, making it easier to implement new
-programming languages and domain-specific languages in Rust.
+Moniker makes it simple to track variables across nested scopes in
+programming language implementations.
+
+Instead of implementing name-handling code by hand (which is often tedious and
+error-prone), Moniker provides a number of types and traits for declaratively
+describing name binding directly in your language's abstract syntax tree. From
+this we can derive the corresponding name-handling code automatically!
 
 ## Motivation
 
 It's interesting to note that the idea of a 'scope' comes up quite often in
 programming:
 
-- anonymous functions
-- case match arms
-- let bindings
-- recursive functions and data types
-- type parameters
-- type definitions
-- ...and more!
+| Description          | Rust Example                                 |
+| -------------------- | -------------------------------------------- |
+| case match arms      | ``match expr { x => /* `x` bound here*/ }``  |
+| let bindings         | ``let x = ...; /* `x` bound here */``        |
+| recursive functions  | ``fn foo() { /* `foo` bound here */ }``      |
+| functions parameters | ``fn foo(x: T) { /* `x` bound here */ }``    |
+| recursive types      | ``enum List { Nil, /* `List` bound here */`` |
+| type parameters      | ``struct Point<T> { /* `T` bound here */ }`` |
 
-'Pattern's introduce 'binders', that may then refer to 'variables' referred to
-in a 'term'. We refer to the combination of a pattern and the term it binds as a
-'scope'.
-
-For example, let's take a Rust implementation of the identity function:
-
-```rust
-fn ident<T>(value : T) -> T {
-    value
-}
-
-ident(23)
-```
-
-Here we have three 'binders', and four 'variable' usages:
-
-```rust
-// binder
-//   |
-//   | binder      var   var
-//   |   |          |     |
-//   |   | binder   |     |
-//   |   |   |      |     |
-//   v   v   v      v     v
-fn ident<T>(value : T) -> T {
-    value
-//    ^
-//    |
-//   var
-}
-// var
-// |
-// v
-ident(23)
-```
-
-Here's how it would look if we drew arrows from the binders to the
-corresponding variables:
-
-```rust
-//   .--------------------------.
-//   |   .----------*-----.     |
-//   |   |          |     |     |
-//   |   |          v     v     |
-fn ident<T>(value : T) -> T {// |
-//            |                 |
-//    .-------'                 |
-//    |                         |
-//    v                         |
-    value //                    |
-} //                            |
-// .----------------------------'
-// |
-// v
-ident(23)
-```
-
-Here's a more complex example:
+For example, let's take a silly example of a Rust function:
 
 ```rust
 type Count = u32;
 
-fn foo<T>((count, data): (Count, T)) -> T {
+fn silly<T>((count, data): (Count, T)) -> T {
     match count {
         0 => data,
-        count => foo((count - 1, data)),
+        count => silly((count - 1, data)),
     }
 }
 ```
 
-And here is a graph of the binders and variables at play:
+There's actually lots of name-binding at play here! Let's connect the binders
+to their corresponding binders:
 
 ```rust
 //            ?
@@ -109,39 +58,73 @@ And here is a graph of the binders and variables at play:
 //            v
 type Count = u32;
 //     |
-//     '--------------------.
-//  .-----------------------|------------------.
-//  |  .--------------------|----*------.      |
-//  |  |                    |    |      |      |
-//  |  |                    v    v      v      |
-fn foo<T>((count, data): (Count, T)) -> T { // |
-//          |       |                          |
-//          |       |                          |
-//          |       *--------------.           |
-//          v       |              |           |
-    match count { //|              |           |
-//             .----'              |           |
-//             |                   |           |
-//             v                   |           |
-        0 => data, //              |           |
-//         .------------.          |           |
-//         |            |          |           |
-//         |            v          v           |
-        count => foo((count - 1, data)), //    |
-//                ^                            |
-//                |                            |
-//                '----------------------------'
+//     '----------------------.
+//  .-------------------------|------------------.
+//  |    .--------------------|----*------.      |
+//  |    |                    |    |      |      |
+//  |    |                    v    v      v      |
+fn silly<T>((count, data): (Count, T)) -> T { // |
+//          |       |                            |
+//          |       *----------------.           |
+//          v       |                |           |
+    match count { //|                |           |
+//             .----'                |           |
+//             |                     |           |
+//             v                     |           |
+        0 => data, //                |           |
+//         .--------------.          |           |
+//         |              |          |           |
+//         |              v          v           |
+        count => silly((count - 1, data)), //    |
+//                 ^                             |
+//                 |                             |
+//                 '-----------------------------'
     }
 }
 ```
 
 Keeping track of the relationships between these variables can be a pain, and
-can become especially error-prone when then going on to implement evaluators and
-type checkers. Moniker aims to support all of these binding structures, with
-minimal pain! We do this by providing a set of generic types and traits for
-describing how variables are bound, that can then be used to automatically
-derive the corresponding name-handling code.
+can become especially error-prone when implementing evaluators and type
+checkers. Moniker aims to support all of these binding structures, with
+minimal pain!
 
+## Useful traits and data types
+
+Data types are separated into patterns and terms:
+
+### Terms
+
+Terms are data types that implement the [`BoundTerm`] trait.
+
+- [`Var<N>`]: A variable that is either free or bound
+- [`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: bind the term `T` using the pattern `P`
+
+Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
+are also provided for convenience.
+
+[`BoundTerm`]: https://docs.rs/moniker/trait.BoundTerm.html
+[`Var<N>`]: https://docs.rs/moniker/enum.Var.html
+[`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: https://docs.rs/moniker/struct.Scope.html
+
+### Patterns
+
+Patterns are data types that implement the [`BoundPattern`] trait.
+
+- [`Binder<N>`]: Captures a free variables within a term, but is ignored for alpha equality
+- [`Ignore<T>`]: Ignores `T` when comparing for alpha equality
+- [`Embed<T: BoundTerm<N>>`]: Embed a term `T` in a pattern
+- [`Nest<P: BoundPattern<N>>`]: Multiple nested binding patterns
+- [`Rec<P: BoundPattern<N>>`]: Recursively bind a pattern in itself
+
+Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
+are also provided for convenience.
+
+[`BoundPattern`]: https://docs.rs/moniker/trait.BoundPattern.html
+[`Binder<N>`]: https://docs.rs/moniker/enum.Binder.html
+[`Ignore<T>`]: https://docs.rs/moniker/struct.Ignore.html
+[`Embed<T: BoundTerm<N>>`]: https://docs.rs/moniker/struct.Embed.html
+[`Nest<P: BoundPattern<N>>`]: https://docs.rs/moniker/struct.Nest.html
+[`Rec<P: BoundPattern<N>>`]: https://docs.rs/moniker/struct.Rec.html
 
 ## Example
 
@@ -161,26 +144,19 @@ use std::rc::Rc;
 /// e ::= x                             variables
 ///     | \x => e                       anonymous functions
 ///     | e₁ e₂                         function application
-///     | let x₁=e₁, ..., xₙ=eₙ in e    mutually recursive let bindings
 /// ````
 #[derive(Debug, Clone, BoundTerm)]
+//                        ^
+//                        |
+//              The derived `BoundTerm` implementation
+//              does all of the heavy-lifting!
 pub enum Expr {
     /// Variables
     Var(Var<String>),
     /// Anonymous functions (ie. lambda expressions)
-    ///
-    /// We use the `Scope` type to say that variables in the pattern bind
-    /// variables in the body expression
     Lam(Scope<Binder<String>, RcExpr>),
     /// Function applications
     App(RcExpr, RcExpr),
-    /// Mutually recursive let bindings
-    ///
-    /// We're getting more complex here, combining `Scope` with `Rec`, `Vec`,
-    /// `Embed` and pairs - check out the examples (under the
-    /// `/moniker/examples` directory) to see how we use this in an evaluator or
-    /// type checker.
-    Let(Scope<Rec<Vec<(Binder<String>, Embed<RcExpr>)>>, RcExpr>),
 }
 
 pub type RcExpr = Rc<Expr>;
@@ -202,12 +178,32 @@ Rc::new(Expr::Lam(Scope::new(
 )))
 ```
 
-More complete examples, including evaluators and type checkers, can be found in
-the [`moniker/examples`](/moniker/examples) directory.
+### More Complete Examples
 
-## Usage examples
+More complete examples, including evaluators and type checkers, can be found
+under the [`moniker/examples`](/moniker/examples) directory.
 
-Moniker is currently used on the following Rust language projects:
+| Example Name          | Description                 |
+| --------------------- | --------------------------- |
+| [`lc`]                | untyped lambda calculus |
+| [`lc_let`]            | untyped lambda calculus with nested let bindings |
+| [`lc_letrec`]         | untyped lambda calculus with mutually recursive bindings |
+| [`lc_multi`]          | untyped lambda calculus with multi-binders |
+| [`stlc`]              | simply typed lambda calculus with literals |
+| [`stlc_data`]         | simply typed lambda calculus with records, variants, literals, and pattern matching |
+| [`stlc_data_isorec`]  | simply typed lambda calculus with records, variants, literals, pattern matching, and iso-recursive types |
+
+[`lc`]: /moniker/examples/lc.rs
+[`lc_let`]: /moniker/examples/lc_let.rs
+[`lc_letrec`]: /moniker/examples/lc_letrec.rs
+[`lc_multi`]: /moniker/examples/lc_multi.rs
+[`stlc`]: /moniker/examples/stlc.rs
+[`stlc_data`]: /moniker/examples/stlc_data.rs
+[`stlc_data_isorec`]: /moniker/examples/stlc_data_isorec.rs
+
+### Projects using Moniker
+
+Moniker is currently used in the following Rust projects:
 
 - [Pikelet](https://github.com/pikelet-lang/pikelet): A dependently typed
   systems programming language

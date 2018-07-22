@@ -33,7 +33,7 @@
 //!
 //! [stlc]: https://en.wikipedia.org/wiki/Simply_typed_lambda_calculus
 //!
-//! # Useful data types
+//! # Useful traits and data types
 //!
 //! Data types are separated into patterns and terms:
 //!
@@ -43,6 +43,13 @@
 //!
 //! - [`Var<N>`]: A variable that is either free or bound
 //! - [`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: bind the term `T` using the pattern `P`
+//!
+//! Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
+//! are also provided for convenience.
+//!
+//! [`BoundTerm`]: trait.BoundTerm.html
+//! [`Var<N>`]: enum.Var.html
+//! [`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: struct.Scope.html
 //!
 //! ## Patterns
 //!
@@ -54,15 +61,15 @@
 //! - [`Nest<P: BoundPattern<N>>`]: Multiple nested binding patterns
 //! - [`Rec<P: BoundPattern<N>>`]: Recursively bind a pattern in itself
 //!
-//! [`Var<N>`]: enum.Var.html
-//! [`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: struct.Scope.html
+//! Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
+//! are also provided for convenience.
+//!
+//! [`BoundPattern`]: trait.BoundPattern.html
 //! [`Binder<N>`]: enum.Binder.html
 //! [`Ignore<T>`]: struct.Ignore.html
 //! [`Embed<T: BoundTerm<N>>`]: struct.Embed.html
 //! [`Nest<P: BoundPattern<N>>`]: struct.Nest.html
 //! [`Rec<P: BoundPattern<N>>`]: struct.Rec.html
-//! [`BoundTerm`]: trait.BoundTerm.html
-//! [`BoundPattern`]: trait.BoundPattern.html
 
 #[cfg(feature = "codespan")]
 extern crate codespan;

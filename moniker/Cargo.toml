@@ -7,6 +7,7 @@ authors = ["Brendan Zabarauskas <bjzaba@yahoo.com.au>"]
 description = "Automatically derive variable binding and alpha equivalence for abstract syntax trees"
 homepage = "https://github.com/brendanzab/moniker"
 repository = "https://github.com/brendanzab/moniker"
+documentation = "https://docs.rs/moniker"
 keywords = [
     "alpha equivalence",
     "ast",
@@ -16,7 +17,6 @@ keywords = [
     "variable binding",
 ]
 categories = ["data-structures"]
-publish = false
 
     [package.metadata.docs.rs]
     features = [
@@ -33,7 +33,7 @@ moniker-derive = { path = "../moniker-derive", version = "0.1.0", optional = tru
 codespan = { version = "0.1.2", optional = true }
 
 [dev-dependencies]
-im = "10.2"
+im = "11.0.0"
 
 [[example]]
 name = "lc"

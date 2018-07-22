@@ -486,7 +486,7 @@ pub fn check_pattern(
 ) -> Result<Context, String> {
     match (&*pattern.inner, &*expected_ty.inner) {
         (&Pattern::Binder(Binder(ref free_var)), _) => {
-            return Ok(Context::new().insert(free_var.clone(), expected_ty.clone()));
+            return Ok(Context::singleton(free_var.clone(), expected_ty.clone()));
         },
         (&Pattern::Tag(ref label, ref pattern), &Type::Variant(ref variants)) => {
             return match variants.iter().find(|&(l, _)| l == label) {
