@@ -14,4 +14,4 @@
 [gitter-badge]: https://badges.gitter.im/brendanzab/moniker.svg
 [gitter-lobby]: https://gitter.im/brendanzab/moniker
 
-Provides a derive syntax extension for the `BoundTerm` trait.
+Provides derives for the `BoundTerm` and `BoundPattern` traits.

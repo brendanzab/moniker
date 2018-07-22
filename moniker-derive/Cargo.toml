@@ -9,12 +9,10 @@ homepage = "https://github.com/brendanzab/moniker"
 repository = "https://github.com/brendanzab/moniker"
 documentation = "https://docs.rs/moniker-derive"
 keywords = [
-    "alpha equivalence",
-    "ast",
-    "binding",
-    "debruijn indices",
-    "locally nameless",
-    "variable binding",
+    "alpha-equivalence",
+    "debruijn-indices",
+    "variable-binding",
+    "locally-nameless",
 ]
 categories = ["data-structures"]
 
