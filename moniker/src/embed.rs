@@ -1,5 +1,6 @@
+use binder::{Binder, BinderIndex, BinderOffset};
 use bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
-use var::{Binder, BinderIndex, BinderOffset, FreeVar};
+use free_var::FreeVar;
 
 /// Embed a term in a pattern
 #[derive(Debug, Clone, PartialEq, Eq)]

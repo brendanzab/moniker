@@ -1,5 +1,6 @@
+use binder::{Binder, BinderIndex, BinderOffset};
 use bound::{BoundPattern, Permutations, ScopeState};
-use var::{Binder, BinderIndex, BinderOffset, FreeVar};
+use free_var::FreeVar;
 
 /// Nested binding patterns
 ///

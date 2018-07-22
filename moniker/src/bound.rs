@@ -8,7 +8,9 @@ use std::hash::Hash;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use var::{Binder, BinderIndex, BinderOffset, FreeVar, ScopeOffset, Var};
+use binder::{Binder, BinderIndex, BinderOffset};
+use free_var::FreeVar;
+use var::{ScopeOffset, Var};
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScopeState {

@@ -88,18 +88,22 @@ pub use moniker_derive::*;
 #[doc(hidden)]
 pub mod macros;
 
+mod binder;
 mod bound;
 mod embed;
+mod free_var;
 mod ignore;
 mod nest;
 mod rec;
 mod scope;
 mod var;
 
+pub use self::binder::{Binder, BinderIndex, BinderOffset};
 pub use self::bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
 pub use self::embed::Embed;
+pub use self::free_var::{FreeVar, GenId};
 pub use self::ignore::Ignore;
 pub use self::nest::Nest;
 pub use self::rec::Rec;
 pub use self::scope::Scope;
-pub use self::var::{Binder, BinderIndex, BinderOffset, FreeVar, GenId, ScopeOffset, Var};
+pub use self::var::{ScopeOffset, Var};

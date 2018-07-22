@@ -1,5 +1,7 @@
+use binder::{Binder, BinderIndex, BinderOffset};
 use bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
-use var::{Binder, BinderIndex, BinderOffset, FreeVar, Var};
+use free_var::FreeVar;
+use var::Var;
 
 /// Data that does not participate in name binding
 ///
