@@ -14,7 +14,7 @@
 [gitter-badge]: https://badges.gitter.im/brendanzab/moniker.svg
 [gitter-lobby]: https://gitter.im/brendanzab/moniker
 
-Moniker makes it easy to track usages variables across nested scopes in
+Moniker makes it simple to track variables across nested scopes in
 programming language implementations.
 
 Instead of implementing name-handling code by hand (which is often tedious and
@@ -27,27 +27,24 @@ this we can derive the corresponding name-handling code automatically!
 It's interesting to note that the idea of a 'scope' comes up quite often in
 programming:
 
-- anonymous functions
-- case match arms
-- let bindings
-- recursive functions and data types
-- type parameters
-- type definitions
-- ...and more!
+| Description          | Rust Example                                 |
+| -------------------- | -------------------------------------------- |
+| case match arms      | ``match expr { x => /* `x` bound here*/ }``  |
+| let bindings         | ``let x = ...; /* `x` bound here */``        |
+| recursive functions  | ``fn foo() { /* `foo` bound here */ }``      |
+| functions parameters | ``fn foo(x: T) { /* `x` bound here */ }``    |
+| recursive types      | ``enum List { Nil, /* `List` bound here */`` |
+| type parameters      | ``struct Point<T> { /* `T` bound here */ }`` |
 
-'Pattern's introduce 'binders', that may then refer to 'variables' referred to
-in a 'term'. We refer to the combination of a pattern and the term it binds as a
-'scope'.
-
-For example, let's take a contrived example of a Rust function:
+For example, let's take a silly example of a Rust function:
 
 ```rust
 type Count = u32;
 
-fn foo<T>((count, data): (Count, T)) -> T {
+fn silly<T>((count, data): (Count, T)) -> T {
     match count {
         0 => data,
-        count => foo((count - 1, data)),
+        count => silly((count - 1, data)),
     }
 }
 ```
@@ -61,27 +58,27 @@ to their corresponding binders:
 //            v
 type Count = u32;
 //     |
-//     '--------------------.
-//  .-----------------------|------------------.
-//  |  .--------------------|----*------.      |
-//  |  |                    |    |      |      |
-//  |  |                    v    v      v      |
-fn foo<T>((count, data): (Count, T)) -> T { // |
-//          |       |                          |
-//          |       *--------------.           |
-//          v       |              |           |
-    match count { //|              |           |
-//             .----'              |           |
-//             |                   |           |
-//             v                   |           |
-        0 => data, //              |           |
-//         .------------.          |           |
-//         |            |          |           |
-//         |            v          v           |
-        count => foo((count - 1, data)), //    |
-//                ^                            |
-//                |                            |
-//                '----------------------------'
+//     '----------------------.
+//  .-------------------------|------------------.
+//  |    .--------------------|----*------.      |
+//  |    |                    |    |      |      |
+//  |    |                    v    v      v      |
+fn silly<T>((count, data): (Count, T)) -> T { // |
+//          |       |                            |
+//          |       *----------------.           |
+//          v       |                |           |
+    match count { //|                |           |
+//             .----'                |           |
+//             |                     |           |
+//             v                     |           |
+        0 => data, //                |           |
+//         .--------------.          |           |
+//         |              |          |           |
+//         |              v          v           |
+        count => silly((count - 1, data)), //    |
+//                 ^                             |
+//                 |                             |
+//                 '-----------------------------'
     }
 }
 ```
