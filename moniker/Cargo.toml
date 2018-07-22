@@ -16,7 +16,6 @@ keywords = [
     "variable binding",
 ]
 categories = ["data-structures"]
-publish = false
 
     [package.metadata.docs.rs]
     features = [

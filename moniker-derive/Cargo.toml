@@ -16,7 +16,6 @@ keywords = [
     "variable binding",
 ]
 categories = ["data-structures"]
-publish = false
 
 [lib]
 proc-macro = true
