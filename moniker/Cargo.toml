@@ -18,6 +18,12 @@ keywords = [
 categories = ["data-structures"]
 publish = false
 
+    [package.metadata.docs.rs]
+    features = [
+        "codespan",
+        "moniker-derive",
+    ]
+
 [features]
 default = ["moniker-derive"]
 
