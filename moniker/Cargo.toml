@@ -7,6 +7,7 @@ authors = ["Brendan Zabarauskas <bjzaba@yahoo.com.au>"]
 description = "Automatically derive variable binding and alpha equivalence for abstract syntax trees"
 homepage = "https://github.com/brendanzab/moniker"
 repository = "https://github.com/brendanzab/moniker"
+documentation = "https://docs.rs/moniker"
 keywords = [
     "alpha equivalence",
     "ast",

@@ -7,6 +7,7 @@ authors = ["Brendan Zabarauskas <bjzaba@yahoo.com.au>"]
 description = "Derives for the moniker crate"
 homepage = "https://github.com/brendanzab/moniker"
 repository = "https://github.com/brendanzab/moniker"
+documentation = "https://docs.rs/moniker-derive"
 keywords = [
     "alpha equivalence",
     "ast",
