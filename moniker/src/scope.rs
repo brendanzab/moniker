@@ -36,7 +36,7 @@ impl<P, T> Scope<P, T> {
     /// Unbind a term, returning the freshened pattern and body
     pub fn unbind<N>(self) -> (P, T)
     where
-        N: Eq + Hash,
+        N: Clone + Eq + Hash,
         P: BoundPattern<N>,
         T: BoundTerm<N>,
     {
@@ -57,7 +57,7 @@ impl<P, T> Scope<P, T> {
     /// The fresh names in the first pattern with be used for the second pattern
     pub fn unbind2<N, P2, T2>(self, other: Scope<P2, T2>) -> (P, T, P2, T2)
     where
-        N: Eq + Hash,
+        N: Clone + Eq + Hash,
         P: BoundPattern<N>,
         T: BoundTerm<N>,
         P2: BoundPattern<N>,
