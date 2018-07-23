@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use binder::Binder;
-use bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
+use bound::{BoundPattern, BoundTerm, ScopeState};
 use var::Var;
 
 /// A bound scope
@@ -64,18 +64,56 @@ impl<P, T> Scope<P, T> {
         P2: BoundPattern<N>,
         T2: BoundTerm<N>,
     {
+        use std::collections::HashMap;
+
+        // FIXME: Just porting the behavior of Unbound here. Is there _any_ way
+        // we can make this faster and less allocation-heavy? :/
+
         let mut self_pattern = self.unsafe_pattern;
-        let mut self_body = self.unsafe_body;
         let mut other_pattern = other.unsafe_pattern;
+        let mut self_body = self.unsafe_body;
         let mut other_body = other.unsafe_body;
 
+        // Freshen the patterns
         {
-            let mut permutations = Permutations::new();
-            self_pattern.freshen(&mut permutations);
-            other_pattern.swaps(&permutations);
-            self_body.open_term(ScopeState::new(), &self_pattern.binders());
-            other_body.open_term(ScopeState::new(), &other_pattern.binders());
+            let self_binders = self_pattern.binders();
+            let other_binders = other_pattern.binders();
+
+            // Can't simultaneously unbind patterns of differing lengths!
+            // TODO: return an error rather than panicking?
+            assert_eq!(self_binders.len(), other_binders.len());
+
+            // Get the permutation that takes us from from the binders in
+            // `other_pattern` to the binders `self_pattern`
+            let other_to_self =
+                <_>::zip(other_binders.iter().cloned(), self_binders.iter().cloned())
+                    .collect::<HashMap<_, _>>();
+
+            // Freshen `self_pattern` while also getting the permutation that
+            // takes us from from the binders in `self_pattern` to the fresh
+            // binders
+            let mut self_to_fresh = HashMap::new();
+            self_pattern.visit_mut_binders(&mut |binder| {
+                let fresh = binder.clone().freshen();
+                self_to_fresh.insert(binder.clone(), fresh.clone());
+                *binder = fresh;
+            });
+
+            // Apply the composition of the permutations in order to freshen
+            // the binders in `other_pattern`
+            other_pattern.visit_mut_binders(&mut |binder| {
+                if let Some(new_binder) = other_to_self.get(binder) {
+                    *binder = new_binder.clone();
+                }
+                if let Some(new_binder) = self_to_fresh.get(binder) {
+                    *binder = new_binder.clone();
+                }
+            })
         }
+
+        // Finally, use the binders from the freshened patterns to open the body terms
+        self_body.open_term(ScopeState::new(), &self_pattern.binders());
+        other_body.open_term(ScopeState::new(), &other_pattern.binders());
 
         (self_pattern, self_body, other_pattern, other_body)
     }
