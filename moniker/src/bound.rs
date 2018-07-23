@@ -399,7 +399,7 @@ where
 
 impl<N, T> BoundTerm<N> for [T]
 where
-    T: BoundTerm<N> + Clone,
+    T: BoundTerm<N>,
 {
     fn term_eq(&self, other: &[T]) -> bool {
         self.len() == other.len()
@@ -433,7 +433,7 @@ where
 
 impl<N, T> BoundTerm<N> for Vec<T>
 where
-    T: BoundTerm<N> + Clone,
+    T: BoundTerm<N>,
 {
     fn term_eq(&self, other: &Vec<T>) -> bool {
         <[T]>::term_eq(self, other)
