@@ -185,10 +185,10 @@ Terms are data types that implement the [`BoundTerm`] trait.
 Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
 are also provided for convenience.
 
-[`BoundTerm`]: https://docs.rs/moniker/trait.BoundTerm.html
-[`Var<N>`]: https://docs.rs/moniker/enum.Var.html
-[`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: https://docs.rs/moniker/struct.Scope.html
-[`Ignore<T>`]: https://docs.rs/moniker/struct.Ignore.html
+[`BoundTerm`]: https://docs.rs/moniker/latest/moniker/trait.BoundTerm.html
+[`Var<N>`]: https://docs.rs/moniker/latest/moniker/enum.Var.html
+[`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: https://docs.rs/moniker/latest/moniker/struct.Scope.html
+[`Ignore<T>`]: https://docs.rs/moniker/latest/moniker/struct.Ignore.html
 
 ### Patterns
 
@@ -203,11 +203,11 @@ Patterns are data types that implement the [`BoundPattern`] trait.
 Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
 are also provided for convenience.
 
-[`BoundPattern`]: https://docs.rs/moniker/trait.BoundPattern.html
-[`Binder<N>`]: https://docs.rs/moniker/enum.Binder.html
-[`Embed<T: BoundTerm<N>>`]: https://docs.rs/moniker/struct.Embed.html
-[`Nest<P: BoundPattern<N>>`]: https://docs.rs/moniker/struct.Nest.html
-[`Rec<P: BoundPattern<N>>`]: https://docs.rs/moniker/struct.Rec.html
+[`BoundPattern`]: https://docs.rs/moniker/latest/moniker/trait.BoundPattern.html
+[`Binder<N>`]: https://docs.rs/moniker/latest/moniker/enum.Binder.html
+[`Embed<T: BoundTerm<N>>`]: https://docs.rs/moniker/latest/moniker/struct.Embed.html
+[`Nest<P: BoundPattern<N>>`]: https://docs.rs/moniker/latest/moniker/struct.Nest.html
+[`Rec<P: BoundPattern<N>>`]: https://docs.rs/moniker/latest/moniker/struct.Rec.html
 
 ## Roadmap
 
