@@ -27,7 +27,7 @@ default = ["moniker-derive"]
 
 [dependencies]
 lazy_static = "1.0"
-moniker-derive = { path = "../moniker-derive", version = "0.1.0", optional = true }
+moniker-derive = { path = "../moniker-derive", version = "0.2.0", optional = true }
 codespan = { version = "0.1.2", optional = true }
 
 [dev-dependencies]
