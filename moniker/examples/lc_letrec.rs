@@ -99,7 +99,7 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
             // FIXME: `free_vars` is slow! We probably want this to be faster - see issue #10
             let fvs = body.free_vars();
             if bindings.iter().any(|&(Binder(ref fv), _)| fvs.contains(fv)) {
-                RcExpr::from(Expr::LetRec(Scope::new(Rec::new(&bindings), body)))
+                RcExpr::from(Expr::LetRec(Scope::new(Rec::new(bindings), body)))
             } else {
                 eval(&body)
             }
@@ -130,7 +130,7 @@ fn test_eval_let_rec() {
     //      in
     //          test
     let expr = RcExpr::from(Expr::LetRec(Scope::new(
-        Rec::new(&vec![
+        Rec::new(vec![
             (
                 Binder::user("test"),
                 Embed(RcExpr::from(Expr::App(

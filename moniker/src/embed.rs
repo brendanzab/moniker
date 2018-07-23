@@ -17,12 +17,12 @@ where
 
     fn swaps(&mut self, _: &Permutations<N>) {}
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.0.close_term(state, pattern);
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.close_term(state, binders);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.0.open_term(state, pattern);
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.open_term(state, binders);
     }
 
     fn visit_binders(&self, _: &mut impl FnMut(&Binder<N>)) {}

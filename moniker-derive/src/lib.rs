@@ -53,10 +53,10 @@ fn bound_term_derive(mut s: Structure) -> proc_macro2::TokenStream {
 
     s.bind_with(|_| BindStyle::RefMut);
     let close_term_body = s.each(|bi| {
-        quote!{ moniker::BoundTerm::<String>::close_term(#bi, __state, __pattern); }
+        quote!{ moniker::BoundTerm::<String>::close_term(#bi, __state, __binders); }
     });
     let open_term_body = s.each(|bi| {
-        quote!{ moniker::BoundTerm::<String>::open_term(#bi, __state, __pattern); }
+        quote!{ moniker::BoundTerm::<String>::open_term(#bi, __state, __binders); }
     });
 
     s.bind_with(|_| BindStyle::Ref);
@@ -79,7 +79,7 @@ fn bound_term_derive(mut s: Structure) -> proc_macro2::TokenStream {
             fn close_term(
                 &mut self,
                 __state: moniker::ScopeState,
-                __pattern: &impl moniker::BoundPattern<String>,
+                __binders: &[moniker::Binder<String>],
             ) {
                 match *self { #close_term_body }
             }
@@ -87,7 +87,7 @@ fn bound_term_derive(mut s: Structure) -> proc_macro2::TokenStream {
             fn open_term(
                 &mut self,
                 __state: moniker::ScopeState,
-                __pattern: &impl moniker::BoundPattern<String>,
+                __binders: &[moniker::Binder<String>],
             ) {
                 match *self { #open_term_body }
             }
@@ -148,10 +148,10 @@ fn bound_pattern_derive(mut s: Structure) -> proc_macro2::TokenStream {
 
     s.bind_with(|_| BindStyle::RefMut);
     let close_pattern_body = s.each(|bi| {
-        quote!{ moniker::BoundPattern::<String>::close_pattern(#bi, __state, __pattern); }
+        quote!{ moniker::BoundPattern::<String>::close_pattern(#bi, __state, __binders); }
     });
     let open_pattern_body = s.each(|bi| {
-        quote!{ moniker::BoundPattern::<String>::open_pattern(#bi, __state, __pattern); }
+        quote!{ moniker::BoundPattern::<String>::open_pattern(#bi, __state, __binders); }
     });
 
     s.bind_with(|_| BindStyle::Ref);
@@ -174,7 +174,7 @@ fn bound_pattern_derive(mut s: Structure) -> proc_macro2::TokenStream {
             fn close_pattern(
                 &mut self,
                 __state: moniker::ScopeState,
-                __pattern: &impl moniker::BoundPattern<String>,
+                __binders: &[moniker::Binder<String>],
             ) {
                 match *self { #close_pattern_body }
             }
@@ -182,7 +182,7 @@ fn bound_pattern_derive(mut s: Structure) -> proc_macro2::TokenStream {
             fn open_pattern(
                 &mut self,
                 __state: moniker::ScopeState,
-                __pattern: &impl moniker::BoundPattern<String>,
+                __binders: &[moniker::Binder<String>],
             ) {
                 match *self { #open_pattern_body }
             }

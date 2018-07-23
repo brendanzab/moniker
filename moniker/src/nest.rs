@@ -13,6 +13,7 @@ impl<P> Nest<P> {
     /// Nest a term with the given patterns
     pub fn new<N>(patterns: Vec<P>) -> Nest<P>
     where
+        N: Clone,
         P: BoundPattern<N>,
     {
         // FIXME: Avoid allocating new vector
@@ -22,7 +23,7 @@ impl<P> Nest<P> {
             let mut state = ScopeState::new();
             for rebound_pattern in &rebound_patterns {
                 state = state.incr();
-                pattern.close_pattern(state, rebound_pattern);
+                pattern.close_pattern(state, &rebound_pattern.binders());
             }
             rebound_patterns.push(pattern);
         }
@@ -35,6 +36,7 @@ impl<P> Nest<P> {
     /// Unnest a term, returning the freshened patterns
     pub fn unnest<N>(self) -> Vec<P>
     where
+        N: Clone,
         P: BoundPattern<N>,
     {
         // FIXME: Avoid allocating new vector
@@ -44,7 +46,7 @@ impl<P> Nest<P> {
             let mut state = ScopeState::new();
             for bound_pattern in &unrebound_patterns {
                 state = state.incr();
-                pattern.open_pattern(state, bound_pattern);
+                pattern.open_pattern(state, &bound_pattern.binders());
             }
             unrebound_patterns.push(pattern);
         }
@@ -62,16 +64,16 @@ where
         <[P]>::pattern_eq(&self.unsafe_patterns, &other.unsafe_patterns)
     }
 
-    fn close_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern<N>) {
+    fn close_pattern(&mut self, mut state: ScopeState, binders: &[Binder<N>]) {
         for elem in &mut self.unsafe_patterns {
-            elem.close_pattern(state, pattern);
+            elem.close_pattern(state, binders);
             state = state.incr();
         }
     }
 
-    fn open_pattern(&mut self, mut state: ScopeState, pattern: &impl BoundPattern<N>) {
+    fn open_pattern(&mut self, mut state: ScopeState, binders: &[Binder<N>]) {
         for elem in &mut self.unsafe_patterns {
-            elem.close_pattern(state, pattern);
+            elem.close_pattern(state, binders);
             state = state.incr();
         }
     }

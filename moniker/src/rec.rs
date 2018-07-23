@@ -11,22 +11,26 @@ pub struct Rec<P> {
 }
 
 impl<P> Rec<P> {
-    pub fn new<N>(pattern: &P) -> Rec<P>
+    pub fn new<N>(mut pattern: P) -> Rec<P>
     where
-        P: BoundPattern<N> + Clone,
+        N: Clone,
+        P: BoundPattern<N>,
     {
-        let mut unsafe_pattern = pattern.clone();
-        unsafe_pattern.close_pattern(ScopeState::new(), pattern);
-        Rec { unsafe_pattern }
+        let binders = pattern.binders();
+        pattern.close_pattern(ScopeState::new(), &binders);
+        Rec {
+            unsafe_pattern: pattern,
+        }
     }
 
-    pub fn unrec<N>(&self) -> P
+    pub fn unrec<N>(mut self) -> P
     where
-        P: BoundPattern<N> + Clone,
+        N: Clone,
+        P: BoundPattern<N>,
     {
-        let mut pattern = self.unsafe_pattern.clone();
-        pattern.open_pattern(ScopeState::new(), self);
-        pattern
+        let binders = self.unsafe_pattern.binders();
+        self.open_pattern(ScopeState::new(), &binders);
+        self.unsafe_pattern
     }
 }
 
@@ -38,12 +42,12 @@ where
         P::pattern_eq(&self.unsafe_pattern, &other.unsafe_pattern)
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.unsafe_pattern.close_pattern(state, pattern);
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.unsafe_pattern.close_pattern(state, binders);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.unsafe_pattern.open_pattern(state, pattern);
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.unsafe_pattern.open_pattern(state, binders);
     }
 
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {

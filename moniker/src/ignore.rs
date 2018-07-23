@@ -14,9 +14,9 @@ impl<N, T> BoundTerm<N> for Ignore<T> {
         true
     }
 
-    fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn close_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-    fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn open_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
     fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
 
@@ -32,9 +32,9 @@ impl<N, T> BoundPattern<N> for Ignore<T> {
 
     fn swaps(&mut self, _: &Permutations<N>) {}
 
-    fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn close_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-    fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn open_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
     fn visit_binders(&self, _: &mut impl FnMut(&Binder<N>)) {}
 
