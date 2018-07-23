@@ -3,7 +3,7 @@ use codespan::{
     ByteIndex, ByteOffset, ColumnIndex, ColumnNumber, ColumnOffset, LineIndex, LineNumber,
     LineOffset, Span,
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::hash::Hash;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -456,8 +456,6 @@ where
     }
 }
 
-pub type Permutations<N> = HashMap<Binder<N>, Binder<N>>;
-
 /// Patterns that bind variables in terms
 pub trait BoundPattern<N> {
     /// Alpha equivalence in a pattern context
@@ -470,30 +468,6 @@ pub trait BoundPattern<N> {
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>));
 
     fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>));
-
-    fn freshen(&mut self, permutations: &mut Permutations<N>)
-    where
-        N: Clone + Eq + Hash,
-    {
-        self.visit_mut_binders(&mut |binder| {
-            let fresh = binder.clone().freshen();
-            permutations.insert(binder.clone(), fresh.clone());
-            *binder = fresh;
-        })
-    }
-
-    fn swaps(&mut self, permutations: &Permutations<N>)
-    where
-        N: Clone + Eq + Hash,
-    {
-        self.visit_mut_binders(&mut |binder| {
-            *binder = permutations
-                .get(binder)
-                .cloned()
-                // TODO: better error here?
-                .expect("pattern not found in permutation");
-        })
-    }
 
     /// Returns the binders in this pattern
     fn binders(&self) -> Vec<Binder<N>>

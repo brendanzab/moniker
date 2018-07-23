@@ -100,7 +100,7 @@ mod scope;
 mod var;
 
 pub use self::binder::{Binder, BinderIndex, BinderOffset};
-pub use self::bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
+pub use self::bound::{BoundPattern, BoundTerm, ScopeState};
 pub use self::embed::Embed;
 pub use self::free_var::{FreeVar, GenId};
 pub use self::ignore::Ignore;
