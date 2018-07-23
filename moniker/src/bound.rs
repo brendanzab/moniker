@@ -538,10 +538,6 @@ macro_rules! impl_bound_pattern_partial_eq {
                 self == other
             }
 
-            fn freshen(&mut self, _: &mut Permutations<N>) {}
-
-            fn swaps(&mut self, _: &Permutations<N>) {}
-
             fn close_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
             fn open_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
@@ -579,10 +575,6 @@ macro_rules! impl_bound_pattern_ignore {
                 true
             }
 
-            fn freshen(&mut self, _: &mut Permutations<N>) {}
-
-            fn swaps(&mut self, _: &Permutations<N>) {}
-
             fn close_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
             fn open_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
@@ -616,10 +608,6 @@ impl<N, T> BoundPattern<N> for Span<T> {
     fn pattern_eq(&self, _: &Span<T>) -> bool {
         true
     }
-
-    fn freshen(&mut self, _: &mut Permutations<N>) {}
-
-    fn swaps(&mut self, _: &Permutations<N>) {}
 
     fn close_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 

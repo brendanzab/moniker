@@ -1,5 +1,5 @@
 use binder::Binder;
-use bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
+use bound::{BoundPattern, BoundTerm, ScopeState};
 use var::Var;
 
 /// Data that does not participate in name binding
@@ -27,10 +27,6 @@ impl<N, T> BoundPattern<N> for Ignore<T> {
     fn pattern_eq(&self, _: &Ignore<T>) -> bool {
         true
     }
-
-    fn freshen(&mut self, _: &mut Permutations<N>) {}
-
-    fn swaps(&mut self, _: &Permutations<N>) {}
 
     fn close_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
