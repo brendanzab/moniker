@@ -42,7 +42,7 @@ impl<N> FreeVar<N> {
         FreeVar::User(ident.into())
     }
 
-    pub fn fresh(self) -> FreeVar<N> {
+    pub fn freshen(self) -> FreeVar<N> {
         match self {
             FreeVar::User(name) => FreeVar::Gen(GenId::fresh(), Some(name)),
             FreeVar::Gen(_, _) => self,

@@ -1,6 +1,5 @@
-use binder::{Binder, BinderIndex, BinderOffset};
+use binder::Binder;
 use bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
-use free_var::FreeVar;
 use var::Var;
 
 /// Data that does not participate in name binding
@@ -15,9 +14,9 @@ impl<N, T> BoundTerm<N> for Ignore<T> {
         true
     }
 
-    fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn close_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-    fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn open_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
     fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
 
@@ -33,15 +32,11 @@ impl<N, T> BoundPattern<N> for Ignore<T> {
 
     fn swaps(&mut self, _: &Permutations<N>) {}
 
-    fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn close_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-    fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn open_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-    fn find_binder_index(&self, _: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-        Err(BinderOffset(0))
-    }
+    fn visit_binders(&self, _: &mut impl FnMut(&Binder<N>)) {}
 
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
-        Err(offset)
-    }
+    fn visit_mut_binders(&mut self, _: &mut impl FnMut(&mut Binder<N>)) {}
 }

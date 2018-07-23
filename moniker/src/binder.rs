@@ -84,8 +84,8 @@ impl<N> Binder<N> {
         Binder(FreeVar::user(ident))
     }
 
-    pub fn fresh(self) -> Binder<N> {
-        Binder(self.0.fresh())
+    pub fn freshen(self) -> Binder<N> {
+        Binder(self.0.freshen())
     }
 }
 

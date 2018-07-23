@@ -1,6 +1,5 @@
-use binder::{Binder, BinderIndex, BinderOffset};
+use binder::Binder;
 use bound::{BoundPattern, BoundTerm, Permutations, ScopeState};
-use free_var::FreeVar;
 
 /// Embed a term in a pattern
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,19 +17,15 @@ where
 
     fn swaps(&mut self, _: &Permutations<N>) {}
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.0.close_term(state, pattern);
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.close_term(state, binders);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.0.open_term(state, pattern);
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.open_term(state, binders);
     }
 
-    fn find_binder_index(&self, _: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-        Err(BinderOffset(0))
-    }
+    fn visit_binders(&self, _: &mut impl FnMut(&Binder<N>)) {}
 
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
-        Err(offset)
-    }
+    fn visit_mut_binders(&mut self, _: &mut impl FnMut(&mut Binder<N>)) {}
 }

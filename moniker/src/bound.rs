@@ -37,9 +37,9 @@ pub trait BoundTerm<N> {
     /// Alpha equivalence in a term context
     fn term_eq(&self, other: &Self) -> bool;
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>);
+    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]);
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>);
+    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]);
 
     fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>));
 
@@ -66,9 +66,9 @@ impl<N: PartialEq> BoundTerm<N> for FreeVar<N> {
         self == other
     }
 
-    fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn close_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-    fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn open_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
     fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
 
@@ -80,26 +80,34 @@ impl<N: PartialEq + Clone> BoundTerm<N> for Var<N> {
         self == other
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
+    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
         // NOTE: Working around NLL
         *self = match *self {
             Var::Bound(_, _, _) => return,
-            Var::Free(ref free_var) => match pattern.find_binder_index(free_var) {
-                Ok(binder_index) => {
-                    Var::Bound(state.depth(), binder_index, free_var.ident().cloned())
-                },
-                Err(_) => return,
+            Var::Free(ref free_var) => {
+                let binder_index = binders
+                    .iter()
+                    .enumerate()
+                    .find(|&(_, binder)| binder == free_var)
+                    .map(|(i, _)| BinderIndex(BinderOffset(i as u32)));
+
+                match binder_index {
+                    Some(binder_index) => {
+                        Var::Bound(state.depth(), binder_index, free_var.ident().cloned())
+                    },
+                    None => return,
+                }
             },
         };
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
+    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
         // NOTE: Working around NLL
         *self = match *self {
             Var::Bound(scope, binder_index, _) if scope == state.depth() => {
-                match pattern.find_binder_at_offset(binder_index.0) {
-                    Ok(Binder(binder)) => Var::Free(binder),
-                    Err(_) => {
+                match binders.iter().nth(binder_index.to_usize()) {
+                    Some(&Binder(ref free_var)) => Var::Free(free_var.clone()),
+                    None => {
                         // FIXME: better error?
                         panic!(
                             "too few variables in pattern: expected at least {}",
@@ -130,9 +138,9 @@ macro_rules! impl_bound_term_partial_eq {
                 self == other
             }
 
-            fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+            fn close_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-            fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+            fn open_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
             fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
 
@@ -167,9 +175,9 @@ macro_rules! impl_bound_term_ignore {
                 true
             }
 
-            fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+            fn close_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-            fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+            fn open_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
             fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
 
@@ -201,9 +209,9 @@ impl<N, T> BoundTerm<N> for Span<T> {
         true
     }
 
-    fn close_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn close_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-    fn open_term(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn open_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
     fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
 
@@ -222,15 +230,15 @@ where
         }
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
+    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
         if let Some(ref mut inner) = *self {
-            inner.close_term(state, pattern);
+            inner.close_term(state, binders);
         }
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
+    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
         if let Some(ref mut inner) = *self {
-            inner.open_term(state, pattern);
+            inner.open_term(state, binders);
         }
     }
 
@@ -255,12 +263,12 @@ where
         T::term_eq(self, other)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        T::close_term(self, state, pattern);
+    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        T::close_term(self, state, binders);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        T::open_term(self, state, pattern);
+    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        T::open_term(self, state, binders);
     }
 
     fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
@@ -280,12 +288,12 @@ where
         T::term_eq(self, other)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        T::close_term(Rc::make_mut(self), state, pattern);
+    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        T::close_term(Rc::make_mut(self), state, binders);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        T::open_term(Rc::make_mut(self), state, pattern);
+    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        T::open_term(Rc::make_mut(self), state, binders);
     }
 
     fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
@@ -305,12 +313,12 @@ where
         T::term_eq(self, other)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        T::close_term(Arc::make_mut(self), state, pattern);
+    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        T::close_term(Arc::make_mut(self), state, binders);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        T::open_term(Arc::make_mut(self), state, pattern);
+    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        T::open_term(Arc::make_mut(self), state, binders);
     }
 
     fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
@@ -331,14 +339,14 @@ where
         T1::term_eq(&self.0, &other.0) && T2::term_eq(&self.1, &other.1)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.0.close_term(state, pattern);
-        self.1.close_term(state, pattern);
+    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.close_term(state, binders);
+        self.1.close_term(state, binders);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.0.open_term(state, pattern);
-        self.1.open_term(state, pattern);
+    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.open_term(state, binders);
+        self.1.open_term(state, binders);
     }
 
     fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
@@ -364,16 +372,16 @@ where
             && T3::term_eq(&self.2, &other.2)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.0.close_term(state, pattern);
-        self.1.close_term(state, pattern);
-        self.2.close_term(state, pattern);
+    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.close_term(state, binders);
+        self.1.close_term(state, binders);
+        self.2.close_term(state, binders);
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.0.open_term(state, pattern);
-        self.1.open_term(state, pattern);
-        self.2.open_term(state, pattern);
+    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.open_term(state, binders);
+        self.1.open_term(state, binders);
+        self.2.open_term(state, binders);
     }
 
     fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
@@ -391,22 +399,22 @@ where
 
 impl<N, T> BoundTerm<N> for [T]
 where
-    T: BoundTerm<N> + Clone,
+    T: BoundTerm<N>,
 {
     fn term_eq(&self, other: &[T]) -> bool {
         self.len() == other.len()
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| T::term_eq(lhs, rhs))
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
+    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
         for elem in self {
-            elem.close_term(state, pattern);
+            elem.close_term(state, binders);
         }
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
+    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
         for elem in self {
-            elem.open_term(state, pattern);
+            elem.open_term(state, binders);
         }
     }
 
@@ -425,18 +433,18 @@ where
 
 impl<N, T> BoundTerm<N> for Vec<T>
 where
-    T: BoundTerm<N> + Clone,
+    T: BoundTerm<N>,
 {
     fn term_eq(&self, other: &Vec<T>) -> bool {
         <[T]>::term_eq(self, other)
     }
 
-    fn close_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        <[T]>::close_term(self, state, pattern)
+    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        <[T]>::close_term(self, state, binders)
     }
 
-    fn open_term(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        <[T]>::open_term(self, state, pattern)
+    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        <[T]>::open_term(self, state, binders)
     }
 
     fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
@@ -455,26 +463,49 @@ pub trait BoundPattern<N> {
     /// Alpha equivalence in a pattern context
     fn pattern_eq(&self, other: &Self) -> bool;
 
-    fn freshen(&mut self, permutations: &mut Permutations<N>);
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]);
 
-    fn swaps(&mut self, permutations: &Permutations<N>);
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]);
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>);
+    fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>));
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>);
+    fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>));
 
-    /// Find the index of the pattern that binds the given free variable
-    ///
-    /// If we failed to find a pattern variable corresponding to the free
-    /// variable we return a pattern variable offset describing how many
-    /// pattern variables we passed over.
-    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset>;
+    fn freshen(&mut self, permutations: &mut Permutations<N>)
+    where
+        N: Clone + Eq + Hash,
+    {
+        self.visit_mut_binders(&mut |binder| {
+            let fresh = binder.clone().freshen();
+            permutations.insert(binder.clone(), fresh.clone());
+            *binder = fresh;
+        })
+    }
 
-    /// Find the pattern variable at the given offset
-    ///
-    /// If we finished traversing over the pattern without finding a pattern
-    /// we return the offset that still remains.
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset>;
+    fn swaps(&mut self, permutations: &Permutations<N>)
+    where
+        N: Clone + Eq + Hash,
+    {
+        self.visit_mut_binders(&mut |binder| {
+            *binder = permutations
+                .get(binder)
+                .cloned()
+                // TODO: better error here?
+                .expect("pattern not found in permutation");
+        })
+    }
+
+    /// Returns the binders in this pattern
+    fn binders(&self) -> Vec<Binder<N>>
+    where
+        N: Clone,
+    {
+        let mut binders = Vec::new();
+        self.visit_binders(&mut |binder| {
+            binders.push(binder.clone());
+        });
+        binders
+    }
 }
 
 impl<N> BoundPattern<N> for Binder<N>
@@ -485,38 +516,16 @@ where
         true
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<N>) {
-        let fresh = self.clone().fresh();
-        permutations.insert(self.clone(), fresh.clone());
-        *self = fresh;
+    fn close_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
+
+    fn open_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
+
+    fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
+        on_binder(self)
     }
 
-    fn swaps(&mut self, permutations: &Permutations<N>) {
-        *self = permutations
-            .get(self)
-            .cloned()
-            // TODO: better error here?
-            .expect("pattern not found in permutation");
-    }
-
-    fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
-
-    fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
-
-    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-        if self == free_var {
-            Ok(BinderIndex(BinderOffset(0)))
-        } else {
-            Err(BinderOffset(1))
-        }
-    }
-
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
-        if offset == BinderOffset(0) {
-            Ok(self.clone())
-        } else {
-            Err(offset - BinderOffset(1))
-        }
+    fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>)) {
+        on_binder(self)
     }
 }
 
@@ -533,20 +542,13 @@ macro_rules! impl_bound_pattern_partial_eq {
 
             fn swaps(&mut self, _: &Permutations<N>) {}
 
-            fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+            fn close_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-            fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+            fn open_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-            fn find_binder_index(&self, _: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-                Err(BinderOffset(0))
-            }
+            fn visit_binders(&self, _: &mut impl FnMut(&Binder<N>)) {}
 
-            fn find_binder_at_offset(
-                &self,
-                offset: BinderOffset,
-            ) -> Result<Binder<N>, BinderOffset> {
-                Err(offset)
-            }
+            fn visit_mut_binders(&mut self, _: &mut impl FnMut(&mut Binder<N>)) {}
         }
     };
 }
@@ -581,20 +583,13 @@ macro_rules! impl_bound_pattern_ignore {
 
             fn swaps(&mut self, _: &Permutations<N>) {}
 
-            fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+            fn close_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-            fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+            fn open_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-            fn find_binder_index(&self, _: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-                Err(BinderOffset(0))
-            }
+            fn visit_binders(&self, _: &mut impl FnMut(&Binder<N>)) {}
 
-            fn find_binder_at_offset(
-                &self,
-                offset: BinderOffset,
-            ) -> Result<Binder<N>, BinderOffset> {
-                Err(offset)
-            }
+            fn visit_mut_binders(&mut self, _: &mut impl FnMut(&mut Binder<N>)) {}
         }
     };
 }
@@ -626,17 +621,13 @@ impl<N, T> BoundPattern<N> for Span<T> {
 
     fn swaps(&mut self, _: &Permutations<N>) {}
 
-    fn close_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn close_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-    fn open_pattern(&mut self, _: ScopeState, _: &impl BoundPattern<N>) {}
+    fn open_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
 
-    fn find_binder_index(&self, _: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-        Err(BinderOffset(0))
-    }
+    fn visit_binders(&self, _: &mut impl FnMut(&Binder<N>)) {}
 
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
-        Err(offset)
-    }
+    fn visit_mut_binders(&mut self, _: &mut impl FnMut(&mut Binder<N>)) {}
 }
 
 impl<N, P> BoundPattern<N> for Option<P>
@@ -651,41 +642,27 @@ where
         }
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<N>) {
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
         if let Some(ref mut inner) = *self {
-            inner.freshen(permutations);
+            inner.close_pattern(state, binders);
         }
     }
 
-    fn swaps(&mut self, permutations: &Permutations<N>) {
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
         if let Some(ref mut inner) = *self {
-            inner.swaps(permutations);
+            inner.open_pattern(state, binders);
         }
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
+    fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
+        if let Some(ref inner) = *self {
+            inner.visit_binders(on_binder);
+        }
+    }
+
+    fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>)) {
         if let Some(ref mut inner) = *self {
-            inner.close_pattern(state, pattern);
-        }
-    }
-
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        if let Some(ref mut inner) = *self {
-            inner.open_pattern(state, pattern);
-        }
-    }
-
-    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-        match *self {
-            None => Err(BinderOffset(0)),
-            Some(ref inner) => inner.find_binder_index(free_var),
-        }
-    }
-
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
-        match *self {
-            None => Err(offset),
-            Some(ref inner) => inner.find_binder_at_offset(offset),
+            inner.visit_mut_binders(on_binder);
         }
     }
 }
@@ -699,52 +676,24 @@ where
         P1::pattern_eq(&self.0, &other.0) && P2::pattern_eq(&self.1, &other.1)
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<N>) {
-        self.0.freshen(permutations);
-        self.1.freshen(permutations);
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.close_pattern(state, binders);
+        self.1.close_pattern(state, binders);
     }
 
-    fn swaps(&mut self, permutations: &Permutations<N>) {
-        self.0.swaps(permutations);
-        self.1.swaps(permutations);
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.open_pattern(state, binders);
+        self.1.open_pattern(state, binders);
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.0.close_pattern(state, pattern);
-        self.1.close_pattern(state, pattern);
+    fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
+        self.0.visit_binders(on_binder);
+        self.1.visit_binders(on_binder);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.0.open_pattern(state, pattern);
-        self.1.open_pattern(state, pattern);
-    }
-
-    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-        let mut skipped = BinderOffset(0);
-
-        match self.0.find_binder_index(free_var) {
-            Ok(binder_index) => return Ok(binder_index + skipped),
-            Err(next_skipped) => skipped += next_skipped,
-        }
-        match self.1.find_binder_index(free_var) {
-            Ok(binder_index) => return Ok(binder_index + skipped),
-            Err(next_skipped) => skipped += next_skipped,
-        }
-
-        Err(skipped)
-    }
-
-    fn find_binder_at_offset(&self, mut offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
-        match self.0.find_binder_at_offset(offset) {
-            Ok(binder) => return Ok(binder),
-            Err(next_offset) => offset = next_offset,
-        }
-        match self.1.find_binder_at_offset(offset) {
-            Ok(binder) => return Ok(binder),
-            Err(next_offset) => offset = next_offset,
-        }
-
-        Err(offset)
+    fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>)) {
+        self.0.visit_mut_binders(on_binder);
+        self.1.visit_mut_binders(on_binder);
     }
 }
 
@@ -756,28 +705,20 @@ where
         P::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<N>) {
-        P::freshen(self, permutations)
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        P::close_pattern(self, state, binders);
     }
 
-    fn swaps(&mut self, permutations: &Permutations<N>) {
-        P::swaps(self, permutations)
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        P::open_pattern(self, state, binders);
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        P::close_pattern(self, state, pattern);
+    fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
+        P::visit_binders(self, on_binder);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        P::open_pattern(self, state, pattern);
-    }
-
-    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-        P::find_binder_index(self, free_var)
-    }
-
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
-        P::find_binder_at_offset(self, offset)
+    fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>)) {
+        P::visit_mut_binders(self, on_binder);
     }
 }
 
@@ -789,28 +730,20 @@ where
         P::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<N>) {
-        P::freshen(Rc::make_mut(self), permutations)
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        P::close_pattern(Rc::make_mut(self), state, binders);
     }
 
-    fn swaps(&mut self, permutations: &Permutations<N>) {
-        P::swaps(Rc::make_mut(self), permutations)
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        P::open_pattern(Rc::make_mut(self), state, binders);
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        P::close_pattern(Rc::make_mut(self), state, pattern);
+    fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
+        P::visit_binders(self, on_binder);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        P::open_pattern(Rc::make_mut(self), state, pattern);
-    }
-
-    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-        P::find_binder_index(self, free_var)
-    }
-
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
-        P::find_binder_at_offset(self, offset)
+    fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>)) {
+        P::visit_mut_binders(Rc::make_mut(self), on_binder);
     }
 }
 
@@ -822,28 +755,20 @@ where
         P::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<N>) {
-        P::freshen(Arc::make_mut(self), permutations)
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        P::close_pattern(Arc::make_mut(self), state, binders);
     }
 
-    fn swaps(&mut self, permutations: &Permutations<N>) {
-        P::swaps(Arc::make_mut(self), permutations);
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        P::open_pattern(Arc::make_mut(self), state, binders);
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        P::close_pattern(Arc::make_mut(self), state, pattern);
+    fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
+        P::visit_binders(self, on_binder);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        P::open_pattern(Arc::make_mut(self), state, pattern);
-    }
-
-    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-        P::find_binder_index(self, free_var)
-    }
-
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
-        P::find_binder_at_offset(self, offset)
+    fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>)) {
+        P::visit_mut_binders(Arc::make_mut(self), on_binder);
     }
 }
 
@@ -857,49 +782,28 @@ where
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<N>) {
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
         for elem in self {
-            elem.freshen(permutations);
+            elem.close_pattern(state, binders);
         }
     }
 
-    fn swaps(&mut self, permutations: &Permutations<N>) {
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
         for elem in self {
-            elem.swaps(permutations);
+            elem.open_pattern(state, binders);
         }
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
+    fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
         for elem in self {
-            elem.close_pattern(state, pattern);
+            elem.visit_binders(on_binder);
         }
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
+    fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>)) {
         for elem in self {
-            elem.open_pattern(state, pattern);
+            elem.visit_mut_binders(on_binder);
         }
-    }
-
-    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-        let mut skipped = BinderOffset(0);
-        for elem in self {
-            match elem.find_binder_index(free_var) {
-                Ok(binder_index) => return Ok(binder_index + skipped),
-                Err(next_skipped) => skipped += next_skipped,
-            }
-        }
-        Err(skipped)
-    }
-
-    fn find_binder_at_offset(&self, mut offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
-        for elem in self {
-            match elem.find_binder_at_offset(offset) {
-                Ok(binder) => return Ok(binder),
-                Err(next_offset) => offset = next_offset,
-            }
-        }
-        Err(offset)
     }
 }
 
@@ -912,319 +816,19 @@ where
         <[P]>::pattern_eq(self, other)
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<N>) {
-        <[P]>::freshen(self, permutations);
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        <[P]>::close_pattern(self, state, binders);
     }
 
-    fn swaps(&mut self, permutations: &Permutations<N>) {
-        <[P]>::swaps(self, permutations)
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        <[P]>::open_pattern(self, state, binders);
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        <[P]>::close_pattern(self, state, pattern);
+    fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
+        <[P]>::visit_binders(self, on_binder);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        <[P]>::open_pattern(self, state, pattern);
-    }
-
-    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-        <[P]>::find_binder_index(self, free_var)
-    }
-
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
-        <[P]>::find_binder_at_offset(self, offset)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn binder(ident: &str) -> Binder<&str> {
-        Binder::user(ident)
-    }
-
-    fn free_var(ident: &str) -> FreeVar<&str> {
-        FreeVar::user(ident)
-    }
-
-    mod binder {
-        use super::*;
-
-        mod find_binder_index {
-            use super::*;
-
-            #[test]
-            fn test_not_found() {
-                assert_eq!(
-                    binder("a").find_binder_index(&free_var("b")),
-                    Err(BinderOffset(1)),
-                );
-            }
-
-            #[test]
-            fn test_found() {
-                assert_eq!(
-                    binder("a").find_binder_index(&free_var("a")),
-                    Ok(BinderIndex(BinderOffset(0))),
-                );
-            }
-        }
-
-        mod find_binder_at_offset {
-            use super::*;
-
-            #[test]
-            fn test_not_found() {
-                assert_eq!(
-                    binder("a").find_binder_at_offset(BinderOffset(2)),
-                    Err(BinderOffset(1)),
-                );
-            }
-
-            #[test]
-            fn test_found() {
-                assert_eq!(
-                    binder("a").find_binder_at_offset(BinderOffset(0)),
-                    Ok(binder("a")),
-                );
-            }
-        }
-    }
-
-    mod unit {
-        use super::*;
-
-        mod find_binder_index {
-            use super::*;
-
-            #[test]
-            fn test_not_found() {
-                assert_eq!(().find_binder_index(&free_var("a")), Err(BinderOffset(0)));
-            }
-        }
-
-        mod find_binder_at_offset {
-            use super::*;
-
-            #[test]
-            fn test_not_found() {
-                assert_eq!(
-                    BoundPattern::<&str>::find_binder_at_offset(&(), BinderOffset(2)),
-                    Err(BinderOffset(2))
-                );
-            }
-        }
-    }
-
-    mod opt {
-        use super::*;
-
-        mod find_binder_index {
-            use super::*;
-
-            #[test]
-            fn test_none_not_found() {
-                assert_eq!(
-                    None::<()>.find_binder_index(&free_var("a")),
-                    Err(BinderOffset(0)),
-                );
-            }
-
-            #[test]
-            fn test_some_not_found() {
-                assert_eq!(
-                    Some(binder("a")).find_binder_index(&free_var("b")),
-                    Err(BinderOffset(1)),
-                );
-            }
-
-            #[test]
-            fn test_some_found() {
-                assert_eq!(
-                    Some(binder("a")).find_binder_index(&free_var("a")),
-                    Ok(BinderIndex(BinderOffset(0))),
-                );
-            }
-        }
-
-        mod find_binder_at_offset {
-            use super::*;
-
-            #[test]
-            fn test_none_not_found() {
-                assert_eq!(
-                    BoundPattern::<&str>::find_binder_at_offset(&None::<()>, BinderOffset(2)),
-                    Err(BinderOffset(2))
-                );
-            }
-
-            #[test]
-            fn test_some_not_found() {
-                assert_eq!(
-                    Some(binder("a")).find_binder_at_offset(BinderOffset(2)),
-                    Err(BinderOffset(1))
-                );
-            }
-
-            #[test]
-            fn test_some_found() {
-                assert_eq!(
-                    Some(binder("a")).find_binder_at_offset(BinderOffset(0)),
-                    Ok(binder("a"))
-                );
-            }
-        }
-    }
-
-    mod pair {
-        use super::*;
-
-        mod find_binder_index {
-            use super::*;
-
-            #[test]
-            fn test_0_found() {
-                assert_eq!(
-                    (binder("a"), binder("b")).find_binder_index(&free_var("a")),
-                    Ok(BinderIndex(BinderOffset(0))),
-                );
-            }
-
-            #[test]
-            fn test_1_found() {
-                assert_eq!(
-                    (binder("a"), binder("b")).find_binder_index(&free_var("b")),
-                    Ok(BinderIndex(BinderOffset(1))),
-                );
-            }
-
-            #[test]
-            fn test_opt_1_found() {
-                assert_eq!(
-                    ((), Some(binder("b"))).find_binder_index(&free_var("b")),
-                    Ok(BinderIndex(BinderOffset(0))),
-                );
-            }
-        }
-
-        mod find_binder_at_offset {
-            use super::*;
-
-            #[test]
-            fn test_not_found() {
-                assert_eq!(
-                    (binder("a"), binder("b")).find_binder_at_offset(BinderOffset(2)),
-                    Err(BinderOffset(0))
-                );
-            }
-
-            #[test]
-            fn test_found() {
-                assert_eq!(
-                    (binder("a"), binder("b")).find_binder_at_offset(BinderOffset(1)),
-                    Ok(binder("b"))
-                );
-            }
-        }
-    }
-
-    mod vec {
-        use super::*;
-
-        mod find_binder_index {
-            use super::*;
-
-            #[test]
-            fn test_0_found() {
-                assert_eq!(
-                    vec![binder("a"), binder("b"), binder("c")].find_binder_index(&free_var("a")),
-                    Ok(BinderIndex(BinderOffset(0))),
-                );
-            }
-
-            #[test]
-            fn test_1_found() {
-                assert_eq!(
-                    vec![binder("a"), binder("b"), binder("c")].find_binder_index(&free_var("b")),
-                    Ok(BinderIndex(BinderOffset(1))),
-                );
-            }
-
-            #[test]
-            fn test_2_found() {
-                assert_eq!(
-                    vec![binder("a"), binder("b"), binder("c")].find_binder_index(&free_var("c")),
-                    Ok(BinderIndex(BinderOffset(2))),
-                );
-            }
-
-            #[test]
-            fn test_not_found() {
-                assert_eq!(
-                    vec![binder("a"), binder("b"), binder("c")].find_binder_index(&free_var("d")),
-                    Err(BinderOffset(3)),
-                );
-            }
-
-            #[test]
-            fn test_opt_1_found() {
-                assert_eq!(
-                    vec![None, Some(binder("b")), Some(binder("c"))]
-                        .find_binder_index(&free_var("b")),
-                    Ok(BinderIndex(BinderOffset(0))),
-                );
-            }
-
-            #[test]
-            fn test_opt_2_found() {
-                assert_eq!(
-                    vec![None, Some(binder("b")), Some(binder("c"))]
-                        .find_binder_index(&free_var("c")),
-                    Ok(BinderIndex(BinderOffset(1))),
-                );
-            }
-        }
-
-        mod find_binder_at_offset {
-            use super::*;
-
-            #[test]
-            fn test_not_found() {
-                assert_eq!(
-                    vec![binder("a"), binder("b"), binder("c")]
-                        .find_binder_at_offset(BinderOffset(4)),
-                    Err(BinderOffset(1))
-                );
-            }
-
-            #[test]
-            fn test_found() {
-                assert_eq!(
-                    vec![binder("a"), binder("b"), binder("c")]
-                        .find_binder_at_offset(BinderOffset(1)),
-                    Ok(binder("b"))
-                );
-            }
-
-            #[test]
-            fn test_opt_not_found() {
-                assert_eq!(
-                    vec![Some(binder("a")), None, Some(binder("c"))]
-                        .find_binder_at_offset(BinderOffset(2)),
-                    Err(BinderOffset(0))
-                );
-            }
-
-            #[test]
-            fn test_opt_found() {
-                assert_eq!(
-                    vec![Some(binder("a")), None, Some(binder("c"))]
-                        .find_binder_at_offset(BinderOffset(1)),
-                    Ok(binder("c"))
-                );
-            }
-        }
+    fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>)) {
+        <[P]>::visit_mut_binders(self, on_binder);
     }
 }

@@ -1,6 +1,5 @@
-use binder::{Binder, BinderIndex, BinderOffset};
-use bound::{BoundPattern, Permutations, ScopeState};
-use free_var::FreeVar;
+use binder::Binder;
+use bound::{BoundPattern, ScopeState};
 
 /// Recursively bind a pattern in itself
 ///
@@ -12,22 +11,26 @@ pub struct Rec<P> {
 }
 
 impl<P> Rec<P> {
-    pub fn new<N>(pattern: &P) -> Rec<P>
+    pub fn new<N>(mut pattern: P) -> Rec<P>
     where
-        P: BoundPattern<N> + Clone,
+        N: Clone,
+        P: BoundPattern<N>,
     {
-        let mut unsafe_pattern = pattern.clone();
-        unsafe_pattern.close_pattern(ScopeState::new(), pattern);
-        Rec { unsafe_pattern }
+        let binders = pattern.binders();
+        pattern.close_pattern(ScopeState::new(), &binders);
+        Rec {
+            unsafe_pattern: pattern,
+        }
     }
 
-    pub fn unrec<N>(&self) -> P
+    pub fn unrec<N>(mut self) -> P
     where
-        P: BoundPattern<N> + Clone,
+        N: Clone,
+        P: BoundPattern<N>,
     {
-        let mut pattern = self.unsafe_pattern.clone();
-        pattern.open_pattern(ScopeState::new(), self);
-        pattern
+        let binders = self.unsafe_pattern.binders();
+        self.open_pattern(ScopeState::new(), &binders);
+        self.unsafe_pattern
     }
 }
 
@@ -39,27 +42,19 @@ where
         P::pattern_eq(&self.unsafe_pattern, &other.unsafe_pattern)
     }
 
-    fn freshen(&mut self, permutations: &mut Permutations<N>) {
-        self.unsafe_pattern.freshen(permutations)
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.unsafe_pattern.close_pattern(state, binders);
     }
 
-    fn swaps(&mut self, permutations: &Permutations<N>) {
-        self.unsafe_pattern.swaps(permutations)
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.unsafe_pattern.open_pattern(state, binders);
     }
 
-    fn close_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.unsafe_pattern.close_pattern(state, pattern);
+    fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
+        self.unsafe_pattern.visit_binders(on_binder);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, pattern: &impl BoundPattern<N>) {
-        self.unsafe_pattern.open_pattern(state, pattern);
-    }
-
-    fn find_binder_index(&self, free_var: &FreeVar<N>) -> Result<BinderIndex, BinderOffset> {
-        self.unsafe_pattern.find_binder_index(free_var)
-    }
-
-    fn find_binder_at_offset(&self, offset: BinderOffset) -> Result<Binder<N>, BinderOffset> {
-        self.unsafe_pattern.find_binder_at_offset(offset)
+    fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>)) {
+        self.unsafe_pattern.visit_mut_binders(on_binder);
     }
 }

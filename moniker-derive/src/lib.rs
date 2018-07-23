@@ -53,17 +53,16 @@ fn bound_term_derive(mut s: Structure) -> proc_macro2::TokenStream {
 
     s.bind_with(|_| BindStyle::RefMut);
     let close_term_body = s.each(|bi| {
-        quote!{ moniker::BoundTerm::<String>::close_term(#bi, __state, __pattern); }
+        quote!{ moniker::BoundTerm::<String>::close_term(#bi, __state, __binders); }
     });
     let open_term_body = s.each(|bi| {
-        quote!{ moniker::BoundTerm::<String>::open_term(#bi, __state, __pattern); }
+        quote!{ moniker::BoundTerm::<String>::open_term(#bi, __state, __binders); }
     });
 
     s.bind_with(|_| BindStyle::Ref);
     let visit_vars_body = s.each(|bi| {
         quote!{ moniker::BoundTerm::<String>::visit_vars(#bi, __on_var); }
     });
-
     s.bind_with(|_| BindStyle::RefMut);
     let visit_mut_vars_body = s.each(|bi| {
         quote!{ moniker::BoundTerm::<String>::visit_mut_vars(#bi, __on_var); }
@@ -80,7 +79,7 @@ fn bound_term_derive(mut s: Structure) -> proc_macro2::TokenStream {
             fn close_term(
                 &mut self,
                 __state: moniker::ScopeState,
-                __pattern: &impl moniker::BoundPattern<String>,
+                __binders: &[moniker::Binder<String>],
             ) {
                 match *self { #close_term_body }
             }
@@ -88,7 +87,7 @@ fn bound_term_derive(mut s: Structure) -> proc_macro2::TokenStream {
             fn open_term(
                 &mut self,
                 __state: moniker::ScopeState,
-                __pattern: &impl moniker::BoundPattern<String>,
+                __binders: &[moniker::Binder<String>],
             ) {
                 match *self { #open_term_body }
             }
@@ -148,37 +147,20 @@ fn bound_pattern_derive(mut s: Structure) -> proc_macro2::TokenStream {
     };
 
     s.bind_with(|_| BindStyle::RefMut);
-    let freshen_body = s.each(|bi| {
-        quote!{ moniker::BoundPattern::<String>::freshen(#bi, __permutations); }
-    });
-    let swaps_body = s.each(|bi| {
-        quote!{ moniker::BoundPattern::<String>::swaps(#bi, __permutations); }
-    });
-
-    s.bind_with(|_| BindStyle::RefMut);
     let close_pattern_body = s.each(|bi| {
-        quote!{ moniker::BoundPattern::<String>::close_pattern(#bi, __state, __pattern); }
+        quote!{ moniker::BoundPattern::<String>::close_pattern(#bi, __state, __binders); }
     });
     let open_pattern_body = s.each(|bi| {
-        quote!{ moniker::BoundPattern::<String>::open_pattern(#bi, __state, __pattern); }
+        quote!{ moniker::BoundPattern::<String>::open_pattern(#bi, __state, __binders); }
     });
 
     s.bind_with(|_| BindStyle::Ref);
-    let find_binder_index_body = s.each(|bi| {
-        quote! {
-            match #bi.find_binder_index(__free_var) {
-                Ok(__binder_index) => return Ok(__binder_index + __skipped),
-                Err(__next_skipped) => __skipped += __next_skipped,
-            };
-        }
+    let visit_binders_body = s.each(|bi| {
+        quote!{ moniker::BoundPattern::<String>::visit_binders(#bi, __on_binder); }
     });
-    let find_binder_at_offset_body = s.each(|bi| {
-        quote! {
-            match #bi.find_binder_at_offset(__offset) {
-                Ok(__binder) => return Ok(__binder),
-                Err(__next_offset) => __offset = __next_offset,
-            };
-        }
+    s.bind_with(|_| BindStyle::RefMut);
+    let visit_mut_binders_body = s.each(|bi| {
+        quote!{ moniker::BoundPattern::<String>::visit_mut_binders(#bi, __on_binder); }
     });
 
     s.gen_impl(quote! {
@@ -189,18 +171,10 @@ fn bound_pattern_derive(mut s: Structure) -> proc_macro2::TokenStream {
                 match (self, other) { #pattern_eq_body }
             }
 
-            fn freshen(&mut self, __permutations: &mut moniker::Permutations<String>) {
-                match *self { #freshen_body }
-            }
-
-            fn swaps(&mut self, __permutations: &moniker::Permutations<String>) {
-                match *self { #swaps_body }
-            }
-
             fn close_pattern(
                 &mut self,
                 __state: moniker::ScopeState,
-                __pattern: &impl moniker::BoundPattern<String>,
+                __binders: &[moniker::Binder<String>],
             ) {
                 match *self { #close_pattern_body }
             }
@@ -208,26 +182,20 @@ fn bound_pattern_derive(mut s: Structure) -> proc_macro2::TokenStream {
             fn open_pattern(
                 &mut self,
                 __state: moniker::ScopeState,
-                __pattern: &impl moniker::BoundPattern<String>,
+                __binders: &[moniker::Binder<String>],
             ) {
                 match *self { #open_pattern_body }
             }
 
-            fn find_binder_index(
-                &self,
-                __free_var: &moniker::FreeVar<String>,
-            ) -> Result<moniker::BinderIndex, moniker::BinderOffset> {
-                let mut __skipped = moniker::BinderOffset(0);
-                match *self { #find_binder_index_body }
-                Err(__skipped)
+            fn visit_binders(&self, __on_binder: &mut impl FnMut(&moniker::Binder<String>)) {
+                match *self { #visit_binders_body }
             }
 
-            fn find_binder_at_offset(
-                &self,
-                mut __offset: moniker::BinderOffset,
-            ) -> Result<moniker::Binder<String>, moniker::BinderOffset> {
-                match *self { #find_binder_at_offset_body }
-                Err(__offset)
+            fn visit_mut_binders(
+                &mut self,
+                __on_binder: &mut impl FnMut(&mut moniker::Binder<String>),
+            ) {
+                match *self { #visit_mut_binders_body }
             }
         }
     })
