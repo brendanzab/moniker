@@ -476,7 +476,7 @@ pub trait BoundPattern<N> {
         N: Clone + Eq + Hash,
     {
         self.visit_mut_binders(&mut |binder| {
-            let fresh = binder.clone().fresh();
+            let fresh = binder.clone().freshen();
             permutations.insert(binder.clone(), fresh.clone());
             *binder = fresh;
         })

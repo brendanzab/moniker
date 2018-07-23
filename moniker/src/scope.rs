@@ -45,11 +45,10 @@ impl<P, T> Scope<P, T> {
         let mut pattern = self.unsafe_pattern;
         let mut body = self.unsafe_body;
 
-        {
-            let mut permutations = Permutations::new();
-            pattern.freshen(&mut permutations); // FIXME: `permutations` is unused here!
-            body.open_term(ScopeState::new(), &pattern.binders());
-        }
+        // Freshen the pattern in preparation for opening
+        pattern.visit_mut_binders(&mut |binder| *binder = binder.clone().freshen());
+        // Use the freshened binders when opening the body
+        body.open_term(ScopeState::new(), &pattern.binders());
 
         (pattern, body)
     }
