@@ -43,6 +43,7 @@
 //!
 //! - [`Var<N>`]: A variable that is either free or bound
 //! - [`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: bind the term `T` using the pattern `P`
+//! - [`Ignore<T>`]: Ignores `T` when comparing for alpha equality
 //!
 //! Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
 //! are also provided for convenience.

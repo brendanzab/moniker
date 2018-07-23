@@ -180,6 +180,7 @@ Terms are data types that implement the [`BoundTerm`] trait.
 
 - [`Var<N>`]: A variable that is either free or bound
 - [`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: bind the term `T` using the pattern `P`
+- [`Ignore<T>`]: Ignores `T` when comparing for alpha equality
 
 Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
 are also provided for convenience.
@@ -187,6 +188,7 @@ are also provided for convenience.
 [`BoundTerm`]: https://docs.rs/moniker/trait.BoundTerm.html
 [`Var<N>`]: https://docs.rs/moniker/enum.Var.html
 [`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: https://docs.rs/moniker/struct.Scope.html
+[`Ignore<T>`]: https://docs.rs/moniker/struct.Ignore.html
 
 ### Patterns
 
@@ -203,7 +205,6 @@ are also provided for convenience.
 
 [`BoundPattern`]: https://docs.rs/moniker/trait.BoundPattern.html
 [`Binder<N>`]: https://docs.rs/moniker/enum.Binder.html
-[`Ignore<T>`]: https://docs.rs/moniker/struct.Ignore.html
 [`Embed<T: BoundTerm<N>>`]: https://docs.rs/moniker/struct.Embed.html
 [`Nest<P: BoundPattern<N>>`]: https://docs.rs/moniker/struct.Nest.html
 [`Rec<P: BoundPattern<N>>`]: https://docs.rs/moniker/struct.Rec.html
