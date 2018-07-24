@@ -1,8 +1,3 @@
-#[cfg(feature = "codespan")]
-use codespan::{
-    ByteIndex, ByteOffset, ColumnIndex, ColumnNumber, ColumnOffset, LineIndex, LineNumber,
-    LineOffset, Span,
-};
 use std::collections::HashSet;
 use std::hash::Hash;
 use std::rc::Rc;
@@ -11,6 +6,11 @@ use std::sync::Arc;
 use binder::{Binder, BinderIndex, BinderOffset};
 use free_var::FreeVar;
 use var::{ScopeOffset, Var};
+
+#[cfg(feature = "codespan")]
+mod codespan;
+#[cfg(feature = "im")]
+mod im;
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScopeState {
@@ -166,57 +166,6 @@ impl_bound_term_partial_eq!(i64);
 impl_bound_term_partial_eq!(isize);
 impl_bound_term_partial_eq!(f32);
 impl_bound_term_partial_eq!(f64);
-
-#[cfg(feature = "codespan")]
-macro_rules! impl_bound_term_ignore {
-    ($T:ty) => {
-        impl<N> BoundTerm<N> for $T {
-            fn term_eq(&self, _: &$T) -> bool {
-                true
-            }
-
-            fn close_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
-
-            fn open_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
-
-            fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
-
-            fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<N>)) {}
-        }
-    };
-}
-
-#[cfg(feature = "codespan")]
-impl_bound_term_ignore!(ByteIndex);
-#[cfg(feature = "codespan")]
-impl_bound_term_ignore!(ByteOffset);
-#[cfg(feature = "codespan")]
-impl_bound_term_ignore!(ColumnIndex);
-#[cfg(feature = "codespan")]
-impl_bound_term_ignore!(ColumnNumber);
-#[cfg(feature = "codespan")]
-impl_bound_term_ignore!(ColumnOffset);
-#[cfg(feature = "codespan")]
-impl_bound_term_ignore!(LineIndex);
-#[cfg(feature = "codespan")]
-impl_bound_term_ignore!(LineNumber);
-#[cfg(feature = "codespan")]
-impl_bound_term_ignore!(LineOffset);
-
-#[cfg(feature = "codespan")]
-impl<N, T> BoundTerm<N> for Span<T> {
-    fn term_eq(&self, _: &Span<T>) -> bool {
-        true
-    }
-
-    fn close_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
-
-    fn open_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
-
-    fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
-
-    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<N>)) {}
-}
 
 impl<N, T> BoundTerm<N> for Option<T>
 where
@@ -540,57 +489,6 @@ impl_bound_pattern_partial_eq!(i64);
 impl_bound_pattern_partial_eq!(isize);
 impl_bound_pattern_partial_eq!(f32);
 impl_bound_pattern_partial_eq!(f64);
-
-#[cfg(feature = "codespan")]
-macro_rules! impl_bound_pattern_ignore {
-    ($T:ty) => {
-        impl<N> BoundPattern<N> for $T {
-            fn pattern_eq(&self, _: &$T) -> bool {
-                true
-            }
-
-            fn close_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
-
-            fn open_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
-
-            fn visit_binders(&self, _: &mut impl FnMut(&Binder<N>)) {}
-
-            fn visit_mut_binders(&mut self, _: &mut impl FnMut(&mut Binder<N>)) {}
-        }
-    };
-}
-
-#[cfg(feature = "codespan")]
-impl_bound_pattern_ignore!(ByteIndex);
-#[cfg(feature = "codespan")]
-impl_bound_pattern_ignore!(ByteOffset);
-#[cfg(feature = "codespan")]
-impl_bound_pattern_ignore!(ColumnIndex);
-#[cfg(feature = "codespan")]
-impl_bound_pattern_ignore!(ColumnNumber);
-#[cfg(feature = "codespan")]
-impl_bound_pattern_ignore!(ColumnOffset);
-#[cfg(feature = "codespan")]
-impl_bound_pattern_ignore!(LineIndex);
-#[cfg(feature = "codespan")]
-impl_bound_pattern_ignore!(LineNumber);
-#[cfg(feature = "codespan")]
-impl_bound_pattern_ignore!(LineOffset);
-
-#[cfg(feature = "codespan")]
-impl<N, T> BoundPattern<N> for Span<T> {
-    fn pattern_eq(&self, _: &Span<T>) -> bool {
-        true
-    }
-
-    fn close_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
-
-    fn open_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
-
-    fn visit_binders(&self, _: &mut impl FnMut(&Binder<N>)) {}
-
-    fn visit_mut_binders(&mut self, _: &mut impl FnMut(&mut Binder<N>)) {}
-}
 
 impl<N, P> BoundPattern<N> for Option<P>
 where

@@ -74,6 +74,8 @@
 
 #[cfg(feature = "codespan")]
 extern crate codespan;
+#[cfg(feature = "im")]
+extern crate im;
 #[macro_use]
 extern crate lazy_static;
 #[cfg(feature = "moniker-derive")]
