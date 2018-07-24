@@ -105,7 +105,7 @@ impl<N: PartialEq + Clone> BoundTerm<N> for Var<N> {
         // NOTE: Working around NLL
         *self = match *self {
             Var::Bound(scope, binder_index, _) if scope == state.depth() => {
-                match binders.iter().nth(binder_index.to_usize()) {
+                match binders.get(binder_index.to_usize()) {
                     Some(&Binder(ref free_var)) => Var::Free(free_var.clone()),
                     None => {
                         // FIXME: better error?
