@@ -305,14 +305,14 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
         },
         Expr::Tag(ref label, ref expr) => RcExpr::from(Expr::Tag(label.clone(), eval(expr))),
         Expr::Case(ref arg, ref clauses) => {
+            let arg = eval(arg);
             for clause in clauses {
                 let (pattern, body) = clause.clone().unbind();
-                match match_expr(&pattern, &eval(arg)) {
-                    None => {}, // stuck
-                    Some(mappings) => return eval(&body.substs(&mappings)),
+                if let Some(mappings) = match_expr(&pattern, &arg) {
+                    return eval(&body.substs(&mappings));
                 }
             }
-            expr.clone() // stuck
+            RcExpr::from(Expr::Case(arg, clauses.clone())) // stuck
         },
         Expr::Fold(ref ty, ref expr) => RcExpr::from(Expr::Fold(ty.clone(), eval(expr))),
         Expr::Unfold(ref ty, ref expr) => {
