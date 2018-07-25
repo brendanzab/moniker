@@ -34,15 +34,21 @@ impl ScopeState {
 
 /// Terms that may contain variables that can be bound by patterns
 pub trait BoundTerm<N> {
-    /// Alpha equivalence in a term context
+    /// Alpha equivalence for terms
     fn term_eq(&self, other: &Self) -> bool;
 
+    /// Close the term using the supplied binders
     fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]);
 
+    /// Open the term using the supplied binders
     fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]);
 
+    /// Visit each variable in the term, calling the `on_var` callback on each
+    /// of them in turn
     fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>));
 
+    /// Visit each variable in the term, calling the `on_var` callback on each
+    /// of them in turn
     fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>));
 
     /// Returns the set of free variables in this term
@@ -407,15 +413,21 @@ where
 
 /// Patterns that bind variables in terms
 pub trait BoundPattern<N> {
-    /// Alpha equivalence in a pattern context
+    /// Alpha equivalence for patterns
     fn pattern_eq(&self, other: &Self) -> bool;
 
+    /// Close the terms in the pattern using the supplied binders
     fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]);
 
+    /// Open the terms in the pattern using the supplied binders
     fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]);
 
+    /// Visit each of the binders in the term, calling the `on_binder` callback
+    /// on each of them in turn
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>));
 
+    /// Visit each of the binders in the term, calling the `on_binder` callback
+    /// on each of them in turn
     fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>));
 
     /// Returns the binders in this pattern
