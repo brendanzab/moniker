@@ -3,7 +3,7 @@ use std::hash::Hash;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use binder::{Binder, BinderIndex, BinderOffset};
+use binder::{Binder, BinderIndex};
 use free_var::FreeVar;
 use var::{ScopeOffset, Var};
 
@@ -97,7 +97,7 @@ impl<N: PartialEq + Clone> BoundTerm<N> for Var<N> {
                     .iter()
                     .enumerate()
                     .find(|&(_, binder)| binder == free_var)
-                    .map(|(i, _)| BinderIndex(BinderOffset(i as u32)));
+                    .map(|(i, _)| BinderIndex(i as u32));
 
                 match binder_index {
                     Some(binder_index) => {
