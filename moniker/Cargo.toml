@@ -23,6 +23,7 @@ categories = ["data-structures"]
         "moniker-derive",
         "num-bigint",
     ]
+    all-features = true
 
 [features]
 default = ["moniker-derive"]
