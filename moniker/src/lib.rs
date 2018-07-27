@@ -72,16 +72,20 @@
 //! [`Nest<P: BoundPattern<N>>`]: struct.Nest.html
 //! [`Rec<P: BoundPattern<N>>`]: struct.Rec.html
 
-#[cfg(feature = "codespan")]
-extern crate codespan;
-#[cfg(feature = "im")]
-extern crate im;
 #[macro_use]
 extern crate lazy_static;
 #[cfg(feature = "moniker-derive")]
 #[allow(unused_imports)]
 #[macro_use]
 extern crate moniker_derive;
+
+// Optional impls
+#[cfg(feature = "codespan")]
+extern crate codespan;
+#[cfg(feature = "im")]
+extern crate im;
+#[cfg(feature = "num-bigint")]
+extern crate num_bigint;
 
 #[cfg(feature = "moniker-derive")]
 #[doc(hidden)]
