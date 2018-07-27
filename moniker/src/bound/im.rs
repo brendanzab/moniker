@@ -1,6 +1,3 @@
-#[cfg(feature = "im")]
-extern crate im;
-
 use im::Vector;
 
 use super::*;

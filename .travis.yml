@@ -7,9 +7,9 @@ rust:
   - nightly
 env:
   - MONIKER_CARGO_FEATURES=""
-  - MONIKER_CARGO_FEATURES="codespan im"
+  - MONIKER_CARGO_FEATURES="codespan im num-bigint"
   - MONIKER_CARGO_FEATURES="default"
-  - MONIKER_CARGO_FEATURES="default codespan im"
+  - MONIKER_CARGO_FEATURES="default codespan im num-bigint"
 matrix:
   allow_failures:
     - rust: nightly

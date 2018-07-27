@@ -11,6 +11,8 @@ use var::{ScopeOffset, Var};
 mod codespan;
 #[cfg(feature = "im")]
 mod im;
+#[cfg(feature = "num-bigint")]
+mod num_bigint;
 
 #[derive(Debug, Copy, Clone)]
 pub struct ScopeState {
