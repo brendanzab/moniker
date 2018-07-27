@@ -105,7 +105,7 @@ mod rec;
 mod scope;
 mod var;
 
-pub use self::binder::{Binder, BinderIndex, BinderOffset};
+pub use self::binder::{Binder, BinderIndex};
 pub use self::bound::{BoundPattern, BoundTerm, ScopeState};
 pub use self::embed::Embed;
 pub use self::free_var::{FreeVar, GenId};
