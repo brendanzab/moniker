@@ -3,9 +3,10 @@ use std::hash::Hash;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use binder::{Binder, BinderIndex};
+use binder::Binder;
+use bound_var::{BinderIndex, BoundVar, ScopeOffset};
 use free_var::FreeVar;
-use var::{ScopeOffset, Var};
+use var::Var;
 
 #[cfg(feature = "codespan")]
 mod codespan;
@@ -60,7 +61,7 @@ pub trait BoundTerm<N> {
     {
         let mut free_vars = HashSet::new();
         self.visit_vars(&mut |var| match *var {
-            Var::Bound(_, _, _) => {},
+            Var::Bound(_) => {},
             Var::Free(ref free_var) => {
                 free_vars.insert(free_var.clone());
             },
@@ -91,7 +92,7 @@ impl<N: PartialEq + Clone> BoundTerm<N> for Var<N> {
     fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
         // NOTE: Working around NLL
         *self = match *self {
-            Var::Bound(_, _, _) => return,
+            Var::Bound(_) => return,
             Var::Free(ref free_var) => {
                 let binder_index = binders
                     .iter()
@@ -100,9 +101,11 @@ impl<N: PartialEq + Clone> BoundTerm<N> for Var<N> {
                     .map(|(i, _)| BinderIndex(i as u32));
 
                 match binder_index {
-                    Some(binder_index) => {
-                        Var::Bound(state.depth(), binder_index, free_var.ident().cloned())
-                    },
+                    Some(binder_index) => Var::Bound(BoundVar {
+                        scope: state.depth(),
+                        binder: binder_index,
+                        pretty_name: free_var.ident().cloned(),
+                    }),
                     None => return,
                 }
             },
@@ -112,19 +115,19 @@ impl<N: PartialEq + Clone> BoundTerm<N> for Var<N> {
     fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
         // NOTE: Working around NLL
         *self = match *self {
-            Var::Bound(scope, binder_index, _) if scope == state.depth() => {
-                match binders.get(binder_index.to_usize()) {
+            Var::Bound(ref bound_var) if bound_var.scope == state.depth() => {
+                match binders.get(bound_var.binder.to_usize()) {
                     Some(&Binder(ref free_var)) => Var::Free(free_var.clone()),
                     None => {
                         // FIXME: better error?
                         panic!(
                             "too few variables in pattern: expected at least {}",
-                            binder_index,
+                            bound_var.binder,
                         );
                     },
                 }
             },
-            Var::Bound(_, _, _) | Var::Free(_) => return,
+            Var::Bound(_) | Var::Free(_) => return,
         };
     }
 

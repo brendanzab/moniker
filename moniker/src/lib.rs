@@ -97,6 +97,7 @@ pub mod macros;
 
 mod binder;
 mod bound;
+mod bound_var;
 mod embed;
 mod free_var;
 mod ignore;
@@ -105,12 +106,13 @@ mod rec;
 mod scope;
 mod var;
 
-pub use self::binder::{Binder, BinderIndex};
+pub use self::binder::Binder;
 pub use self::bound::{BoundPattern, BoundTerm, ScopeState};
+pub use self::bound_var::{BinderIndex, BoundVar, ScopeOffset};
 pub use self::embed::Embed;
 pub use self::free_var::{FreeVar, GenId};
 pub use self::ignore::Ignore;
 pub use self::nest::Nest;
 pub use self::rec::Rec;
 pub use self::scope::Scope;
-pub use self::var::{ScopeOffset, Var};
+pub use self::var::Var;

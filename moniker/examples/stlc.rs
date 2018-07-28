@@ -172,9 +172,11 @@ pub fn infer(context: &Context, expr: &RcExpr) -> Result<RcType, String> {
         Expr::Literal(Literal::String(_)) => Ok(RcType::from(Type::String)),
         Expr::Var(Var::Free(ref free_var)) => match context.get(free_var) {
             Some(term) => Ok((*term).clone()),
-            None => Err(format!("`{:?}` not found in `{:?}`", free_var, context)),
+            None => Err(format!("`{}` not found in `{:?}`", free_var, context)),
         },
-        Expr::Var(Var::Bound(_, _, _)) => panic!("encountered a bound variable"),
+        Expr::Var(Var::Bound(ref bound_var)) => {
+            panic!("encountered a bound variable: {}", bound_var)
+        },
         Expr::Lam(ref scope) => match scope.clone().unbind() {
             ((Binder(free_var), Embed(Some(ann))), body) => {
                 let body_ty = infer(&context.update(free_var, ann.clone()), &body)?;

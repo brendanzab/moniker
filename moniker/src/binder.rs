@@ -2,21 +2,6 @@ use std::fmt;
 
 use free_var::FreeVar;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct BinderIndex(pub u32);
-
-impl BinderIndex {
-    pub fn to_usize(self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl fmt::Display for BinderIndex {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(&self.0, f)
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Binder<N>(pub FreeVar<N>);
 
