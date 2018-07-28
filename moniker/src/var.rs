@@ -126,6 +126,18 @@ where
     }
 }
 
+impl<N> PartialEq<Var<N>> for FreeVar<N>
+where
+    N: PartialEq,
+{
+    fn eq(&self, other: &Var<N>) -> bool {
+        match *other {
+            Var::Free(ref lhs) => lhs == self,
+            _ => false,
+        }
+    }
+}
+
 impl<N> PartialEq<Var<N>> for Binder<N>
 where
     N: PartialEq,

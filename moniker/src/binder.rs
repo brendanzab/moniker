@@ -45,3 +45,12 @@ where
         self.0 == *other
     }
 }
+
+impl<N> PartialEq<Binder<N>> for FreeVar<N>
+where
+    N: PartialEq,
+{
+    fn eq(&self, other: &Binder<N>) -> bool {
+        *self == other.0
+    }
+}

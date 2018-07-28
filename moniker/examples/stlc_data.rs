@@ -158,15 +158,12 @@ impl From<Expr> for RcExpr {
 
 impl RcExpr {
     // FIXME: auto-derive this somehow!
-    fn substs<N>(&self, mappings: &[(N, RcExpr)]) -> RcExpr
-    where
-        Var<String>: PartialEq<N>,
-    {
+    fn substs<N: PartialEq<Var<String>>>(&self, mappings: &[(N, RcExpr)]) -> RcExpr {
         match *self.inner {
             Expr::Ann(ref expr, ref ty) => {
                 RcExpr::from(Expr::Ann(expr.substs(mappings), ty.clone()))
             },
-            Expr::Var(ref var) => match mappings.iter().find(|&(name, _)| var == name) {
+            Expr::Var(ref var) => match mappings.iter().find(|&(name, _)| name == var) {
                 Some((_, ref replacement)) => replacement.clone(),
                 None => self.clone(),
             },
