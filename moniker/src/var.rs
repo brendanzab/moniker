@@ -13,6 +13,15 @@ pub enum Var<N> {
     Bound(BoundVar<N>),
 }
 
+impl<N> Var<N> {
+    pub fn pretty_name(&self) -> Option<&N> {
+        match *self {
+            Var::Bound(ref bound_var) => bound_var.pretty_name.as_ref(),
+            Var::Free(ref free_var) => free_var.pretty_name.as_ref(),
+        }
+    }
+}
+
 impl<N> Eq for Var<N> where N: Eq {}
 
 impl<N: fmt::Display> fmt::Display for Var<N> {
