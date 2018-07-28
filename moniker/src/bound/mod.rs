@@ -104,7 +104,7 @@ impl<N: PartialEq + Clone> BoundTerm<N> for Var<N> {
                     Some(binder_index) => Var::Bound(BoundVar {
                         scope: state.depth(),
                         binder: binder_index,
-                        pretty_name: free_var.ident().cloned(),
+                        pretty_name: free_var.pretty_name.clone(),
                     }),
                     None => return,
                 }

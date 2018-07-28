@@ -92,41 +92,55 @@ pub fn eval(expr: &RcExpr) -> Result<RcExpr, EvalError> {
 
 #[test]
 fn test_eval_const_lhs() {
+    use moniker::FreeVar;
+
+    let x = FreeVar::fresh(Some(String::from("x")));
+    let y = FreeVar::fresh(Some(String::from("y")));
+    let a = FreeVar::fresh(Some(String::from("a")));
+    let b = FreeVar::fresh(Some(String::from("b")));
+
     // expr = (\(x, y) => y)(a, b)
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
-            vec![Binder::user("x"), Binder::user("y")],
-            RcExpr::from(Expr::Var(Var::user("y"))),
+            vec![Binder(x.clone()), Binder(y.clone())],
+            RcExpr::from(Expr::Var(Var::Free(y.clone()))),
         ))),
         vec![
-            RcExpr::from(Expr::Var(Var::user("a"))),
-            RcExpr::from(Expr::Var(Var::user("b"))),
+            RcExpr::from(Expr::Var(Var::Free(a.clone()))),
+            RcExpr::from(Expr::Var(Var::Free(b.clone()))),
         ],
     ));
 
     assert_term_eq!(
         eval(&expr).unwrap(),
-        RcExpr::from(Expr::Var(Var::user("b"))),
+        RcExpr::from(Expr::Var(Var::Free(b.clone()))),
     );
 }
 
 #[test]
 fn test_eval_const_rhs() {
+    use moniker::FreeVar;
+
+    let x = FreeVar::fresh(Some(String::from("x")));
+    let y = FreeVar::fresh(Some(String::from("y")));
+    let a = FreeVar::fresh(Some(String::from("a")));
+    let b = FreeVar::fresh(Some(String::from("b")));
+
     // expr = (\(x, y) => x)(a, b)
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
-            vec![Binder::user("x"), Binder::user("y")],
-            RcExpr::from(Expr::Var(Var::user("x"))),
+            vec![Binder(x.clone()), Binder(y.clone())],
+            RcExpr::from(Expr::Var(Var::Free(x.clone()))),
         ))),
         vec![
-            RcExpr::from(Expr::Var(Var::user("a"))),
-            RcExpr::from(Expr::Var(Var::user("b"))),
+            RcExpr::from(Expr::Var(Var::Free(a.clone()))),
+            RcExpr::from(Expr::Var(Var::Free(b.clone()))),
         ],
     ));
 
     assert_term_eq!(
         eval(&expr).unwrap(),
-        RcExpr::from(Expr::Var(Var::user("a"))),
+        RcExpr::from(Expr::Var(Var::Free(a.clone()))),
     );
 }
 

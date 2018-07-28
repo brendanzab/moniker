@@ -13,13 +13,6 @@ pub enum Var<N> {
     Bound(BoundVar<N>),
 }
 
-impl<N> Var<N> {
-    /// Create a variable from a human-readable string
-    pub fn user<T: Into<N>>(ident: T) -> Var<N> {
-        Var::Free(FreeVar::user(ident))
-    }
-}
-
 impl<N> Eq for Var<N> where N: Eq {}
 
 impl<N: fmt::Display> fmt::Display for Var<N> {

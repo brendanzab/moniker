@@ -106,47 +106,58 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
 
 #[test]
 fn test_eval() {
+    use moniker::FreeVar;
+
+    let x = FreeVar::fresh(Some(String::from("x")));
+    let y = FreeVar::fresh(Some(String::from("y")));
+
     // expr = (\x -> x) y
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
-            Binder::user("x"),
-            RcExpr::from(Expr::Var(Var::user("x"))),
+            Binder(x.clone()),
+            RcExpr::from(Expr::Var(Var::Free(x.clone()))),
         ))),
-        RcExpr::from(Expr::Var(Var::user("y"))),
+        RcExpr::from(Expr::Var(Var::Free(y.clone()))),
     ));
 
-    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("y"))),);
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::Free(y.clone()))));
 }
 
 #[test]
 fn test_eval_let_rec() {
+    use moniker::FreeVar;
+
+    let x1 = FreeVar::fresh(Some(String::from("x")));
+    let x2 = FreeVar::fresh(Some(String::from("x")));
+    let test = FreeVar::fresh(Some(String::from("test")));
+    let id = FreeVar::fresh(Some(String::from("id")));
+
     // expr =
-    //      letrec
-    //          test = id x
+    //      let test = id x
     //          id =  \x -> x
     //      in
     //          test
     let expr = RcExpr::from(Expr::LetRec(Scope::new(
         Rec::new(vec![
             (
-                Binder::user("test"),
+                Binder(test.clone()),
                 Embed(RcExpr::from(Expr::App(
-                    RcExpr::from(Expr::Var(Var::user("id"))),
-                    RcExpr::from(Expr::Var(Var::user("x"))),
+                    RcExpr::from(Expr::Var(Var::Free(id.clone()))),
+                    RcExpr::from(Expr::Var(Var::Free(x1.clone()))),
                 ))),
             ),
             (
-                Binder::user("id"),
+                Binder(id.clone()),
                 Embed(RcExpr::from(Expr::Lam(Scope::new(
-                    Binder::user("x"),
-                    RcExpr::from(Expr::Var(Var::user("x"))),
+                    Binder(x2.clone()),
+                    RcExpr::from(Expr::Var(Var::Free(x2.clone()))),
                 )))),
             ),
         ]),
-        RcExpr::from(Expr::Var(Var::user("test"))),
+        RcExpr::from(Expr::Var(Var::Free(test.clone()))),
     )));
 
-    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("x"))));
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::Free(x1.clone()))));
 }
 
 fn main() {}

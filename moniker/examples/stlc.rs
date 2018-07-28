@@ -203,10 +203,14 @@ pub fn infer(context: &Context, expr: &RcExpr) -> Result<RcType, String> {
 
 #[test]
 fn test_infer() {
+    use moniker::FreeVar;
+
+    let x = FreeVar::fresh(Some(String::from("x")));
+
     // expr = (\x : Int -> x)
     let expr = RcExpr::from(Expr::Lam(Scope::new(
-        (Binder::user("x"), Embed(Some(RcType::from(Type::Int)))),
-        RcExpr::from(Expr::Var(Var::user("x"))),
+        (Binder(x.clone()), Embed(Some(RcType::from(Type::Int)))),
+        RcExpr::from(Expr::Var(Var::Free(x.clone()))),
     )));
 
     assert_term_eq!(

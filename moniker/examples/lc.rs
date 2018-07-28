@@ -72,16 +72,21 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
 
 #[test]
 fn test_eval() {
+    use moniker::FreeVar;
+
+    let x = FreeVar::fresh(Some(String::from("x")));
+    let y = FreeVar::fresh(Some(String::from("y")));
+
     // expr = (\x -> x) y
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
-            Binder::user("x"),
-            RcExpr::from(Expr::Var(Var::user("x"))),
+            Binder(x.clone()),
+            RcExpr::from(Expr::Var(Var::Free(x.clone()))),
         ))),
-        RcExpr::from(Expr::Var(Var::user("y"))),
+        RcExpr::from(Expr::Var(Var::Free(y.clone()))),
     ));
 
-    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("y"))),);
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::Free(y.clone()))));
 }
 
 fn main() {}
