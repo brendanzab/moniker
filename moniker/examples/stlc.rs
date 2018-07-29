@@ -96,15 +96,12 @@ impl From<Expr> for RcExpr {
 
 impl RcExpr {
     // FIXME: auto-derive this somehow!
-    fn subst<N>(&self, name: &N, replacement: &RcExpr) -> RcExpr
-    where
-        Var<String>: PartialEq<N>,
-    {
+    fn subst<N: PartialEq<Var<String>>>(&self, name: &N, replacement: &RcExpr) -> RcExpr {
         match *self.inner {
             Expr::Ann(ref expr, ref ty) => {
                 RcExpr::from(Expr::Ann(expr.subst(name, replacement), ty.clone()))
             },
-            Expr::Var(ref var) if var == name => replacement.clone(),
+            Expr::Var(ref var) if name == var => replacement.clone(),
             Expr::Var(_) | Expr::Literal(_) => self.clone(),
             Expr::Lam(ref scope) => RcExpr::from(Expr::Lam(Scope {
                 unsafe_pattern: scope.unsafe_pattern.clone(),
