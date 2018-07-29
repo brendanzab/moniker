@@ -13,11 +13,22 @@ pub struct FreeVar<N> {
 }
 
 impl<N> FreeVar<N> {
+    /// Create a fresh free variable, with an optional name hint for pretty printing
     pub fn fresh(pretty_name: Option<N>) -> FreeVar<N> {
         FreeVar {
             unique_id: UniqueId::new(),
             pretty_name,
         }
+    }
+
+    /// Create a fresh free variable, with no name hint
+    pub fn fresh_unnamed() -> FreeVar<N> {
+        FreeVar::fresh(None)
+    }
+
+    /// Create a fresh free variable, with a name hint for pretty printing
+    pub fn fresh_named(pretty_name: impl Into<N>) -> FreeVar<N> {
+        FreeVar::fresh(Some(pretty_name.into()))
     }
 }
 

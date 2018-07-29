@@ -467,7 +467,7 @@ pub fn infer_pattern(context: &Context, expr: &RcPattern) -> Result<(RcType, Con
 fn test_infer_expr() {
     use moniker::FreeVar;
 
-    let x = FreeVar::fresh(Some(String::from("x")));
+    let x = FreeVar::fresh_named("x");
 
     // expr = (\x : Int -> x)
     let expr = RcExpr::from(Expr::Lam(Scope::new(
@@ -491,7 +491,7 @@ fn test_infer_expr() {
 fn test_infer_app_expr() {
     use moniker::FreeVar;
 
-    let x = FreeVar::fresh(Some(String::from("x")));
+    let x = FreeVar::fresh_named("x");
 
     // expr = (\x -> x : Int -> Int) 1
     let expr = RcExpr::from(Expr::App(
@@ -518,8 +518,8 @@ fn test_infer_app_expr() {
 fn test_infer_expr_record1() {
     use moniker::FreeVar;
 
-    let a = FreeVar::fresh(Some(String::from("a")));
-    let b = FreeVar::fresh(Some(String::from("b")));
+    let a = FreeVar::fresh_named("a");
+    let b = FreeVar::fresh_named("b");
 
     // expr = \{ x = a : Int, y = b : String } -> b
     let expr = RcExpr::from(Expr::Lam(Scope::new(
@@ -558,9 +558,9 @@ fn test_infer_expr_record1() {
 fn test_infer_expr_record2() {
     use moniker::FreeVar;
 
-    let a = FreeVar::fresh(Some(String::from("a")));
-    let b = FreeVar::fresh(Some(String::from("b")));
-    let c = FreeVar::fresh(Some(String::from("c")));
+    let a = FreeVar::fresh_named("a");
+    let b = FreeVar::fresh_named("b");
+    let c = FreeVar::fresh_named("c");
 
     // expr = \{ x = a : Int, y = b : String, z = c : Float } -> { x = a, y = b, z = c }
     let expr = RcExpr::from(Expr::Lam(Scope::new(

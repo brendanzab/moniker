@@ -108,8 +108,8 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
 fn test_eval() {
     use moniker::FreeVar;
 
-    let x = FreeVar::fresh(Some(String::from("x")));
-    let y = FreeVar::fresh(Some(String::from("y")));
+    let x = FreeVar::fresh_named("x");
+    let y = FreeVar::fresh_named("y");
 
     // expr = (\x -> x) y
     let expr = RcExpr::from(Expr::App(
@@ -127,10 +127,10 @@ fn test_eval() {
 fn test_eval_let_rec() {
     use moniker::FreeVar;
 
-    let x1 = FreeVar::fresh(Some(String::from("x")));
-    let x2 = FreeVar::fresh(Some(String::from("x")));
-    let test = FreeVar::fresh(Some(String::from("test")));
-    let id = FreeVar::fresh(Some(String::from("id")));
+    let x1 = FreeVar::fresh_named("x");
+    let x2 = FreeVar::fresh_named("x");
+    let test = FreeVar::fresh_named("test");
+    let id = FreeVar::fresh_named("id");
 
     // expr =
     //      let test = id x

@@ -205,7 +205,7 @@ pub fn infer(context: &Context, expr: &RcExpr) -> Result<RcType, String> {
 fn test_infer() {
     use moniker::FreeVar;
 
-    let x = FreeVar::fresh(Some(String::from("x")));
+    let x = FreeVar::fresh_named("x");
 
     // expr = (\x : Int -> x)
     let expr = RcExpr::from(Expr::Lam(Scope::new(

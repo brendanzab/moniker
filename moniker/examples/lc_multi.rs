@@ -94,10 +94,10 @@ pub fn eval(expr: &RcExpr) -> Result<RcExpr, EvalError> {
 fn test_eval_const_lhs() {
     use moniker::FreeVar;
 
-    let x = FreeVar::fresh(Some(String::from("x")));
-    let y = FreeVar::fresh(Some(String::from("y")));
-    let a = FreeVar::fresh(Some(String::from("a")));
-    let b = FreeVar::fresh(Some(String::from("b")));
+    let x = FreeVar::fresh_named("x");
+    let y = FreeVar::fresh_named("y");
+    let a = FreeVar::fresh_named("a");
+    let b = FreeVar::fresh_named("b");
 
     // expr = (\(x, y) => y)(a, b)
     let expr = RcExpr::from(Expr::App(
@@ -121,10 +121,10 @@ fn test_eval_const_lhs() {
 fn test_eval_const_rhs() {
     use moniker::FreeVar;
 
-    let x = FreeVar::fresh(Some(String::from("x")));
-    let y = FreeVar::fresh(Some(String::from("y")));
-    let a = FreeVar::fresh(Some(String::from("a")));
-    let b = FreeVar::fresh(Some(String::from("b")));
+    let x = FreeVar::fresh_named("x");
+    let y = FreeVar::fresh_named("y");
+    let a = FreeVar::fresh_named("a");
+    let b = FreeVar::fresh_named("b");
 
     // expr = (\(x, y) => x)(a, b)
     let expr = RcExpr::from(Expr::App(
