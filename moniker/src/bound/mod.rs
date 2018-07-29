@@ -571,6 +571,43 @@ where
     }
 }
 
+impl<N, P1, P2, P3> BoundPattern<N> for (P1, P2, P3)
+where
+    P1: BoundPattern<N>,
+    P2: BoundPattern<N>,
+    P3: BoundPattern<N>,
+{
+    fn pattern_eq(&self, other: &(P1, P2, P3)) -> bool {
+        P1::pattern_eq(&self.0, &other.0)
+            && P2::pattern_eq(&self.1, &other.1)
+            && P3::pattern_eq(&self.2, &other.2)
+    }
+
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.close_pattern(state, binders);
+        self.1.close_pattern(state, binders);
+        self.2.close_pattern(state, binders);
+    }
+
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.open_pattern(state, binders);
+        self.1.open_pattern(state, binders);
+        self.2.open_pattern(state, binders);
+    }
+
+    fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
+        self.0.visit_binders(on_binder);
+        self.1.visit_binders(on_binder);
+        self.2.visit_binders(on_binder);
+    }
+
+    fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>)) {
+        self.0.visit_mut_binders(on_binder);
+        self.1.visit_mut_binders(on_binder);
+        self.2.visit_mut_binders(on_binder);
+    }
+}
+
 impl<N, P> BoundPattern<N> for Box<P>
 where
     P: BoundPattern<N>,
