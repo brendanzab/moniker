@@ -104,15 +104,17 @@ mod ignore;
 mod nest;
 mod rec;
 mod scope;
+mod unique_id;
 mod var;
 
 pub use self::binder::Binder;
 pub use self::bound::{BoundPattern, BoundTerm, ScopeState};
 pub use self::bound_var::{BinderIndex, BoundVar, ScopeOffset};
 pub use self::embed::Embed;
-pub use self::free_var::{FreeVar, GenId};
+pub use self::free_var::FreeVar;
 pub use self::ignore::Ignore;
 pub use self::nest::Nest;
 pub use self::rec::Rec;
 pub use self::scope::Scope;
+pub use self::unique_id::UniqueId;
 pub use self::var::Var;

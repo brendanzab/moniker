@@ -1,35 +1,13 @@
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
-/// A generated id
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct GenId(u32);
-
-impl GenId {
-    /// Generate a new, globally unique id
-    pub fn fresh() -> GenId {
-        use std::sync::atomic::{AtomicUsize, Ordering};
-
-        lazy_static! {
-            static ref NEXT_ID: AtomicUsize = AtomicUsize::new(0);
-        }
-
-        // FIXME: check for integer overflow
-        GenId(NEXT_ID.fetch_add(1, Ordering::SeqCst) as u32)
-    }
-}
-
-impl fmt::Display for GenId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "${}", self.0)
-    }
-}
+use unique_id::UniqueId;
 
 /// A free variable
 #[derive(Debug, Clone)]
 pub struct FreeVar<N> {
     /// A generated id
-    pub id: GenId,
+    pub unique_id: UniqueId,
     /// programmer-provided name for pretty-printing
     pub pretty_name: Option<N>,
 }
@@ -37,7 +15,7 @@ pub struct FreeVar<N> {
 impl<N> FreeVar<N> {
     pub fn fresh(pretty_name: Option<N>) -> FreeVar<N> {
         FreeVar {
-            id: GenId::fresh(),
+            unique_id: UniqueId::new(),
             pretty_name,
         }
     }
@@ -48,7 +26,7 @@ where
     N: PartialEq,
 {
     fn eq(&self, other: &FreeVar<N>) -> bool {
-        self.id == other.id
+        self.unique_id == other.unique_id
     }
 }
 
@@ -59,15 +37,15 @@ where
     N: Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
+        self.unique_id.hash(state);
     }
 }
 
 impl<N: fmt::Display> fmt::Display for FreeVar<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.pretty_name {
-            None => write!(f, "{}", self.id),
-            Some(ref pretty_name) => write!(f, "{}{}", pretty_name, self.id),
+            None => write!(f, "${}", self.unique_id),
+            Some(ref pretty_name) => write!(f, "{}${}", pretty_name, self.unique_id),
         }
     }
 }
