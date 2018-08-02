@@ -465,13 +465,17 @@ pub fn infer_pattern(context: &Context, expr: &RcPattern) -> Result<(RcType, Con
 
 #[test]
 fn test_infer_expr() {
+    use moniker::FreeVar;
+
+    let x = FreeVar::fresh_named("x");
+
     // expr = (\x : Int -> x)
     let expr = RcExpr::from(Expr::Lam(Scope::new(
         RcPattern::from(Pattern::Ann(
-            RcPattern::from(Pattern::Binder(Binder::user("x"))),
+            RcPattern::from(Pattern::Binder(Binder(x.clone()))),
             Embed(RcType::from(Type::Int)),
         )),
-        RcExpr::from(Expr::Var(Var::user("x"))),
+        RcExpr::from(Expr::Var(Var::Free(x.clone()))),
     )));
 
     assert_term_eq!(
@@ -485,12 +489,16 @@ fn test_infer_expr() {
 
 #[test]
 fn test_infer_app_expr() {
+    use moniker::FreeVar;
+
+    let x = FreeVar::fresh_named("x");
+
     // expr = (\x -> x : Int -> Int) 1
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Ann(
             RcExpr::from(Expr::Lam(Scope::new(
-                RcPattern::from(Pattern::Binder(Binder::user("x"))),
-                RcExpr::from(Expr::Var(Var::user("x"))),
+                RcPattern::from(Pattern::Binder(Binder(x.clone()))),
+                RcExpr::from(Expr::Var(Var::Free(x.clone()))),
             ))),
             RcType::from(Type::Arrow(
                 RcType::from(Type::Int),
@@ -508,25 +516,30 @@ fn test_infer_app_expr() {
 
 #[test]
 fn test_infer_expr_record1() {
+    use moniker::FreeVar;
+
+    let a = FreeVar::fresh_named("a");
+    let b = FreeVar::fresh_named("b");
+
     // expr = \{ x = a : Int, y = b : String } -> b
     let expr = RcExpr::from(Expr::Lam(Scope::new(
         RcPattern::from(Pattern::Record(vec![
             (
                 String::from("x"),
                 RcPattern::from(Pattern::Ann(
-                    RcPattern::from(Pattern::Binder(Binder::user("a"))),
+                    RcPattern::from(Pattern::Binder(Binder(a.clone()))),
                     Embed(RcType::from(Type::Int)),
                 )),
             ),
             (
                 String::from("y"),
                 RcPattern::from(Pattern::Ann(
-                    RcPattern::from(Pattern::Binder(Binder::user("b"))),
+                    RcPattern::from(Pattern::Binder(Binder(b.clone()))),
                     Embed(RcType::from(Type::String)),
                 )),
             ),
         ])),
-        RcExpr::from(Expr::Var(Var::user("b"))),
+        RcExpr::from(Expr::Var(Var::Free(b.clone()))),
     )));
 
     assert_term_eq!(
@@ -543,35 +556,50 @@ fn test_infer_expr_record1() {
 
 #[test]
 fn test_infer_expr_record2() {
+    use moniker::FreeVar;
+
+    let a = FreeVar::fresh_named("a");
+    let b = FreeVar::fresh_named("b");
+    let c = FreeVar::fresh_named("c");
+
     // expr = \{ x = a : Int, y = b : String, z = c : Float } -> { x = a, y = b, z = c }
     let expr = RcExpr::from(Expr::Lam(Scope::new(
         RcPattern::from(Pattern::Record(vec![
             (
                 String::from("x"),
                 RcPattern::from(Pattern::Ann(
-                    RcPattern::from(Pattern::Binder(Binder::user("a"))),
+                    RcPattern::from(Pattern::Binder(Binder(a.clone()))),
                     Embed(RcType::from(Type::Int)),
                 )),
             ),
             (
                 String::from("y"),
                 RcPattern::from(Pattern::Ann(
-                    RcPattern::from(Pattern::Binder(Binder::user("b"))),
+                    RcPattern::from(Pattern::Binder(Binder(b.clone()))),
                     Embed(RcType::from(Type::String)),
                 )),
             ),
             (
                 String::from("z"),
                 RcPattern::from(Pattern::Ann(
-                    RcPattern::from(Pattern::Binder(Binder::user("c"))),
+                    RcPattern::from(Pattern::Binder(Binder(c.clone()))),
                     Embed(RcType::from(Type::Float)),
                 )),
             ),
         ])),
         RcExpr::from(Expr::Record(vec![
-            (String::from("x"), RcExpr::from(Expr::Var(Var::user("a")))),
-            (String::from("y"), RcExpr::from(Expr::Var(Var::user("b")))),
-            (String::from("z"), RcExpr::from(Expr::Var(Var::user("c")))),
+            (
+                String::from("x"),
+                RcExpr::from(Expr::Var(Var::Free(a.clone()))),
+            ),
+            (
+                String::from("y"),
+                RcExpr::from(Expr::Var(Var::Free(b.clone()))),
+            ),
+            (
+                String::from("z"),
+                RcExpr::from(Expr::Var(Var::Free(c.clone()))),
+            ),
         ])),
     )));
 

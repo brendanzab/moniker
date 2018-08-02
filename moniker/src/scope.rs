@@ -2,6 +2,7 @@ use std::hash::Hash;
 
 use binder::Binder;
 use bound::{BoundPattern, BoundTerm, ScopeState};
+use free_var::FreeVar;
 use var::Var;
 
 /// A bound scope
@@ -46,7 +47,9 @@ impl<P, T> Scope<P, T> {
         let mut body = self.unsafe_body;
 
         // Freshen the pattern in preparation for opening
-        pattern.visit_mut_binders(&mut |binder| *binder = binder.clone().freshen());
+        pattern.visit_mut_binders(&mut |binder| {
+            *binder = Binder(FreeVar::fresh(binder.0.pretty_name.clone()));
+        });
         // Use the freshened binders when opening the body
         body.open_term(ScopeState::new(), &pattern.binders());
 
@@ -94,7 +97,7 @@ impl<P, T> Scope<P, T> {
             // binders
             let mut self_to_fresh = HashMap::new();
             self_pattern.visit_mut_binders(&mut |binder| {
-                let fresh = binder.clone().freshen();
+                let fresh = Binder(FreeVar::fresh(binder.0.pretty_name.clone()));
                 self_to_fresh.insert(binder.clone(), fresh.clone());
                 *binder = fresh;
             });

@@ -1,65 +1,34 @@
 use std::fmt;
 use std::hash::{Hash, Hasher};
-use std::mem;
 
-/// A generated id
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct GenId(u32);
-
-impl GenId {
-    /// Generate a new, globally unique id
-    pub fn fresh() -> GenId {
-        use std::sync::atomic::{AtomicUsize, Ordering};
-
-        lazy_static! {
-            static ref NEXT_ID: AtomicUsize = AtomicUsize::new(0);
-        }
-
-        // FIXME: check for integer overflow
-        GenId(NEXT_ID.fetch_add(1, Ordering::SeqCst) as u32)
-    }
-}
-
-impl fmt::Display for GenId {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "${}", self.0)
-    }
-}
+use unique_id::UniqueId;
 
 /// A free variable
 #[derive(Debug, Clone)]
-pub enum FreeVar<N> {
-    /// Names originating from user input
-    User(N),
-    /// A generated id with an optional string that may have come from user
-    /// input (for debugging purposes)
-    Gen(GenId, Option<N>),
+pub struct FreeVar<N> {
+    /// A generated id
+    pub unique_id: UniqueId,
+    /// programmer-provided name for pretty-printing
+    pub pretty_name: Option<N>,
 }
 
 impl<N> FreeVar<N> {
-    /// Create a name from a human-readable string
-    pub fn user<T: Into<N>>(ident: T) -> FreeVar<N> {
-        FreeVar::User(ident.into())
-    }
-
-    pub fn freshen(self) -> FreeVar<N> {
-        match self {
-            FreeVar::User(name) => FreeVar::Gen(GenId::fresh(), Some(name)),
-            FreeVar::Gen(_, _) => self,
+    /// Create a fresh free variable, with an optional name hint for pretty printing
+    pub fn fresh(pretty_name: Option<N>) -> FreeVar<N> {
+        FreeVar {
+            unique_id: UniqueId::new(),
+            pretty_name,
         }
     }
 
-    pub fn ident(&self) -> Option<&N> {
-        match *self {
-            FreeVar::User(ref name) => Some(name),
-            FreeVar::Gen(_, ref hint) => hint.as_ref(),
-        }
+    /// Create a fresh free variable, with no name hint
+    pub fn fresh_unnamed() -> FreeVar<N> {
+        FreeVar::fresh(None)
     }
-}
 
-impl<N> From<GenId> for FreeVar<N> {
-    fn from(src: GenId) -> FreeVar<N> {
-        FreeVar::Gen(src, None)
+    /// Create a fresh free variable, with a name hint for pretty printing
+    pub fn fresh_named(pretty_name: impl Into<N>) -> FreeVar<N> {
+        FreeVar::fresh(Some(pretty_name.into()))
     }
 }
 
@@ -68,11 +37,7 @@ where
     N: PartialEq,
 {
     fn eq(&self, other: &FreeVar<N>) -> bool {
-        match (self, other) {
-            (&FreeVar::User(ref lhs), &FreeVar::User(ref rhs)) => lhs == rhs,
-            (&FreeVar::Gen(lhs, _), &FreeVar::Gen(rhs, _)) => lhs == rhs,
-            _ => false,
-        }
+        self.unique_id == other.unique_id
     }
 }
 
@@ -83,22 +48,15 @@ where
     N: Hash,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        mem::discriminant(self).hash(state);
-        match *self {
-            FreeVar::User(ref name) => name.hash(state),
-            FreeVar::Gen(id, _) => id.hash(state),
-        }
+        self.unique_id.hash(state);
     }
 }
 
 impl<N: fmt::Display> fmt::Display for FreeVar<N> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            FreeVar::User(ref name) => write!(f, "{}", name),
-            FreeVar::Gen(ref gen_id, ref name_hint) => match *name_hint {
-                None => write!(f, "{}", gen_id),
-                Some(ref name) => write!(f, "{}{}", name, gen_id),
-            },
+        match self.pretty_name {
+            None => write!(f, "${}", self.unique_id),
+            Some(ref pretty_name) => write!(f, "{}${}", pretty_name, self.unique_id),
         }
     }
 }

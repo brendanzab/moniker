@@ -14,9 +14,11 @@ pub enum Var<N> {
 }
 
 impl<N> Var<N> {
-    /// Create a variable from a human-readable string
-    pub fn user<T: Into<N>>(ident: T) -> Var<N> {
-        Var::Free(FreeVar::user(ident))
+    pub fn pretty_name(&self) -> Option<&N> {
+        match *self {
+            Var::Bound(ref bound_var) => bound_var.pretty_name.as_ref(),
+            Var::Free(ref free_var) => free_var.pretty_name.as_ref(),
+        }
     }
 }
 

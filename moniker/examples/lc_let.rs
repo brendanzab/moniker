@@ -13,7 +13,7 @@ use std::rc::Rc;
 /// e ::= x                             variables
 ///     | \x => e                       anonymous functions
 ///     | e₁ e₂                         function application
-///     | let* x₁=e₁, ..., xₙ=eₙ in e   nested let bindings
+///     | let x₁=e₁, ..., xₙ=eₙ in e    nested let bindings
 /// ````
 #[derive(Debug, Clone, BoundTerm)]
 pub enum Expr {
@@ -100,20 +100,33 @@ pub fn eval(expr: &RcExpr) -> RcExpr {
 
 #[test]
 fn test_eval() {
+    use moniker::FreeVar;
+
+    let x = FreeVar::fresh_named("x");
+    let y = FreeVar::fresh_named("y");
+
     // expr = (\x -> x) y
     let expr = RcExpr::from(Expr::App(
         RcExpr::from(Expr::Lam(Scope::new(
-            Binder::user("x"),
-            RcExpr::from(Expr::Var(Var::user("x"))),
+            Binder(x.clone()),
+            RcExpr::from(Expr::Var(Var::Free(x.clone()))),
         ))),
-        RcExpr::from(Expr::Var(Var::user("y"))),
+        RcExpr::from(Expr::Var(Var::Free(y.clone()))),
     ));
 
-    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("y"))),);
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::Free(y.clone()))));
 }
 
 #[test]
 fn test_eval_let() {
+    use moniker::FreeVar;
+
+    let x = FreeVar::fresh_named("x");
+    let y = FreeVar::fresh_named("y");
+    let id = FreeVar::fresh_named("id");
+    let foo = FreeVar::fresh_named("foo");
+    let bar = FreeVar::fresh_named("bar");
+
     // expr =
     //      let id = \x -> x
     //          foo =  y
@@ -122,28 +135,28 @@ fn test_eval_let() {
     let expr = RcExpr::from(Expr::Let(Scope::new(
         Nest::new(vec![
             (
-                Binder::user("id"),
+                Binder(id.clone()),
                 Embed(RcExpr::from(Expr::Lam(Scope::new(
-                    Binder::user("x"),
-                    RcExpr::from(Expr::Var(Var::user("x"))),
+                    Binder(x.clone()),
+                    RcExpr::from(Expr::Var(Var::Free(x.clone()))),
                 )))),
             ),
             (
-                Binder::user("foo"),
-                Embed(RcExpr::from(Expr::Var(Var::user("y")))),
+                Binder(foo.clone()),
+                Embed(RcExpr::from(Expr::Var(Var::Free(y.clone())))),
             ),
             (
-                Binder::user("bar"),
+                Binder(bar.clone()),
                 Embed(RcExpr::from(Expr::App(
-                    RcExpr::from(Expr::Var(Var::user("id"))),
-                    RcExpr::from(Expr::Var(Var::user("foo"))),
+                    RcExpr::from(Expr::Var(Var::Free(id.clone()))),
+                    RcExpr::from(Expr::Var(Var::Free(foo.clone()))),
                 ))),
             ),
         ]),
-        RcExpr::from(Expr::Var(Var::user("bar"))),
+        RcExpr::from(Expr::Var(Var::Free(bar.clone()))),
     )));
 
-    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::user("y"))),);
+    assert_term_eq!(eval(&expr), RcExpr::from(Expr::Var(Var::Free(y.clone()))),);
 }
 
 fn main() {}

@@ -128,14 +128,17 @@ pub type RcExpr = Rc<Expr>;
 We can now construct lambda expressions by doing the following:
 
 ```rust
+let f = FreeVar::fresh(Some("f".to_string()));
+let x = FreeVar::fresh(Some("x".to_string()));
+
 // \f => \x => f x
 Rc::new(Expr::Lam(Scope::new(
-    Binder::user("f"),
+    Binder(f.clone()),
     Rc::new(Expr::Lam(Scope::new(
-        Binder::user("x"),
+        Binder(x.clone()),
         Rc::new(Expr::App(
-            Rc::new(Expr::Var(Var::user("f"))),
-            Rc::new(Expr::Var(Var::user("x"))),
+            Rc::new(Expr::Var(Var::Free(f.clone()))),
+            Rc::new(Expr::Var(Var::Free(x.clone()))),
         )),
     )))
 )))
