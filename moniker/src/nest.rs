@@ -22,8 +22,8 @@ impl<P> Nest<P> {
         for mut pattern in patterns {
             let mut state = ScopeState::new();
             for rebound_pattern in &rebound_patterns {
-                state = state.incr();
                 pattern.close_pattern(state, &rebound_pattern.binders());
+                state = state.incr();
             }
             rebound_patterns.push(pattern);
         }
@@ -45,8 +45,8 @@ impl<P> Nest<P> {
         for mut pattern in self.unsafe_patterns {
             let mut state = ScopeState::new();
             for bound_pattern in &unrebound_patterns {
-                state = state.incr();
                 pattern.open_pattern(state, &bound_pattern.binders());
+                state = state.incr();
             }
             unrebound_patterns.push(pattern);
         }
@@ -73,7 +73,7 @@ where
 
     fn open_pattern(&mut self, mut state: ScopeState, binders: &[Binder<N>]) {
         for elem in &mut self.unsafe_patterns {
-            elem.close_pattern(state, binders);
+            elem.open_pattern(state, binders);
             state = state.incr();
         }
     }
