@@ -73,7 +73,7 @@ where
 
     fn open_pattern(&mut self, mut state: ScopeState, binders: &[Binder<N>]) {
         for elem in &mut self.unsafe_patterns {
-            elem.close_pattern(state, binders);
+            elem.open_pattern(state, binders);
             state = state.incr();
         }
     }
