@@ -357,6 +357,98 @@ where
     }
 }
 
+impl<N, T1, T2, T3, T4> BoundTerm<N> for (T1, T2, T3, T4)
+where
+    T1: BoundTerm<N>,
+    T2: BoundTerm<N>,
+    T3: BoundTerm<N>,
+    T4: BoundTerm<N>,
+{
+    fn term_eq(&self, other: &(T1, T2, T3, T4)) -> bool {
+        T1::term_eq(&self.0, &other.0)
+            && T2::term_eq(&self.1, &other.1)
+            && T3::term_eq(&self.2, &other.2)
+            && T4::term_eq(&self.3, &other.3)
+    }
+
+    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.close_term(state, binders);
+        self.1.close_term(state, binders);
+        self.2.close_term(state, binders);
+        self.3.close_term(state, binders);
+    }
+
+    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.open_term(state, binders);
+        self.1.open_term(state, binders);
+        self.2.open_term(state, binders);
+        self.3.open_term(state, binders);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        self.0.visit_vars(on_var);
+        self.1.visit_vars(on_var);
+        self.2.visit_vars(on_var);
+        self.3.visit_vars(on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        self.0.visit_mut_vars(on_var);
+        self.1.visit_mut_vars(on_var);
+        self.2.visit_mut_vars(on_var);
+        self.3.visit_mut_vars(on_var);
+    }
+}
+
+impl<N, T1, T2, T3, T4, T5> BoundTerm<N> for (T1, T2, T3, T4, T5)
+where
+    T1: BoundTerm<N>,
+    T2: BoundTerm<N>,
+    T3: BoundTerm<N>,
+    T4: BoundTerm<N>,
+    T5: BoundTerm<N>,
+{
+    fn term_eq(&self, other: &(T1, T2, T3, T4, T5)) -> bool {
+        T1::term_eq(&self.0, &other.0)
+            && T2::term_eq(&self.1, &other.1)
+            && T3::term_eq(&self.2, &other.2)
+            && T4::term_eq(&self.3, &other.3)
+            && T5::term_eq(&self.4, &other.4)
+    }
+
+    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.close_term(state, binders);
+        self.1.close_term(state, binders);
+        self.2.close_term(state, binders);
+        self.3.close_term(state, binders);
+        self.4.close_term(state, binders);
+    }
+
+    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.open_term(state, binders);
+        self.1.open_term(state, binders);
+        self.2.open_term(state, binders);
+        self.3.open_term(state, binders);
+        self.4.open_term(state, binders);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        self.0.visit_vars(on_var);
+        self.1.visit_vars(on_var);
+        self.2.visit_vars(on_var);
+        self.3.visit_vars(on_var);
+        self.4.visit_vars(on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        self.0.visit_mut_vars(on_var);
+        self.1.visit_mut_vars(on_var);
+        self.2.visit_mut_vars(on_var);
+        self.3.visit_mut_vars(on_var);
+        self.4.visit_mut_vars(on_var);
+    }
+}
+
 impl<N, T> BoundTerm<N> for [T]
 where
     T: BoundTerm<N>,
@@ -608,6 +700,98 @@ where
         self.0.visit_mut_binders(on_binder);
         self.1.visit_mut_binders(on_binder);
         self.2.visit_mut_binders(on_binder);
+    }
+}
+
+impl<N, P1, P2, P3, P4> BoundPattern<N> for (P1, P2, P3, P4)
+where
+    P1: BoundPattern<N>,
+    P2: BoundPattern<N>,
+    P3: BoundPattern<N>,
+    P4: BoundPattern<N>,
+{
+    fn pattern_eq(&self, other: &(P1, P2, P3, P4)) -> bool {
+        P1::pattern_eq(&self.0, &other.0)
+            && P2::pattern_eq(&self.1, &other.1)
+            && P3::pattern_eq(&self.2, &other.2)
+            && P4::pattern_eq(&self.3, &other.3)
+    }
+
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.close_pattern(state, binders);
+        self.1.close_pattern(state, binders);
+        self.2.close_pattern(state, binders);
+        self.3.close_pattern(state, binders);
+    }
+
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.open_pattern(state, binders);
+        self.1.open_pattern(state, binders);
+        self.2.open_pattern(state, binders);
+        self.3.open_pattern(state, binders);
+    }
+
+    fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
+        self.0.visit_binders(on_binder);
+        self.1.visit_binders(on_binder);
+        self.2.visit_binders(on_binder);
+        self.3.visit_binders(on_binder);
+    }
+
+    fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>)) {
+        self.0.visit_mut_binders(on_binder);
+        self.1.visit_mut_binders(on_binder);
+        self.2.visit_mut_binders(on_binder);
+        self.3.visit_mut_binders(on_binder);
+    }
+}
+
+impl<N, P1, P2, P3, P4, P5> BoundPattern<N> for (P1, P2, P3, P4, P5)
+where
+    P1: BoundPattern<N>,
+    P2: BoundPattern<N>,
+    P3: BoundPattern<N>,
+    P4: BoundPattern<N>,
+    P5: BoundPattern<N>,
+{
+    fn pattern_eq(&self, other: &(P1, P2, P3, P4, P5)) -> bool {
+        P1::pattern_eq(&self.0, &other.0)
+            && P2::pattern_eq(&self.1, &other.1)
+            && P3::pattern_eq(&self.2, &other.2)
+            && P4::pattern_eq(&self.3, &other.3)
+            && P5::pattern_eq(&self.4, &other.4)
+    }
+
+    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.close_pattern(state, binders);
+        self.1.close_pattern(state, binders);
+        self.2.close_pattern(state, binders);
+        self.3.close_pattern(state, binders);
+        self.4.close_pattern(state, binders);
+    }
+
+    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+        self.0.open_pattern(state, binders);
+        self.1.open_pattern(state, binders);
+        self.2.open_pattern(state, binders);
+        self.3.open_pattern(state, binders);
+        self.4.open_pattern(state, binders);
+    }
+
+    fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
+        self.0.visit_binders(on_binder);
+        self.1.visit_binders(on_binder);
+        self.2.visit_binders(on_binder);
+        self.3.visit_binders(on_binder);
+        self.4.visit_binders(on_binder);
+    }
+
+    fn visit_mut_binders(&mut self, on_binder: &mut impl FnMut(&mut Binder<N>)) {
+        self.0.visit_mut_binders(on_binder);
+        self.1.visit_mut_binders(on_binder);
+        self.2.visit_mut_binders(on_binder);
+        self.3.visit_mut_binders(on_binder);
+        self.4.visit_mut_binders(on_binder);
     }
 }
 
