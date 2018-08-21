@@ -1,6 +1,6 @@
 [package]
 name = "moniker"
-version = "0.3.1"
+version = "0.3.2"
 readme = "../README.md"
 license = "Apache-2.0"
 authors = ["Brendan Zabarauskas <bjzaba@yahoo.com.au>"]
@@ -30,7 +30,7 @@ default = ["moniker-derive"]
 
 [dependencies]
 lazy_static = "1.0"
-moniker-derive = { path = "../moniker-derive", version = "0.3.1", optional = true }
+moniker-derive = { path = "../moniker-derive", version = "0.3.2", optional = true }
 
 # Optional impls
 codespan = { version = "0.1.2", optional = true }
