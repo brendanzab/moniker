@@ -108,7 +108,7 @@ mod unique_id;
 mod var;
 
 pub use self::binder::Binder;
-pub use self::bound::{BoundPattern, BoundTerm, ScopeState};
+pub use self::bound::{BoundPattern, BoundTerm, OnBoundFn, OnFreeFn, ScopeState};
 pub use self::bound_var::{BinderIndex, BoundVar, ScopeOffset};
 pub use self::embed::Embed;
 pub use self::free_var::FreeVar;
