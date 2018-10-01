@@ -16,20 +16,18 @@ impl<P> Nest<P> {
         N: Clone + PartialEq,
         P: BoundPattern<N>,
     {
+        let mut binders = Vec::with_capacity(patterns.len());
         // FIXME: Avoid allocating new vector
-        let mut rebound_patterns = Vec::<P>::with_capacity(patterns.len());
+        let mut nested_patterns = Vec::<P>::with_capacity(patterns.len());
 
         for mut pattern in patterns {
-            let mut state = ScopeState::new();
-            for rebound_pattern in &rebound_patterns {
-                pattern.close_pattern(state, &rebound_pattern.binders());
-                state = state.incr();
-            }
-            rebound_patterns.push(pattern);
+            pattern.close_pattern(ScopeState::new(), &binders);
+            binders.push(pattern.binders());
+            nested_patterns.push(pattern);
         }
 
         Nest {
-            unsafe_patterns: rebound_patterns,
+            unsafe_patterns: nested_patterns,
         }
     }
 
@@ -39,19 +37,17 @@ impl<P> Nest<P> {
         N: Clone + PartialEq,
         P: BoundPattern<N>,
     {
+        let mut binders = Vec::with_capacity(self.unsafe_patterns.len());
         // FIXME: Avoid allocating new vector
-        let mut unrebound_patterns = Vec::<P>::with_capacity(self.unsafe_patterns.len());
+        let mut unnested_patterns = Vec::<P>::with_capacity(self.unsafe_patterns.len());
 
         for mut pattern in self.unsafe_patterns {
-            let mut state = ScopeState::new();
-            for bound_pattern in &unrebound_patterns {
-                pattern.open_pattern(state, &bound_pattern.binders());
-                state = state.incr();
-            }
-            unrebound_patterns.push(pattern);
+            pattern.open_pattern(ScopeState::new(), &binders);
+            binders.push(pattern.binders());
+            unnested_patterns.push(pattern);
         }
 
-        unrebound_patterns
+        unnested_patterns
     }
 }
 

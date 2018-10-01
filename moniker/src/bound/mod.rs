@@ -52,6 +52,17 @@ impl<N: Clone + PartialEq> OnFreeFn<N> for Vec<Binder<N>> {
     }
 }
 
+impl<N: Clone + PartialEq> OnFreeFn<N> for Vec<Vec<Binder<N>>> {
+    fn call(&self, mut state: ScopeState, free_var: &FreeVar<N>) -> Option<BoundVar<N>> {
+        self.iter()
+            .filter_map(|binders| {
+                let result = OnFreeFn::call(binders, state, free_var);
+                state = state.incr();
+                result
+            }).next()
+    }
+}
+
 pub trait OnBoundFn<N> {
     fn call(&self, state: ScopeState, bound_var: &BoundVar<N>) -> Option<FreeVar<N>>;
 }
@@ -72,6 +83,17 @@ impl<N: Clone + PartialEq> OnBoundFn<N> for Vec<Binder<N>> {
         } else {
             None
         }
+    }
+}
+
+impl<N: Clone + PartialEq> OnBoundFn<N> for Vec<Vec<Binder<N>>> {
+    fn call(&self, mut state: ScopeState, bound_var: &BoundVar<N>) -> Option<FreeVar<N>> {
+        self.iter()
+            .filter_map(|binders| {
+                let result = OnBoundFn::call(binders, state, bound_var);
+                state = state.incr();
+                result
+            }).next()
     }
 }
 
