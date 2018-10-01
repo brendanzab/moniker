@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use binder::Binder;
-use bound::{BoundPattern, BoundTerm, ScopeState};
+use bound::{BoundPattern, BoundTerm, OnBoundFn, OnFreeFn, ScopeState};
 use free_var::FreeVar;
 use var::Var;
 
@@ -24,7 +24,7 @@ impl<P, T> Scope<P, T> {
     /// Create a new scope by binding a term with the given pattern
     pub fn new<N>(pattern: P, mut body: T) -> Scope<P, T>
     where
-        N: Clone,
+        N: Clone + PartialEq,
         P: BoundPattern<N>,
         T: BoundTerm<N>,
     {
@@ -124,6 +124,7 @@ impl<P, T> Scope<P, T> {
 
 impl<N, P, T> BoundTerm<N> for Scope<P, T>
 where
+    N: Clone + PartialEq,
     P: BoundPattern<N>,
     T: BoundTerm<N>,
 {
@@ -132,14 +133,14 @@ where
             && T::term_eq(&self.unsafe_body, &other.unsafe_body)
     }
 
-    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
-        self.unsafe_pattern.close_pattern(state, binders);
-        self.unsafe_body.close_term(state.incr(), binders);
+    fn close_term(&mut self, state: ScopeState, on_free: &impl OnFreeFn<N>) {
+        self.unsafe_pattern.close_pattern(state, on_free);
+        self.unsafe_body.close_term(state.incr(), on_free);
     }
 
-    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
-        self.unsafe_pattern.open_pattern(state, binders);
-        self.unsafe_body.open_term(state.incr(), binders);
+    fn open_term(&mut self, state: ScopeState, on_bound: &impl OnBoundFn<N>) {
+        self.unsafe_pattern.open_pattern(state, on_bound);
+        self.unsafe_body.open_term(state.incr(), on_bound);
     }
 
     fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {

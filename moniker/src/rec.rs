@@ -1,5 +1,5 @@
 use binder::Binder;
-use bound::{BoundPattern, ScopeState};
+use bound::{BoundPattern, OnBoundFn, OnFreeFn, ScopeState};
 
 /// Recursively bind a pattern in itself
 ///
@@ -13,7 +13,7 @@ pub struct Rec<P> {
 impl<P> Rec<P> {
     pub fn new<N>(mut pattern: P) -> Rec<P>
     where
-        N: Clone,
+        N: Clone + PartialEq,
         P: BoundPattern<N>,
     {
         let binders = pattern.binders();
@@ -25,7 +25,7 @@ impl<P> Rec<P> {
 
     pub fn unrec<N>(mut self) -> P
     where
-        N: Clone,
+        N: Clone + PartialEq,
         P: BoundPattern<N>,
     {
         let binders = self.unsafe_pattern.binders();
@@ -36,18 +36,19 @@ impl<P> Rec<P> {
 
 impl<N, P> BoundPattern<N> for Rec<P>
 where
+    N: Clone + PartialEq,
     P: BoundPattern<N>,
 {
     fn pattern_eq(&self, other: &Rec<P>) -> bool {
         P::pattern_eq(&self.unsafe_pattern, &other.unsafe_pattern)
     }
 
-    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
-        self.unsafe_pattern.close_pattern(state, binders);
+    fn close_pattern(&mut self, state: ScopeState, on_free: &impl OnFreeFn<N>) {
+        self.unsafe_pattern.close_pattern(state, on_free);
     }
 
-    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
-        self.unsafe_pattern.open_pattern(state, binders);
+    fn open_pattern(&mut self, state: ScopeState, on_bound: &impl OnBoundFn<N>) {
+        self.unsafe_pattern.open_pattern(state, on_bound);
     }
 
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {

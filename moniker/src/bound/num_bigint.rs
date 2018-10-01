@@ -4,14 +4,14 @@ use super::*;
 
 macro_rules! impl_bound_term_partial_eq {
     ($T:ty) => {
-        impl<N> BoundTerm<N> for $T {
+        impl<N: Clone + PartialEq> BoundTerm<N> for $T {
             fn term_eq(&self, other: &$T) -> bool {
                 self == other
             }
 
-            fn close_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
+            fn close_term(&mut self, _: ScopeState, _: &impl OnFreeFn<N>) {}
 
-            fn open_term(&mut self, _: ScopeState, _: &[Binder<N>]) {}
+            fn open_term(&mut self, _: ScopeState, _: &impl OnBoundFn<N>) {}
 
             fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
 
@@ -25,14 +25,14 @@ impl_bound_term_partial_eq!(BigUint);
 
 macro_rules! impl_bound_pattern_partial_eq {
     ($T:ty) => {
-        impl<N> BoundPattern<N> for $T {
+        impl<N: Clone + PartialEq> BoundPattern<N> for $T {
             fn pattern_eq(&self, other: &$T) -> bool {
                 self == other
             }
 
-            fn close_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
+            fn close_pattern(&mut self, _: ScopeState, _: &impl OnFreeFn<N>) {}
 
-            fn open_pattern(&mut self, _: ScopeState, _: &[Binder<N>]) {}
+            fn open_pattern(&mut self, _: ScopeState, _: &impl OnBoundFn<N>) {}
 
             fn visit_binders(&self, _: &mut impl FnMut(&Binder<N>)) {}
 

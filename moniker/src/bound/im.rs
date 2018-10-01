@@ -4,6 +4,7 @@ use super::*;
 
 impl<N, T> BoundTerm<N> for Vector<T>
 where
+    N: Clone + PartialEq,
     T: Clone + BoundTerm<N>,
 {
     fn term_eq(&self, other: &Vector<T>) -> bool {
@@ -11,15 +12,15 @@ where
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| T::term_eq(lhs, rhs))
     }
 
-    fn close_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+    fn close_term(&mut self, state: ScopeState, on_free: &impl OnFreeFn<N>) {
         for elem in self.iter_mut() {
-            elem.close_term(state, binders);
+            elem.close_term(state, on_free);
         }
     }
 
-    fn open_term(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+    fn open_term(&mut self, state: ScopeState, on_bound: &impl OnBoundFn<N>) {
         for elem in self.iter_mut() {
-            elem.open_term(state, binders);
+            elem.open_term(state, on_bound);
         }
     }
 
@@ -38,7 +39,7 @@ where
 
 impl<N, P> BoundPattern<N> for Vector<P>
 where
-    N: Clone,
+    N: Clone + PartialEq,
     P: Clone + BoundPattern<N>,
 {
     fn pattern_eq(&self, other: &Vector<P>) -> bool {
@@ -46,15 +47,15 @@ where
             && <_>::zip(self.iter(), other.iter()).all(|(lhs, rhs)| P::pattern_eq(lhs, rhs))
     }
 
-    fn close_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+    fn close_pattern(&mut self, state: ScopeState, on_free: &impl OnFreeFn<N>) {
         for elem in self.iter_mut() {
-            elem.close_pattern(state, binders);
+            elem.close_pattern(state, on_free);
         }
     }
 
-    fn open_pattern(&mut self, state: ScopeState, binders: &[Binder<N>]) {
+    fn open_pattern(&mut self, state: ScopeState, on_bound: &impl OnBoundFn<N>) {
         for elem in self.iter_mut() {
-            elem.open_pattern(state, binders);
+            elem.open_pattern(state, on_bound);
         }
     }
 
