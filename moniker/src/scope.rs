@@ -144,10 +144,12 @@ where
     }
 
     fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        self.unsafe_pattern.visit_vars(on_var);
         self.unsafe_body.visit_vars(on_var);
     }
 
     fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        self.unsafe_pattern.visit_mut_vars(on_var);
         self.unsafe_body.visit_mut_vars(on_var);
     }
 }

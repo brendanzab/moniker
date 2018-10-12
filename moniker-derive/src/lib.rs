@@ -155,6 +155,15 @@ fn bound_pattern_derive(mut s: Structure) -> proc_macro2::TokenStream {
     });
 
     s.bind_with(|_| BindStyle::Ref);
+    let visit_vars_body = s.each(|bi| {
+        quote!{ moniker::BoundPattern::<String>::visit_vars(#bi, __on_var); }
+    });
+    s.bind_with(|_| BindStyle::RefMut);
+    let visit_mut_vars_body = s.each(|bi| {
+        quote!{ moniker::BoundPattern::<String>::visit_mut_vars(#bi, __on_var); }
+    });
+
+    s.bind_with(|_| BindStyle::Ref);
     let visit_binders_body = s.each(|bi| {
         quote!{ moniker::BoundPattern::<String>::visit_binders(#bi, __on_binder); }
     });
@@ -185,6 +194,17 @@ fn bound_pattern_derive(mut s: Structure) -> proc_macro2::TokenStream {
                 __on_bound: &impl moniker::OnBoundFn<String>,
             ) {
                 match *self { #open_pattern_body }
+            }
+
+            fn visit_vars(&self, __on_var: &mut impl FnMut(&moniker::Var<String>)) {
+                match *self { #visit_vars_body }
+            }
+
+            fn visit_mut_vars(
+                &mut self,
+                __on_var: &mut impl FnMut(&mut moniker::Var<String>),
+            ) {
+                match *self { #visit_mut_vars_body }
             }
 
             fn visit_binders(&self, __on_binder: &mut impl FnMut(&moniker::Binder<String>)) {

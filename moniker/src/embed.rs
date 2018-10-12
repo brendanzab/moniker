@@ -1,5 +1,6 @@
 use binder::Binder;
 use bound::{BoundPattern, BoundTerm, OnBoundFn, OnFreeFn, ScopeState};
+use var::Var;
 
 /// Embed a term in a pattern
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,6 +21,14 @@ where
 
     fn open_pattern(&mut self, state: ScopeState, on_bound: &impl OnBoundFn<N>) {
         self.0.open_term(state, on_bound);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        self.0.visit_vars(on_var)
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        self.0.visit_mut_vars(on_var)
     }
 
     fn visit_binders(&self, _: &mut impl FnMut(&Binder<N>)) {}
