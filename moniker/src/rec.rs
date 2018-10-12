@@ -1,5 +1,6 @@
 use binder::Binder;
 use bound::{BoundPattern, OnBoundFn, OnFreeFn, ScopeState};
+use var::Var;
 
 /// Recursively bind a pattern in itself
 ///
@@ -49,6 +50,14 @@ where
 
     fn open_pattern(&mut self, state: ScopeState, on_bound: &impl OnBoundFn<N>) {
         self.unsafe_pattern.open_pattern(state, on_bound);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        self.unsafe_pattern.visit_vars(on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        self.unsafe_pattern.visit_mut_vars(on_var);
     }
 
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {

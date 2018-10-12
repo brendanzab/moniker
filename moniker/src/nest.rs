@@ -1,5 +1,6 @@
 use binder::Binder;
 use bound::{BoundPattern, OnBoundFn, OnFreeFn, ScopeState};
+use var::Var;
 
 /// Nested binding patterns
 ///
@@ -72,6 +73,14 @@ where
             elem.open_pattern(state, on_bound);
             state = state.incr();
         }
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        <[P]>::visit_vars(&self.unsafe_patterns, on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        <[P]>::visit_mut_vars(&mut self.unsafe_patterns, on_var);
     }
 
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {

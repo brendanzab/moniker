@@ -59,6 +59,18 @@ where
         }
     }
 
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        for elem in self.iter() {
+            elem.visit_vars(on_var);
+        }
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        for elem in self.iter_mut() {
+            elem.visit_mut_vars(on_var);
+        }
+    }
+
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
         for elem in self.iter() {
             elem.visit_binders(on_binder);

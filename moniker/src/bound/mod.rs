@@ -571,6 +571,29 @@ pub trait BoundPattern<N: Clone + PartialEq> {
     /// Open the terms in the pattern using the supplied binders
     fn open_pattern(&mut self, state: ScopeState, on_bound: &impl OnBoundFn<N>);
 
+    /// Visit each variable in the term, calling the `on_var` callback on each
+    /// of them in turn
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>));
+
+    /// Visit each variable in the term, calling the `on_var` callback on each
+    /// of them in turn
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>));
+
+    /// Returns the set of free variables in this term
+    fn free_vars(&self) -> HashSet<FreeVar<N>>
+    where
+        N: Eq + Hash + Clone,
+    {
+        let mut free_vars = HashSet::new();
+        self.visit_vars(&mut |var| match *var {
+            Var::Bound(_) => {},
+            Var::Free(ref free_var) => {
+                free_vars.insert(free_var.clone());
+            },
+        });
+        free_vars
+    }
+
     /// Visit each of the binders in the term, calling the `on_binder` callback
     /// on each of them in turn
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>));
@@ -604,6 +627,10 @@ where
 
     fn open_pattern(&mut self, _: ScopeState, _: &impl OnBoundFn<N>) {}
 
+    fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
+
+    fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<N>)) {}
+
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
         on_binder(self)
     }
@@ -625,6 +652,10 @@ macro_rules! impl_bound_pattern_partial_eq {
             fn close_pattern(&mut self, _: ScopeState, _: &impl OnFreeFn<N>) {}
 
             fn open_pattern(&mut self, _: ScopeState, _: &impl OnBoundFn<N>) {}
+
+            fn visit_vars(&self, _: &mut impl FnMut(&Var<N>)) {}
+
+            fn visit_mut_vars(&mut self, _: &mut impl FnMut(&mut Var<N>)) {}
 
             fn visit_binders(&self, _: &mut impl FnMut(&Binder<N>)) {}
 
@@ -676,6 +707,18 @@ where
         }
     }
 
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        if let Some(ref inner) = *self {
+            inner.visit_vars(on_var);
+        }
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        if let Some(ref mut inner) = *self {
+            inner.visit_mut_vars(on_var);
+        }
+    }
+
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
         if let Some(ref inner) = *self {
             inner.visit_binders(on_binder);
@@ -707,6 +750,16 @@ where
     fn open_pattern(&mut self, state: ScopeState, on_bound: &impl OnBoundFn<N>) {
         self.0.open_pattern(state, on_bound);
         self.1.open_pattern(state, on_bound);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        self.0.visit_vars(on_var);
+        self.1.visit_vars(on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        self.0.visit_mut_vars(on_var);
+        self.1.visit_mut_vars(on_var);
     }
 
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
@@ -743,6 +796,18 @@ where
         self.0.open_pattern(state, on_bound);
         self.1.open_pattern(state, on_bound);
         self.2.open_pattern(state, on_bound);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        self.0.visit_vars(on_var);
+        self.1.visit_vars(on_var);
+        self.2.visit_vars(on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        self.0.visit_mut_vars(on_var);
+        self.1.visit_mut_vars(on_var);
+        self.2.visit_mut_vars(on_var);
     }
 
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
@@ -785,6 +850,20 @@ where
         self.1.open_pattern(state, on_bound);
         self.2.open_pattern(state, on_bound);
         self.3.open_pattern(state, on_bound);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        self.0.visit_vars(on_var);
+        self.1.visit_vars(on_var);
+        self.2.visit_vars(on_var);
+        self.3.visit_vars(on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        self.0.visit_mut_vars(on_var);
+        self.1.visit_mut_vars(on_var);
+        self.2.visit_mut_vars(on_var);
+        self.3.visit_mut_vars(on_var);
     }
 
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
@@ -835,6 +914,22 @@ where
         self.4.open_pattern(state, on_bound);
     }
 
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        self.0.visit_vars(on_var);
+        self.1.visit_vars(on_var);
+        self.2.visit_vars(on_var);
+        self.3.visit_vars(on_var);
+        self.4.visit_vars(on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        self.0.visit_mut_vars(on_var);
+        self.1.visit_mut_vars(on_var);
+        self.2.visit_mut_vars(on_var);
+        self.3.visit_mut_vars(on_var);
+        self.4.visit_mut_vars(on_var);
+    }
+
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
         self.0.visit_binders(on_binder);
         self.1.visit_binders(on_binder);
@@ -869,6 +964,14 @@ where
         P::open_pattern(self, state, on_bound);
     }
 
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        P::visit_vars(self, on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        P::visit_mut_vars(self, on_var);
+    }
+
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
         P::visit_binders(self, on_binder);
     }
@@ -895,6 +998,14 @@ where
         P::open_pattern(Rc::make_mut(self), state, on_bound);
     }
 
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        P::visit_vars(self, on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        P::visit_mut_vars(Rc::make_mut(self), on_var);
+    }
+
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
         P::visit_binders(self, on_binder);
     }
@@ -919,6 +1030,14 @@ where
 
     fn open_pattern(&mut self, state: ScopeState, on_bound: &impl OnBoundFn<N>) {
         P::open_pattern(Arc::make_mut(self), state, on_bound);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        P::visit_vars(self, on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        P::visit_mut_vars(Arc::make_mut(self), on_var);
     }
 
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
@@ -953,6 +1072,18 @@ where
         }
     }
 
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        for elem in self {
+            elem.visit_vars(on_var);
+        }
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        for elem in self {
+            elem.visit_mut_vars(on_var);
+        }
+    }
+
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
         for elem in self {
             elem.visit_binders(on_binder);
@@ -981,6 +1112,14 @@ where
 
     fn open_pattern(&mut self, state: ScopeState, on_bound: &impl OnBoundFn<N>) {
         <[P]>::open_pattern(self, state, on_bound);
+    }
+
+    fn visit_vars(&self, on_var: &mut impl FnMut(&Var<N>)) {
+        <[P]>::visit_vars(self, on_var);
+    }
+
+    fn visit_mut_vars(&mut self, on_var: &mut impl FnMut(&mut Var<N>)) {
+        <[P]>::visit_mut_vars(self, on_var);
     }
 
     fn visit_binders(&self, on_binder: &mut impl FnMut(&Binder<N>)) {
