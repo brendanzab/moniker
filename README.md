@@ -186,7 +186,7 @@ Terms are data types that implement the [`BoundTerm`] trait.
 - [`Scope<P: BoundPattern<N>, T: BoundTerm<N>>`]: bind the term `T` using the pattern `P`
 - [`Ignore<T>`]: Ignores `T` when comparing for alpha equality
 
-Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
+Implementations for tuples, strings, numbers, slices, vectors, and smart pointers
 are also provided for convenience.
 
 [`BoundTerm`]: https://docs.rs/moniker/latest/moniker/trait.BoundTerm.html
@@ -204,7 +204,7 @@ Patterns are data types that implement the [`BoundPattern`] trait.
 - [`Nest<P: BoundPattern<N>>`]: Multiple nested binding patterns
 - [`Rec<P: BoundPattern<N>>`]: Recursively bind a pattern in itself
 
-Implementations for tuples, strings, numbers, slices, vectors, and mart pointers
+Implementations for tuples, strings, numbers, slices, vectors, and smart pointers
 are also provided for convenience.
 
 [`BoundPattern`]: https://docs.rs/moniker/latest/moniker/trait.BoundPattern.html
